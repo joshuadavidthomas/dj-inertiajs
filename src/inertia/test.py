@@ -5,7 +5,7 @@ from django.template.loader import render_to_string as base_render_to_string
 from django.test import Client, TestCase
 from django.utils.html import escape
 
-from inertia.settings import settings
+from .settings import settings
 
 
 class ClientWithLastResponse:
