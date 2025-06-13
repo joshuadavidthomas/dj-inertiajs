@@ -164,6 +164,7 @@ cython_debug/
 
 # because this is a package, we don't want to commit the lock file
 poetry.lock
+uv.lock
 
 .DS_Store
 .tool-versions

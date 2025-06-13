@@ -1,17 +1,15 @@
 [build-system]
-requires = ["poetry-core>=2.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "inertia-django"
 version = "1.2.0"
 description = "Django adapter for the InertiaJS framework"
 authors = [{name="Brandon Shar", email="brandon@bellawatt.com"}]
-license = "MIT"
+license = {file = "LICENSE"}
 requires-python = ">=3.9"
 readme = "README.md"
-repository = "https://github.com/inertiajs/inertia-django"
-homepage = "https://github.com/inertiajs/inertia-django"
 keywords = ["inertia", "inertiajs", "django"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -25,16 +23,20 @@ dependencies = [
     "requests>=2",
 ]
 
-[tool.poetry]
-packages = [
-  { include = "inertia", from = "src" },
+[project.urls]
+Repository = "https://github.com/inertiajs/inertia-django"
+Homepage = "https://github.com/inertiajs/inertia-django"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-cov>=6.0.0",
+    "pytest-django>=4.10.0",
+    "ruff>=0.11.2",
 ]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
-pytest-cov = "^6.0.0"
-pytest-django = "^4.10.0"
-ruff = "^0.11.2"
+[tool.hatch.build.targets.wheel]
+packages = ["src/inertia"]
 
 [tool.ruff.lint]
 select = [
