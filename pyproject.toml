@@ -1,17 +1,15 @@
 [build-system]
-requires = ["poetry-core>=2.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "inertia-django"
+name = "dj-inertiajs"
 version = "1.2.0"
-description = "Django adapter for the InertiaJS framework"
-authors = [{name="Brandon Shar", email="brandon@bellawatt.com"}]
-license = "MIT"
+description = "Django adapter for Inertia.js"
+authors = [{name="Josh Thomas", email="josh@joshthomas.dev"}]
+license = {file = "LICENSE"}
 requires-python = ">=3.9"
 readme = "README.md"
-repository = "https://github.com/inertiajs/inertia-django"
-homepage = "https://github.com/inertiajs/inertia-django"
 keywords = ["inertia", "inertiajs", "django"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -25,16 +23,20 @@ dependencies = [
     "requests>=2",
 ]
 
-[tool.poetry]
-packages = [
-  { include = "inertia" },
+[project.urls]
+Repository = "https://github.com/joshuadavidthomas/dj-inertiajs"
+Homepage = "https://github.com/joshuadavidthomas/dj-inertiajs"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-cov>=6.0.0",
+    "pytest-django>=4.10.0",
+    "ruff>=0.11.2",
 ]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
-pytest-cov = "^6.0.0"
-pytest-django = "^4.10.0"
-ruff = "^0.11.2"
+[tool.hatch.build.targets.wheel]
+packages = ["src/inertia"]
 
 [tool.ruff.lint]
 select = [
@@ -49,5 +51,10 @@ ignore = ["E501"] # line too long, formatter will handle this
 unfixable = ["B", "SIM"]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "inertia.tests.settings"
+DJANGO_SETTINGS_MODULE = "tests.settings"
 django_find_project = false
+norecursedirs = ".* bin build dist *.egg htmlcov logs node_modules templates venv"
+python_files = "tests.py test_*.py *_tests.py"
+python_functions = "test* atest*"
+pythonpath = ["src", "."]
+testpaths = ["tests"]

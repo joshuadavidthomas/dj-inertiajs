@@ -22,10 +22,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.sites",
     "inertia",
-    "inertia.tests.testapp.apps.TestAppConfig",
+    "tests.testapp.apps.TestAppConfig",
 ]
 
-ROOT_URLCONF = "inertia.tests.testapp.urls"
+ROOT_URLCONF = "tests.testapp.urls"
 
 TEMPLATES = [
     {

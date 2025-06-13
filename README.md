@@ -2,6 +2,10 @@
 
 # Inertia.js Django Adapter
 
+## About this fork
+
+`dj-inertiajs` is a fork of [inertia-django](https://github.com/inertiajs/inertia-django) that takes a different approach to integrating Inertia.js with Django.
+
 ## Installation
 
 ### Backend
@@ -9,7 +13,7 @@
 Install the following python package via pip
 
 ```bash
-pip install inertia-django
+pip install dj-inertiajs
 ```
 
 Add the Inertia app to your `INSTALLED_APPS` in `settings.py`
@@ -253,7 +257,7 @@ def example(request):
 
 ### Json Encoding
 
-Inertia Django ships with a custom JsonEncoder at `inertia.utils.InertiaJsonEncoder` that extends Django's
+Inertia Django ships with a custom JsonEncoder (`InertiaJsonEncoder`) that extends Django's
 `DjangoJSONEncoder` with additional logic to handle encoding models and Querysets. If you have other json
 encoding logic you'd prefer, you can set a new JsonEncoder via the settings.
 
@@ -361,6 +365,26 @@ for you to simulate an inertia response. You can access and use it just like the
 ## Examples
 
 - [Django Svelte Template](https://github.com/pmdevita/Django-Svelte-Template) - A Django template and example project demonstrating Inertia with Svelte and SSR.
+
+## Development
+
+To contribute to this project, you'll need [uv](https://docs.astral.sh/uv/) installed. Then:
+
+```bash
+# Clone the repository
+git clone https://github.com/joshuadavidthomas/dj-inertiajs.git
+cd dj-inertiajs
+
+# Install dependencies
+uv sync --group dev
+
+# Run tests
+uv run pytest
+
+# Run linting
+uv run ruff check .
+uv run ruff format .
+```
 
 ## Thank you
 
