@@ -1,4 +1,11 @@
-from .http import InertiaResponse, clear_history, encrypt_history, inertia, location, render
+from .http import (
+    InertiaResponse,
+    clear_history,
+    encrypt_history,
+    inertia,
+    location,
+    render,
+)
 from .share import share
 from .utils import InertiaJsonEncoder, defer, lazy, merge, optional
 
