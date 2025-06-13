@@ -27,7 +27,7 @@ dependencies = [
 
 [tool.poetry]
 packages = [
-  { include = "inertia" },
+  { include = "inertia", from = "src" },
 ]
 
 [tool.poetry.group.dev.dependencies]
@@ -51,3 +51,4 @@ unfixable = ["B", "SIM"]
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "inertia.tests.settings"
 django_find_project = false
+pythonpath = ["src"]
