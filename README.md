@@ -2,6 +2,10 @@
 
 # Inertia.js Django Adapter
 
+## About this fork
+
+`dj-inertiajs` is a fork of [inertia-django](https://github.com/inertiajs/inertia-django) that takes a different approach to integrating Inertia.js with Django.
+
 ## Installation
 
 ### Backend
@@ -9,7 +13,7 @@
 Install the following python package via pip
 
 ```bash
-pip install inertia-django
+pip install dj-inertiajs
 ```
 
 Add the Inertia app to your `INSTALLED_APPS` in `settings.py`
@@ -368,8 +372,8 @@ To contribute to this project, you'll need [uv](https://docs.astral.sh/uv/) inst
 
 ```bash
 # Clone the repository
-git clone https://github.com/inertiajs/inertia-django.git
-cd inertia-django
+git clone https://github.com/joshuadavidthomas/dj-inertiajs.git
+cd dj-inertiajs
 
 # Install dependencies
 uv sync --group dev

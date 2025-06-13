@@ -3,10 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "inertia-django"
+name = "dj-inertiajs"
 version = "1.2.0"
-description = "Django adapter for the InertiaJS framework"
-authors = [{name="Brandon Shar", email="brandon@bellawatt.com"}]
+description = "Django adapter for Inertia.js"
+authors = [{name="Josh Thomas", email="josh@joshthomas.dev"}]
 license = {file = "LICENSE"}
 requires-python = ">=3.9"
 readme = "README.md"
@@ -24,8 +24,8 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/inertiajs/inertia-django"
-Homepage = "https://github.com/inertiajs/inertia-django"
+Repository = "https://github.com/joshuadavidthomas/dj-inertiajs"
+Homepage = "https://github.com/joshuadavidthomas/dj-inertiajs"
 
 [dependency-groups]
 dev = [

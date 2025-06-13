@@ -1,6 +1,6 @@
-# Inertia-Django Migration Guide
+# dj-inertiajs Migration Guide
 
-This guide documents all breaking changes and migration steps for the Django-idiomatic fork of inertia-django.
+This guide documents all breaking changes and migration steps for dj-inertiajs.
 
 ## Overview
 
