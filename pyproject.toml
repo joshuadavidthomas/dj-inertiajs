@@ -51,6 +51,10 @@ ignore = ["E501"] # line too long, formatter will handle this
 unfixable = ["B", "SIM"]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "inertia.tests.settings"
+DJANGO_SETTINGS_MODULE = "tests.settings"
 django_find_project = false
-pythonpath = ["src"]
+norecursedirs = ".* bin build dist *.egg htmlcov logs node_modules templates venv"
+python_files = "tests.py test_*.py *_tests.py"
+python_functions = "test* atest*"
+pythonpath = ["src", "."]
+testpaths = ["tests"]
