@@ -14,7 +14,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "inertia.middleware.InertiaMiddleware",
+    "dj_inertiajs.middleware.InertiaMiddleware",
 ]
 
 INSTALLED_APPS = [
@@ -23,7 +23,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.sites",
-    "inertia",
+    "dj_inertiajs",
     "tests.testapp.apps.TestAppConfig",
 ]
 

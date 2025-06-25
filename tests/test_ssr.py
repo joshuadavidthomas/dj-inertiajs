@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from requests.exceptions import RequestException
 
-from inertia.test import InertiaTestCase, inertia_div, inertia_page
+from dj_inertiajs.test import InertiaTestCase, inertia_div, inertia_page
 
 from .utils import override_app_settings
 
