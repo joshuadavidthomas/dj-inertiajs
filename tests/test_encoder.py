@@ -1,10 +1,14 @@
-from datetime import date, datetime
+from __future__ import annotations
+
+from datetime import date
+from datetime import datetime
 from json import dumps
 
 from django.test import TestCase
 
 from dj_inertiajs.utils import InertiaJsonEncoder
-from tests.testapp.models import Sport, User
+from tests.testapp.models import Sport
+from tests.testapp.models import User
 
 
 def make_brandon() -> User:

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 def deep_transform_callables(prop):
     if not isinstance(prop, dict):
         return prop() if callable(prop) else prop

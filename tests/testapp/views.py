@@ -1,13 +1,20 @@
+from __future__ import annotations
+
 from django.http.response import HttpResponse
 from django.shortcuts import redirect
 from django.utils.decorators import decorator_from_middleware
 
-from dj_inertiajs import defer, inertia, lazy, location, merge, optional, render, share
-from dj_inertiajs.http import (
-    INERTIA_SESSION_CLEAR_HISTORY,
-    clear_history,
-    encrypt_history,
-)
+from dj_inertiajs import defer
+from dj_inertiajs import inertia
+from dj_inertiajs import lazy
+from dj_inertiajs import location
+from dj_inertiajs import merge
+from dj_inertiajs import optional
+from dj_inertiajs import render
+from dj_inertiajs import share
+from dj_inertiajs.http import INERTIA_SESSION_CLEAR_HISTORY
+from dj_inertiajs.http import clear_history
+from dj_inertiajs.http import encrypt_history
 
 
 class ShareMiddleware:

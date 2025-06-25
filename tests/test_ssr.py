@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import json
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
+from unittest.mock import patch
 
 from requests.exceptions import RequestException
 
-from dj_inertiajs.test import InertiaTestCase, inertia_div, inertia_page
+from dj_inertiajs.test import InertiaTestCase
+from dj_inertiajs.test import inertia_div
+from dj_inertiajs.test import inertia_page
 
 from .utils import override_app_settings
 
