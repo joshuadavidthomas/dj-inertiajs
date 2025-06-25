@@ -1,7 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured
 from pytest import warns
 
-from inertia.test import InertiaTestCase, inertia_div, inertia_page
+from dj_inertiajs.test import InertiaTestCase, inertia_div, inertia_page
 
 from .utils import override_app_settings
 

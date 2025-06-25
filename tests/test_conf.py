@@ -1,4 +1,4 @@
-from inertia.test import InertiaTestCase
+from dj_inertiajs.test import InertiaTestCase
 
 from .utils import override_app_settings
 

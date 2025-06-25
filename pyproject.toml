@@ -36,7 +36,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/inertia"]
+packages = ["src/dj_inertiajs"]
 
 [tool.ruff.lint]
 select = [

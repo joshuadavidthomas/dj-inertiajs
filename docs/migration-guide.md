@@ -34,10 +34,10 @@ Several commonly-used items are now available directly from the `inertia` packag
 
 ```python
 # These items can now be imported from the base package
-from inertia import (
-    encrypt_history,      # Previously: from inertia.http import encrypt_history
-    clear_history,        # Previously: from inertia.http import clear_history
-    InertiaJsonEncoder,   # Previously: from inertia.utils import InertiaJsonEncoder
+from dj_inertiajs import (
+    encrypt_history,      # Previously: from dj_inertiajs.http import encrypt_history
+    clear_history,        # Previously: from dj_inertiajs.http import clear_history
+    InertiaJsonEncoder,   # Previously: from dj_inertiajs.utils import InertiaJsonEncoder
 )
 
 # Note: The old import paths still work for backwards compatibility

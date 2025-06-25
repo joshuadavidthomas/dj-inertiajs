@@ -39,7 +39,7 @@ class InertiaTestCase(BaseInertiaTestCase, TestCase):
         super().setUp()
 
         self.mock_inertia = patch(
-            "inertia.http.render_to_string", wraps=base_render_to_string
+            "dj_inertiajs.http.render_to_string", wraps=base_render_to_string
         )
         self.mock_render = self.mock_inertia.start()
 

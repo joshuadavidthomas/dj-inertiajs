@@ -3,7 +3,7 @@ from json import dumps
 
 from django.test import TestCase
 
-from inertia.utils import InertiaJsonEncoder
+from dj_inertiajs.utils import InertiaJsonEncoder
 from tests.testapp.models import Sport, User
 
 
