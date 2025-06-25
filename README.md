@@ -21,7 +21,7 @@ Add the Inertia app to your `INSTALLED_APPS` in `settings.py`
 ```python
 INSTALLED_APPS = [
   # django apps,
-  'inertia',
+  'dj_inertiajs',
   # your project's apps,
 ]
 ```
@@ -31,7 +31,7 @@ Add the Inertia middleware to your `MIDDLEWARE` in `settings.py`
 ```python
 MIDDLEWARE = [
   # django middleware,
-  'inertia.middleware.InertiaMiddleware',
+  'dj_inertiajs.middleware.InertiaMiddleware',
   # your project's middleware,
 ]
 ```
@@ -77,7 +77,7 @@ CSRF_COOKIE_NAME = 'XSRF-TOKEN'
 Render Inertia responses is simple, you can either use the provided inertia render function or, for the most common use case, the inertia decorator. The render function accepts four arguments, the first is your request object. The second is the name of the component you want to render from within your pages directory (without extension). The third argument is a dict of `props` that should be provided to your components. The final argument is `template_data`, for any variables you want to provide to your template, but this is much less common.
 
 ```python
-from inertia import render
+from dj_inertiajs import render
 from .models import Event
 
 def index(request):
@@ -89,7 +89,7 @@ def index(request):
 Or use the simpler decorator for the most common use cases
 
 ```python
-from inertia import inertia
+from dj_inertiajs import inertia
 from .models import Event
 
 @inertia('Event/Index')
@@ -102,7 +102,7 @@ def index(request):
 If you need more control, you can also directly return the InertiaResponse class. It has the same arguments as the render method and subclasses HttpResponse to accept of all its arguments as well.
 
 ```python
-from inertia import InertiaResponse
+from dj_inertiajs import InertiaResponse
 from .models import Event
 
 def index(request):
@@ -120,7 +120,7 @@ def index(request):
 If you have data that you want to be provided as a prop to every component (a common use-case is information about the authenticated user) you can use the `share` method. A common place to put this would be in some custom middleware.
 
 ```python
-from inertia import share
+from dj_inertiajs import share
 from django.conf import settings
 from .models import User
 
@@ -166,7 +166,7 @@ It is possible to redirect to an external website, or even another non-Inertia e
 This can be accomplished using a server-side initiated `window.location` visit via the `location` method:
 
 ```python
-from inertia import location
+from dj_inertiajs import location
 
 def external():
     return location("http://foobar.com/")
@@ -181,7 +181,7 @@ On the front end, Inertia supports the concept of "partial reloads" where only t
 are returned by the server. Sometimes, you may want to use this flow to avoid processing a particularly slow prop on the intial load. In this case, you can use `Optional props`. Optional props aren't evaluated unless they're specifically requested by name in a partial reload.
 
 ```python
-from inertia import optional, inertia
+from dj_inertiajs import optional, inertia
 
 @inertia('ExampleComponent')
 def example(request):
@@ -198,7 +198,7 @@ As of version 2.0, Inertia supports the ability to defer the fetching of props u
 To mark props as deferred on the server side use the `defer` function.
 
 ```python
-from inertia import defer, inertia
+from dj_inertiajs import defer, inertia
 
 @inertia('ExampleComponent')
 def example(request):
@@ -213,7 +213,7 @@ def example(request):
 By default, all deferred props get fetched in one request after the initial page is rendered, but you can choose to fetch data in parallel by grouping props together.
 
 ```python
-from inertia import defer, inertia
+from dj_inertiajs import defer, inertia
 
 @inertia('ExampleComponent')
 def example(request):
@@ -232,7 +232,7 @@ In the example above, the `data1`, and `data2` props will be fetched in one requ
 By default, Inertia overwrites props with the same name when reloading a page. However, there are instances, such as pagination or infinite scrolling, where that is not the desired behavior. In these cases, you can merge props instead of overwriting them.
 
 ```python
-from inertia import merge, inertia
+from dj_inertiajs import merge, inertia
 
 @inertia('ExampleComponent')
 def example(request):
@@ -245,7 +245,7 @@ def example(request):
 You can also combine deferred props with mergeable props to defer the loading of the prop and ultimately mark it as mergeable once it's loaded.
 
 ```python
-from inertia import defer, inertia
+from dj_inertiajs import defer, inertia
 
 @inertia('ExampleComponent')
 def example(request):
@@ -274,7 +274,7 @@ INERTIA_ENCRYPT_HISTORY = True
 For more granular control, you can enable encryption on specific views:
 
 ```python
-from inertia import encrypt_history, inertia
+from dj_inertiajs import encrypt_history, inertia
 
 @inertia('TestComponent')
 def encrypt_history_test(request):
@@ -291,7 +291,7 @@ def public_view(request):
 When users log out, you might want to clear the history to ensure no sensitive data can be accessed. You can do this by extending the logout view:
 
 ```python
-from inertia import clear_history
+from dj_inertiajs import clear_history
 from django.contrib.auth import views as auth_views
 
 class LogoutView(auth_views.LogoutView):
@@ -332,7 +332,7 @@ Inertia Django ships with a custom TestCase to give you some nice helper methods
 To use it, just make sure your TestCase inherits from `InertiaTestCase`. `InertiaTestCase` inherits from Django's `django.test.TestCase` so it includes transaction support and a client.
 
 ```python
-from inertia.test import InertiaTestCase
+from dj_inertiajs.test import InertiaTestCase
 
 class ExampleTestCase(InertiaTestCase):
   def test_show_assertions(self):

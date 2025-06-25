@@ -1,6 +1,6 @@
 # Server-side setup
 
-To get started with Inertia in Django, the first step is to configure Django to use the `inertia-django` server-side adapter.
+To get started with Inertia in Django, the first step is to configure Django to use the `dj-inertiajs` server-side adapter.
 
 ::: tip
 For new projects, we recommend following the [template based setup](#template-based-setup) guide.
@@ -70,45 +70,45 @@ Skip this section if you used the [template based setup](#template-based-setup) 
 
 ### Install dependencies
 
-Install the `inertia-django` server-side adapter and related dependencies.
+Install the `dj-inertiajs` server-side adapter and related dependencies.
 
 ::: code-group
 
 ```shell [uv]
-uv add inertia-django django-vite
+uv add dj-inertiajs django-vite
 ```
 
 ```shell [pip]
-python -m pip install inertia-django django-vite
+python -m pip install dj-inertiajs django-vite
 ```
 :::
 
 ### Update installed apps
 
-Add `django_vite` and `inertia` to your `INSTALLED_APPS` in `settings.py`.
+Add `django_vite` and `dj_inertiajs` to your `INSTALLED_APPS` in `settings.py`.
 
 ```python
 INSTALLED_APPS = [
     # ...
     "django_vite",
-    "inertia",
+    "dj_inertiajs",
 ]
 ```
 
 ### Update middleware
 
-Next, add `inertia.middleware.InertiaMiddleware` to your `MIDDLEWARE` in `settings.py`.
+Next, add `dj_inertiajs.middleware.InertiaMiddleware` to your `MIDDLEWARE` in `settings.py`.
 
 ```python
 MIDDLEWARE = [
     # ...
-    "inertia.middleware.InertiaMiddleware",
+    "dj_inertiajs.middleware.InertiaMiddleware",
 ]
 ```
 
 ### Configure settings
 
-Configure `django-vite` and `inertia-django` specific settings in `settings.py`.
+Configure `django-vite` and `dj-inertiajs` specific settings in `settings.py`.
 
 ```python
 # django-vite settings
@@ -132,11 +132,11 @@ STATICFILES_DIRS = [DJANGO_VITE_ASSETS_PATH]
 > For a complete list of available `vite` related settings, see `django-vite` [docs](https://github.com/MrBin99/django-vite?tab=readme-ov-file#django-vite).
 
 ```python
-# inertia-django settings
+# dj-inertiajs settings
 INERTIA_LAYOUT = "base.html" # update with your base template name
 ```
 
-> For a complete list of available `inertia-django` settings, see [readme](https://github.com/inertiajs/inertia-django?tab=readme-ov-file#settings).
+> For a complete list of available `dj-inertiajs` settings, see [readme](https://github.com/inertiajs/dj-inertiajs?tab=readme-ov-file#settings).
 
 ### Update base template
 
