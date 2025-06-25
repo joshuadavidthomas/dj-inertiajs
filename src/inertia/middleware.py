@@ -1,8 +1,8 @@
 from django.contrib import messages
 from django.middleware.csrf import get_token
 
+from .conf import app_settings
 from .http import location
-from .settings import settings
 
 
 class InertiaMiddleware:
@@ -42,8 +42,8 @@ class InertiaMiddleware:
 
     def is_stale(self, request):
         return (
-            request.headers.get("X-Inertia-Version", settings.INERTIA_VERSION)
-            != settings.INERTIA_VERSION
+            request.headers.get("X-Inertia-Version", app_settings.VERSION)
+            != app_settings.VERSION
         )
 
     def is_stale_inertia_get(self, request):

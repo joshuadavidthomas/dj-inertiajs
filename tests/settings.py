@@ -2,7 +2,9 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-INERTIA_LAYOUT = "layout.html"
+DJ_INERTIAJS = {
+    "LAYOUT": "layout.html",
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

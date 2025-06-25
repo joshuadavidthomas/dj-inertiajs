@@ -1,6 +1,6 @@
-from django.test import override_settings
-
 from inertia.test import InertiaTestCase
+
+from .utils import override_app_settings
 
 
 class HistoryTestCase(InertiaTestCase):
@@ -8,7 +8,7 @@ class HistoryTestCase(InertiaTestCase):
         self.client.get("/empty/")
         assert self.page()["encryptHistory"] is False
 
-        with override_settings(INERTIA_ENCRYPT_HISTORY=True):
+        with override_app_settings(ENCRYPT_HISTORY=True):
             self.client.get("/empty/")
             assert self.page()["encryptHistory"] is True
 
@@ -16,7 +16,7 @@ class HistoryTestCase(InertiaTestCase):
         self.client.get("/encrypt-history/")
         assert self.page()["encryptHistory"] is True
 
-        with override_settings(INERTIA_ENCRYPT_HISTORY=True):
+        with override_app_settings(ENCRYPT_HISTORY=True):
             self.client.get("/no-encrypt-history/")
             assert self.page()["encryptHistory"] is False
 
