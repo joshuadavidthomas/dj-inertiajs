@@ -1,56 +1,149 @@
 from __future__ import annotations
 
-from django.contrib import messages
+from collections.abc import Awaitable
+from collections.abc import Callable
+from enum import Enum
+from http import HTTPMethod
+from http import HTTPStatus
+
+from asgiref.sync import iscoroutinefunction
+from asgiref.sync import markcoroutinefunction
+from django.contrib.messages.api import default_storage
+from django.http import HttpRequest
+from django.http import HttpResponseBase
 from django.middleware.csrf import get_token
+from django.utils.functional import cached_property
 
 from .conf import app_settings
+from .helpers import deep_transform_callables
 from .http import location
 
 
+class InertiaHeader(str, Enum):
+    INERTIA = "X-Inertia"
+    LOCATION = "X-Inertia-Location"
+    PARTIAL_COMPONENT = "X-Inertia-Partial-Component"
+    PARTIAL_DATA = "X-Inertia-Partial-Data"
+    VERSION = "X-Inertia-Version"
+
+
 class InertiaMiddleware:
-    def __init__(self, get_response):
+    sync_capable = True
+    async_capable = True
+
+    def __init__(
+        self,
+        get_response: (
+            Callable[[HttpRequest], HttpResponseBase]
+            | Callable[[HttpRequest], Awaitable[HttpResponseBase]]
+        ),
+    ) -> None:
         self.get_response = get_response
+        self.async_mode = iscoroutinefunction(self.get_response)
 
-    def __call__(self, request):
+        if self.async_mode:
+            # Mark the class as async-capable, but do the actual switch
+            # inside __call__ to avoid swapping out dunder methods
+            markcoroutinefunction(self)
+
+    def __call__(
+        self, request: HttpRequest
+    ) -> HttpResponseBase | Awaitable[HttpResponseBase]:
+        request.inertia = InertiaDetails(request)
+
+        if (
+            request.inertia
+            and request.method == HTTPMethod.GET
+            and request.inertia.version != app_settings.VERSION
+        ):
+            return self.force_refresh(request)
+
+        if self.async_mode:
+            return self.__acall__(request)
+
         response = self.get_response(request)
+        return self.process_inertia_response(request, response)
 
+    async def __acall__(self, request: HttpRequest) -> HttpResponseBase:
+        response = await self.get_response(request)
+        return self.process_inertia_response(request, response)
+
+    def process_inertia_response(
+        self, request: HttpRequest, response: HttpResponseBase
+    ) -> HttpResponseBase:
         # Inertia requests don't ever render templates, so they skip the typical Django
         # CSRF path. We'll manually add a CSRF token for every request here.
         get_token(request)
 
-        if not self.is_inertia_request(request):
+        if not request.inertia:
             return response
 
-        if self.is_non_post_redirect(request, response):
-            response.status_code = 303
-
-        if self.is_stale(request):
-            return self.force_refresh(request)
+        response.status_code = self.get_inertia_status_code(request, response)
 
         return response
 
-    def is_non_post_redirect(self, request, response):
-        return self.is_redirect_request(response) and request.method in [
-            "PUT",
-            "PATCH",
-            "DELETE",
-        ]
+    def get_inertia_status_code(
+        self, request: HttpRequest, response: HttpResponseBase
+    ) -> int:
+        if response.status_code not in [HTTPStatus.MOVED_PERMANENTLY, HTTPStatus.FOUND]:
+            return response.status_code
 
-    def is_inertia_request(self, request):
-        return "X-Inertia" in request.headers
+        if request.method not in [HTTPMethod.DELETE, HTTPMethod.PATCH, HTTPMethod.PUT]:
+            return response.status_code
 
-    def is_redirect_request(self, response):
-        return response.status_code in [301, 302]
+        return HTTPStatus.SEE_OTHER
 
-    def is_stale(self, request):
-        return (
-            request.headers.get("X-Inertia-Version", app_settings.VERSION)
-            != app_settings.VERSION
-        )
-
-    def is_stale_inertia_get(self, request):
-        return request.method == "GET" and self.is_stale(request)
-
-    def force_refresh(self, request):
-        messages.get_messages(request).used = False
+    def force_refresh(self, request: HttpRequest) -> HttpResponseBase:
+        message_storage = default_storage(request)
+        message_storage.used = False
         return location(request.build_absolute_uri())
+
+
+class InertiaDetails:
+    def __init__(self, request: HttpRequest) -> None:
+        self.request = request
+        self._shared_props = {}
+
+    def __bool__(self) -> bool:
+        return self.request.headers.get(InertiaHeader.INERTIA) is not None
+
+    def is_partial_render(self, component: str) -> bool:
+        return bool(self.partial_keys) and self.partial_component == component
+
+    def share(self, **props) -> None:
+        self._shared_props.update(props)
+
+    def all(self) -> dict:
+        # Get all shared props (for compatibility with current share system)
+        return self._shared_props
+
+    def props(self, props: dict | None = None) -> dict:
+        props = props or {}
+        merged_props = {**self._shared_props, **props}
+
+        if self.partial_keys:
+            filtered_props = {
+                k: v for k, v in merged_props.items() if k in self.partial_keys
+            }
+        else:
+            filtered_props = merged_props
+
+        return deep_transform_callables(filtered_props)
+
+    @cached_property
+    def partial_component(self) -> str | None:
+        return self.request.headers.get(InertiaHeader.PARTIAL_COMPONENT)
+
+    @cached_property
+    def partial_keys(self) -> list[str]:
+        data = self.request.headers.get(InertiaHeader.PARTIAL_DATA)
+        return data.split(",") if data else []
+
+    @cached_property
+    def reset_keys(self) -> list[str]:
+        data = self.request.headers.get("X-Inertia-Reset", "")
+        return data.split(",") if data else []
+
+    @cached_property
+    def version(self) -> str:
+        return self.request.headers.get(InertiaHeader.VERSION, app_settings.VERSION)
