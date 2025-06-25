@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dj_inertiajs.test import InertiaTestCase
 
 

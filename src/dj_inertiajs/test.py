@@ -1,8 +1,12 @@
-from json import dumps, loads
+from __future__ import annotations
+
+from json import dumps
+from json import loads
 from unittest.mock import patch
 
 from django.template.loader import render_to_string as base_render_to_string
-from django.test import Client, TestCase
+from django.test import Client
+from django.test import TestCase
 from django.utils.html import escape
 
 from .conf import app_settings

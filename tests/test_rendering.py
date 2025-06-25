@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from django.core.exceptions import ImproperlyConfigured
 from pytest import warns
 
-from dj_inertiajs.test import InertiaTestCase, inertia_div, inertia_page
+from dj_inertiajs.test import InertiaTestCase
+from dj_inertiajs.test import inertia_div
+from dj_inertiajs.test import inertia_page
 
 from .utils import override_app_settings
 

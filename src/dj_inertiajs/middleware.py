@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.contrib import messages
 from django.middleware.csrf import get_token
 

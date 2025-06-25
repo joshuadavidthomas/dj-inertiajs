@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import wraps
 from http import HTTPStatus
 from json import dumps as json_encode
@@ -8,8 +10,11 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 
 from .conf import app_settings
-from .helpers import deep_transform_callables, validate_type
-from .prop_classes import DeferredProp, IgnoreOnFirstLoadProp, MergeableProp
+from .helpers import deep_transform_callables
+from .helpers import validate_type
+from .prop_classes import DeferredProp
+from .prop_classes import IgnoreOnFirstLoadProp
+from .prop_classes import MergeableProp
 
 INERTIA_REQUEST_ENCRYPT_HISTORY = "_inertia_encrypt_history"
 INERTIA_SESSION_CLEAR_HISTORY = "_inertia_clear_history"
