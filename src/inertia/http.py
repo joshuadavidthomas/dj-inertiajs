@@ -7,9 +7,9 @@ from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 
+from .conf import app_settings
 from .helpers import deep_transform_callables, validate_type
 from .prop_classes import DeferredProp, IgnoreOnFirstLoadProp, MergeableProp
-from .settings import settings
 
 INERTIA_REQUEST_ENCRYPT_HISTORY = "_inertia_encrypt_history"
 INERTIA_SESSION_CLEAR_HISTORY = "_inertia_clear_history"
@@ -53,7 +53,7 @@ class InertiaRequest:
             getattr(
                 self.request,
                 INERTIA_REQUEST_ENCRYPT_HISTORY,
-                settings.INERTIA_ENCRYPT_HISTORY,
+                app_settings.ENCRYPT_HISTORY,
             ),
             expected_type=bool,
             name="encrypt_history",
@@ -72,7 +72,7 @@ class BaseInertiaResponseMixin:
             "component": self.component,
             "props": self.build_props(),
             "url": self.request.get_full_path(),
-            "version": settings.INERTIA_VERSION,
+            "version": app_settings.VERSION,
             "encryptHistory": self.request.should_encrypt_history(),
             "clearHistory": clear_history,
         }
@@ -129,12 +129,14 @@ class BaseInertiaResponseMixin:
         context, template = self.build_first_load_context_and_template(data)
 
         try:
-            layout = settings.INERTIA_LAYOUT
+            layout = app_settings.LAYOUT
             if not layout:
-                raise AttributeError("INERTIA_LAYOUT is set, but has a falsy value")
+                raise AttributeError(
+                    "DJ_INERTIAJS['LAYOUT'] is set, but has a falsy value"
+                )
         except AttributeError as ae:
             raise ImproperlyConfigured(
-                "INERTIA_LAYOUT must be set in your Django settings"
+                "DJ_INERTIAJS['LAYOUT'] must be set in your Django settings"
             ) from ae
 
         return render_to_string(
@@ -148,10 +150,10 @@ class BaseInertiaResponseMixin:
         )
 
     def build_first_load_context_and_template(self, data):
-        if settings.INERTIA_SSR_ENABLED:
+        if app_settings.SSR_ENABLED:
             try:
                 response = requests.post(
-                    f"{settings.INERTIA_SSR_URL}/render",
+                    f"{app_settings.SSR_URL}/render",
                     data=data,
                     headers={"Content-Type": "application/json"},
                 )
@@ -190,7 +192,7 @@ class InertiaResponse(BaseInertiaResponseMixin, HttpResponse):
 
         data = json_encode(
             self.page_data(),
-            cls=self.json_encoder or settings.INERTIA_JSON_ENCODER,
+            cls=self.json_encoder or app_settings.JSON_ENCODER,
         )
 
         if self.request.is_inertia():

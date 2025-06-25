@@ -5,7 +5,7 @@ from django.template.loader import render_to_string as base_render_to_string
 from django.test import Client, TestCase
 from django.utils.html import escape
 
-from .settings import settings
+from .conf import app_settings
 
 
 class ClientWithLastResponse:
@@ -107,7 +107,7 @@ def inertia_page(
         "component": component,
         "props": props,
         "url": f"/{url}/",
-        "version": settings.INERTIA_VERSION,
+        "version": app_settings.VERSION,
         "encryptHistory": False,
         "clearHistory": False,
     }

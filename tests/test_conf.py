@@ -1,10 +1,10 @@
-from django.test import override_settings
-
 from inertia.test import InertiaTestCase
+
+from .utils import override_app_settings
 
 
 class SettingsTestCase(InertiaTestCase):
-    @override_settings(INERTIA_VERSION="2.0")
+    @override_app_settings(VERSION="2.0")
     def test_version_works(self):
         response = self.inertia.get("/empty/", HTTP_X_INERTIA_VERSION="2.0")
 

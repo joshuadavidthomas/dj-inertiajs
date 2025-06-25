@@ -1,17 +1,14 @@
 import json
 from unittest.mock import Mock, patch
 
-from django.test import override_settings
 from requests.exceptions import RequestException
 
 from inertia.test import InertiaTestCase, inertia_div, inertia_page
 
+from .utils import override_app_settings
 
-@override_settings(
-    INERTIA_SSR_ENABLED=True,
-    INERTIA_SSR_URL="ssr-url",
-    INERTIA_VERSION="1.0",
-)
+
+@override_app_settings(SSR_ENABLED=True, SSR_URL="ssr-url", VERSION="1.0")
 class SSRTestCase(InertiaTestCase):
     @patch("inertia.http.requests")
     def test_it_returns_ssr_calls(self, mock_request):
