@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import field
 from json import JSONEncoder
 from typing import override
 
@@ -16,6 +17,7 @@ class AppSettings:
     ENCRYPT_HISTORY: bool = False
     JSON_ENCODER: type[JSONEncoder] = InertiaJsonEncoder
     LAYOUT: str = ""
+    SHARED_PROPS: list[str] = field(default_factory=list)
     SSR_ENABLED: bool = False
     SSR_URL: str = "http://127.0.0.1:13714"
     VERSION: str = "1.0"
