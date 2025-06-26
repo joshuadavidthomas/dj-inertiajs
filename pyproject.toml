@@ -1,39 +1,39 @@
 [build-system]
-requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[project]
-name = "dj-inertiajs"
-version = "1.2.0"
-description = "Django adapter for Inertia.js"
-authors = [{name="Josh Thomas", email="josh@joshthomas.dev"}]
-license = {file = "LICENSE"}
-requires-python = ">=3.9"
-readme = "README.md"
-keywords = ["inertia", "inertiajs", "django"]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Framework :: Django :: 4",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
-dependencies = [
-    "django>=4",
-    "requests>=2",
-]
-
-[project.urls]
-Repository = "https://github.com/joshuadavidthomas/dj-inertiajs"
-Homepage = "https://github.com/joshuadavidthomas/dj-inertiajs"
+requires = ["hatchling"]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.5",
-    "pytest-cov>=6.0.0",
-    "pytest-django>=4.10.0",
-    "ruff>=0.11.2",
+  "pytest>=8.3.5",
+  "pytest-cov>=6.0.0",
+  "pytest-django>=4.10.0",
+  "ruff>=0.11.2"
 ]
+
+[project]
+authors = [{name = "Josh Thomas", email = "josh@joshthomas.dev"}]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Framework :: Django :: 4",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+  "django>=4",
+  "requests>=2"
+]
+description = "Django adapter for Inertia.js"
+keywords = ["inertia", "inertiajs", "django"]
+license = {file = "LICENSE"}
+name = "dj-inertiajs"
+readme = "README.md"
+requires-python = ">=3.9"
+version = "1.2.0"
+
+[project.urls]
+Homepage = "https://github.com/joshuadavidthomas/dj-inertiajs"
+Repository = "https://github.com/joshuadavidthomas/dj-inertiajs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dj_inertiajs"]
