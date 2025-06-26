@@ -152,7 +152,8 @@ class InertiaDetails:
 
         return props
 
-    def props(self, props: dict[str, Any] = {}) -> dict[str, Any]:
+    def props(self, props: dict[str, Any] | None = None) -> dict[str, Any]:
+        props = props or {}
         merged_props = {**self.shared_props, **props}
 
         if self.partial_keys:
