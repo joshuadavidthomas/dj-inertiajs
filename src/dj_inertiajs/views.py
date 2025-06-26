@@ -57,9 +57,9 @@ class InertiaMixin:
         }
 
     def get_serializer_class(self):
-        assert (
-            self.serializer_class is not None
-        ), f"'{self.__class__.__name__}' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method."
+        assert self.serializer_class is not None, (
+            f"'{self.__class__.__name__}' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method."
+        )
         return self.serializer_class
 
     def get_template_name(self) -> str | None:
