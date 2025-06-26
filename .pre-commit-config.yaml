@@ -8,32 +8,32 @@ repos:
       - id: check-yaml
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.22.1
+    rev: 1.25.0
     hooks:
       - id: django-upgrade
-        args: [--target-version, "5.1"]
+        args: [--target-version, "5.2"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    rev: v0.12.0
     hooks:
-      - id: ruff
-        args: [--fix]
+      - id: ruff-check
+        args: [ --fix ]
       - id: ruff-format
 
   - repo: https://github.com/adamchainz/djade-pre-commit
-    rev: 1.3.2
+    rev: 1.4.0
     hooks:
       - id: djade
-        args: [--target-version, "5.1"]
+        args: [--target-version, "5.2"]
 
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.14.0
+    rev: v2.15.0
     hooks:
       - id: pretty-format-toml
         args: [--autofix]
 
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.22
+    rev: v0.24.1
     hooks:
       - id: validate-pyproject
         additional_dependencies: ["validate-pyproject-schema-store[all]"]
