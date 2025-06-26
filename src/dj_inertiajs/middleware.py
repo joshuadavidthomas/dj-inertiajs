@@ -129,7 +129,7 @@ class InertiaDetails:
                     result = shared_prop
                 else:
                     logger.error(
-                        "Shared prop '%s' returned %s must be a callable or a Mapping, got %s",
+                        "Shared prop '%s' must be a callable or a Mapping, got %s",
                         path,
                         type(shared_prop).__name__,
                     )
