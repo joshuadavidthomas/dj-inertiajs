@@ -24,7 +24,7 @@ else:
             return obj
 
         def __repr__(self):
-            return "<%s.%s>" % (self.__class__.__name__, self._name_)
+            return f"<{self.__class__.__name__}.{self._name_}>"
 
         CONNECT = "CONNECT", "Establish a connection to the server."
         DELETE = "DELETE", "Remove the target."
