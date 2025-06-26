@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable
 from collections.abc import Callable
+from collections.abc import Mapping
 from enum import Enum
 from http import HTTPMethod
 from http import HTTPStatus
+from typing import Any
 
 from asgiref.sync import iscoroutinefunction
 from asgiref.sync import markcoroutinefunction
@@ -13,10 +16,13 @@ from django.http import HttpRequest
 from django.http import HttpResponseBase
 from django.middleware.csrf import get_token
 from django.utils.functional import cached_property
+from django.utils.module_loading import import_string
 
 from .conf import app_settings
 from .helpers import deep_transform_callables
 from .http import location
+
+logger = logging.getLogger(__name__)
 
 
 class InertiaHeader(str, Enum):
@@ -102,7 +108,6 @@ class InertiaMiddleware:
 class InertiaDetails:
     def __init__(self, request: HttpRequest) -> None:
         self.request = request
-        self._shared_props = {}
 
     def __bool__(self) -> bool:
         return self.request.headers.get(InertiaHeader.INERTIA) is not None
@@ -110,16 +115,45 @@ class InertiaDetails:
     def is_partial_render(self, component: str) -> bool:
         return bool(self.partial_keys) and self.partial_component == component
 
-    def share(self, **props) -> None:
-        self._shared_props.update(props)
+    @cached_property
+    def shared_props(self) -> dict[str, Any]:
+        props = {}
 
-    def all(self) -> dict:
-        # Get all shared props (for compatibility with current share system)
-        return self._shared_props
+        for path in app_settings.SHARED_PROPS:
+            try:
+                shared_prop = import_string(path)
 
-    def props(self, props: dict | None = None) -> dict:
-        props = props or {}
-        merged_props = {**self._shared_props, **props}
+                if callable(shared_prop):
+                    result = shared_prop(self.request)
+                elif isinstance(shared_prop, Mapping):
+                    result = shared_prop
+                else:
+                    logger.error(
+                        "Shared prop '%s' returned %s must be a callable or a Mapping, got %s",
+                        path,
+                        type(shared_prop).__name__,
+                    )
+                    continue
+
+                if not isinstance(result, Mapping):
+                    logger.error(
+                        "Shared prop '%s' returned %s instead of a Mapping",
+                        path,
+                        type(result).__name__,
+                    )
+                    continue
+
+                props.update(result)
+
+            except ImportError:
+                logger.error("Could not import shared prop '%s'", path, exc_info=True)
+            except Exception:
+                logger.error("Error in shared prop '%s'", path, exc_info=True)
+
+        return props
+
+    def props(self, props: dict[str, Any] = {}) -> dict[str, Any]:
+        merged_props = {**self.shared_props, **props}
 
         if self.partial_keys:
             filtered_props = {

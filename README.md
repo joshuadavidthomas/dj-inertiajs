@@ -117,24 +117,54 @@ def index(request):
 
 ### Shared Data
 
-If you have data that you want to be provided as a prop to every component (a common use-case is information about the authenticated user) you can use the `share` method. A common place to put this would be in some custom middleware.
+If you have data that you want to be provided as a prop to every component (a common use-case is information about the authenticated user) you can use shared props. Shared props work similarly to Django's context processors - they're functions that accept a request and return a dictionary of props.
+
+First, create a shared props function in your app (e.g., in `myapp/shared_props.py`):
 
 ```python
-from dj_inertiajs import share
-from django.conf import settings
-from .models import User
+def user_props(request):
+    """Provide user data to all Inertia components."""
+    if request.user.is_authenticated:
+        return {
+            'auth': {
+                'user': {
+                    'id': request.user.id,
+                    'name': request.user.get_full_name(),
+                    'email': request.user.email,
+                },
+                'is_authenticated': True,
+            }
+        }
+    return {
+        'auth': {
+            'user': None,
+            'is_authenticated': False,
+        }
+    }
 
-def inertia_share(get_response):
-  def middleware(request):
-    share(request,
-      app_name=settings.APP_NAME,
-      user_count=lambda: User.objects.count(), # evaluated lazily at render time
-      user=lambda: request.user, # evaluated lazily at render time
-    )
-
-    return get_response(request)
-  return middleware
+def app_props(request):
+    """Provide app-wide data to all Inertia components."""
+    return {
+        'app': {
+            'name': 'My App',
+            'version': '1.0.0',
+        }
+    }
 ```
+
+Then, configure these functions in your `settings.py`:
+
+```python
+DJ_INERTIAJS = {
+    'LAYOUT': 'layout.html',
+    'SHARED_PROPS': [
+        'myapp.shared_props.user_props',
+        'myapp.shared_props.app_props',
+    ],
+}
+```
+
+Props from later functions in the list will override props with the same key from earlier functions. All shared props are evaluated lazily at render time.
 ### Prop Serialization
 
 Unlike Rails and Laravel, Django does not handle converting objects to JSON by default so Inertia Django offers two different ways to handle prop serialization.

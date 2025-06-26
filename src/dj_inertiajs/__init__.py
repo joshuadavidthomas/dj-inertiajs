@@ -6,7 +6,6 @@ from .http import encrypt_history
 from .http import inertia
 from .http import location
 from .http import render
-from .share import share
 from .utils import InertiaJsonEncoder
 from .utils import defer
 from .utils import lazy
@@ -25,5 +24,4 @@ __all__ = [
     "merge",
     "optional",
     "render",
-    "share",
 ]
