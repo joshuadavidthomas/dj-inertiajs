@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from dataclasses import field
 from json import JSONEncoder
-from typing import override
 
 from django.conf import settings
 
+from ._typing import override
 from .utils import InertiaJsonEncoder
 
 DJ_INERTIAJS_SETTINGS_NAME = "DJ_INERTIAJS"

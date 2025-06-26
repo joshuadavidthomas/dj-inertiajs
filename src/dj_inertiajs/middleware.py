@@ -5,19 +5,19 @@ from collections.abc import Awaitable
 from collections.abc import Callable
 from collections.abc import Mapping
 from enum import Enum
-from http import HTTPMethod
 from http import HTTPStatus
 from typing import Any
 
 from asgiref.sync import iscoroutinefunction
 from asgiref.sync import markcoroutinefunction
-from django.contrib.messages.api import default_storage
+from django.contrib.messages.storage import default_storage
 from django.http import HttpRequest
 from django.http import HttpResponseBase
 from django.middleware.csrf import get_token
 from django.utils.functional import cached_property
 from django.utils.module_loading import import_string
 
+from ._http import HTTPMethod
 from .conf import app_settings
 from .helpers import deep_transform_callables
 from .views import location
