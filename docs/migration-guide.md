@@ -7,7 +7,7 @@ This guide documents all breaking changes and migration steps for dj-inertiajs.
 This fork reimplements inertia-django following Django best practices and conventions. Major changes include:
 
 - Request handling via proper class inheritance
-- Django templatetag system integration  
+- Django templatetag system integration
 - Context processor support
 - Reorganized package structure
 - Improved naming conventions

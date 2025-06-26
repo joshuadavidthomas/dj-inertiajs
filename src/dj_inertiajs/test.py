@@ -10,6 +10,7 @@ from django.test import TestCase
 from django.utils.html import escape
 
 from .conf import app_settings
+from .middleware import InertiaHeader
 
 
 class ClientWithLastResponse:
@@ -27,7 +28,9 @@ class ClientWithLastResponse:
 
 class BaseInertiaTestCase:
     def setUp(self):
-        self.inertia = ClientWithLastResponse(Client(HTTP_X_INERTIA=True))
+        self.inertia = ClientWithLastResponse(
+            Client(headers={InertiaHeader.INERTIA: True})
+        )
         self.client = ClientWithLastResponse(Client())
 
     def last_response(self):

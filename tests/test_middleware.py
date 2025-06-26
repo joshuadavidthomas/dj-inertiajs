@@ -40,8 +40,7 @@ class MiddlewareTestCase(InertiaTestCase):
 
     def test_a_request_not_from_inertia_is_ignored(self):
         response = self.client.get(
-            "/empty/",
-            HTTP_X_INERTIA_VERSION="some-nonsense",
+            "/empty/", headers={"x-inertia-version": "some-nonsense"}
         )
 
         self.assertEqual(response.status_code, 200)
