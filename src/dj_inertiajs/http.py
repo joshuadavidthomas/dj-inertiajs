@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from functools import wraps
-from http import HTTPStatus
 from json import dumps as json_encode
 
 import requests
@@ -159,6 +157,17 @@ class BaseInertiaResponseMixin:
         )
 
     def build_first_load_context_and_template(self, data):
+        template = (
+            self.template_name
+            if hasattr(self, "template_name") and self.template_name
+            else INERTIA_TEMPLATE
+        )
+        ssr_template = (
+            self.ssr_template_name
+            if hasattr(self, "ssr_template_name") and self.ssr_template_name
+            else INERTIA_SSR_TEMPLATE
+        )
+
         if app_settings.SSR_ENABLED:
             try:
                 response = requests.post(
@@ -170,14 +179,14 @@ class BaseInertiaResponseMixin:
                 return {
                     **response.json(),
                     **self.template_data,
-                }, INERTIA_SSR_TEMPLATE
+                }, ssr_template
             except Exception:
                 pass
 
         return {
             "page": data,
             **(self.template_data),
-        }, INERTIA_TEMPLATE
+        }, template
 
 
 class InertiaResponse(BaseInertiaResponseMixin, HttpResponse):
@@ -190,6 +199,8 @@ class InertiaResponse(BaseInertiaResponseMixin, HttpResponse):
         props=None,
         template_data=None,
         headers=None,
+        template_name=None,
+        ssr_template_name=None,
         *args,
         **kwargs,
     ):
@@ -197,6 +208,8 @@ class InertiaResponse(BaseInertiaResponseMixin, HttpResponse):
         self.component = component
         self.props = props or {}
         self.template_data = template_data or {}
+        self.template_name = template_name
+        self.ssr_template_name = ssr_template_name
         _headers = headers or {}
 
         data = json_encode(
@@ -223,40 +236,9 @@ class InertiaResponse(BaseInertiaResponseMixin, HttpResponse):
         )
 
 
-def render(request, component, props=None, template_data=None):
-    return InertiaResponse(request, component, props or {}, template_data or {})
-
-
-def location(location):
-    return HttpResponse(
-        "",
-        status=HTTPStatus.CONFLICT,
-        headers={
-            "X-Inertia-Location": location,
-        },
-    )
-
-
 def encrypt_history(request, value=True):
     setattr(request, INERTIA_REQUEST_ENCRYPT_HISTORY, value)
 
 
 def clear_history(request):
     request.session[INERTIA_SESSION_CLEAR_HISTORY] = True
-
-
-def inertia(component):
-    def decorator(func):
-        @wraps(func)
-        def process_inertia_response(request, *args, **kwargs):
-            props = func(request, *args, **kwargs)
-
-            # if a response is returned, return it
-            if isinstance(props, HttpResponse):
-                return props
-
-            return InertiaResponse(request, component, props)
-
-        return process_inertia_response
-
-    return decorator

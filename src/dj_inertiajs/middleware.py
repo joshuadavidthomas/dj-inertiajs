@@ -20,7 +20,7 @@ from django.utils.module_loading import import_string
 
 from .conf import app_settings
 from .helpers import deep_transform_callables
-from .http import location
+from .views import location
 
 logger = logging.getLogger(__name__)
 
