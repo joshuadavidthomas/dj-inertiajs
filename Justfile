@@ -9,15 +9,21 @@ default:
 fmt:
     @just --fmt
 
+[private]
+nox SESSION *ARGS:
+    uv run nox --session "{{ SESSION }}" -- "{{ ARGS }}"
+
 bootstrap: lock
     uv sync --locked
 
-# run pre-commit on all files
-lint:
-    uv run --with pre-commit-uv pre-commit run --all-files
+coverage *ARGS:
+    @just nox coverage {{ ARGS }}
 
-lock:
-    uv lock
+lint:
+    @just nox lint
+
+lock *ARGS:
+    uv lock {{ ARGS }}
 
 # Run a Django management command
 manage *COMMAND:
@@ -38,4 +44,10 @@ manage *COMMAND:
     execute_from_command_line(sys.argv + "{{ COMMAND }}".split(" "))
 
 test *ARGS:
-    uv run pytest {{ ARGS }}
+    @just nox test {{ ARGS }}
+
+testall *ARGS:
+    @just nox tests {{ ARGS }}
+
+types *ARGS:
+    @just nox types {{ ARGS }}
