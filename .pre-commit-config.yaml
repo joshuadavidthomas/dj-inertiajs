@@ -38,4 +38,3 @@ repos:
       - id: validate-pyproject
         additional_dependencies: ["validate-pyproject-schema-store[all]"]
         files: "(?:.*?/)?pyproject.toml$"
-
