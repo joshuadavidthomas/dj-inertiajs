@@ -36,7 +36,11 @@ class InertiaRequest:
 
     @property
     def inertia(self):
-        return self.request.inertia.shared_props if hasattr(self.request, "inertia") else {}
+        return (
+            self.request.inertia.shared_props
+            if hasattr(self.request, "inertia")
+            else {}
+        )
 
     def is_a_partial_render(self, component):
         return (

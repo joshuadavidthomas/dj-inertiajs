@@ -132,11 +132,14 @@ class ComplexPropsTestCase(InertiaTestCase):
 
 class ShareTestCase(InertiaTestCase):
     def test_that_shared_props_are_merged(self):
-        with override_app_settings(SHARED_PROPS=["tests.testapp.shared_props.share_test_props"]):
+        with override_app_settings(
+            SHARED_PROPS=["tests.testapp.shared_props.share_test_props"]
+        ):
             self.assertJSONResponse(
                 self.inertia.get("/share/"),
                 inertia_page(
-                    "share", props={"name": "Brandon", "position": "goalie", "number": 29}
+                    "share",
+                    props={"name": "Brandon", "position": "goalie", "number": 29},
                 ),
             )
 

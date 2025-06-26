@@ -165,6 +165,7 @@ DJ_INERTIAJS = {
 ```
 
 Props from later functions in the list will override props with the same key from earlier functions. All shared props are evaluated lazily at render time.
+
 ### Prop Serialization
 
 Unlike Rails and Laravel, Django does not handle converting objects to JSON by default so Inertia Django offers two different ways to handle prop serialization.
@@ -267,8 +268,8 @@ from dj_inertiajs import merge, inertia
 @inertia('ExampleComponent')
 def example(request):
   return {
-    'name': lambda: 'Brandon', 
-    'data': merge(Paginator(objects, 3)), 
+    'name': lambda: 'Brandon',
+    'data': merge(Paginator(objects, 3)),
   }
 ```
 
@@ -280,8 +281,8 @@ from dj_inertiajs import defer, inertia
 @inertia('ExampleComponent')
 def example(request):
   return {
-    'name': lambda: 'Brandon', 
-    'data': defer(lambda: Paginator(objects, 3), merge=True), 
+    'name': lambda: 'Brandon',
+    'data': defer(lambda: Paginator(objects, 3), merge=True),
   }
 ```
 
@@ -331,7 +332,7 @@ class LogoutView(auth_views.LogoutView):
         return response
 ```
 
-### SSR 
+### SSR
 
 #### Backend
 
