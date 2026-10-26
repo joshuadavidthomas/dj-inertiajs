@@ -27,6 +27,9 @@ dependencies = [
 Homepage = "https://github.com/joshuadavidthomas/inertia-django"
 Repository = "https://github.com/joshuadavidthomas/inertia-django"
 
+[project.scripts]
+dj-inertiajs-upgrade = "dj_inertiajs.upgrade:main"
+
 [project.optional-dependencies]
 # Requests is requires for server-side rendering.
 ssr = ["requests>=2"]

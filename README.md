@@ -499,12 +499,12 @@ This package breaks inertia-django's API on purpose, so that it follows Django's
 
 ### How to upgrade
 
-Run the codemod, then the system checks, then follow the [upgrade guide](docs/guide/upgrading-from-inertia-django.md) for the rest:
+The [upgrade guide](docs/guide/upgrading-from-inertia-django.md) explains how to make each change by hand. A codemod makes the mechanical ones, and the system checks report what is left:
 
 ```bash
 pip install "dj-inertiajs[upgrade] @ git+https://github.com/joshuadavidthomas/inertia-django"
-python -m dj_inertiajs.upgrade --diff path/to/project   # review
-python -m dj_inertiajs.upgrade path/to/project          # write
+dj-inertiajs-upgrade --diff path/to/project   # review
+dj-inertiajs-upgrade path/to/project          # write
 python manage.py check
 ```
 

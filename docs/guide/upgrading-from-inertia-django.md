@@ -6,21 +6,72 @@ The protocol the client sees is the same as inertia-django 2.0's, which targets 
 
 ## How to upgrade
 
-Work through three steps. Each one shortens the list for the next.
+Every change is described in the sections below, with what to do by hand. The codemod makes the mechanical ones for you, and the system checks find what is left, so you can use either or both.
 
-1. **Run the codemod.** It rewrites imports, prop helpers, `encrypt_history()` in `@inertia` views, settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and test assertions:
+1. **Install this package** next to inertia-django. Both can be installed while you migrate:
 
    ```shell
    pip install "dj-inertiajs[upgrade] @ git+https://github.com/joshuadavidthomas/inertia-django"
-   python -m dj_inertiajs.upgrade --diff path/to/project   # review the changes
-   python -m dj_inertiajs.upgrade path/to/project          # write them
    ```
 
-   It prints every change it could not make on its own.
+   The `upgrade` extra installs [LibCST](https://libcst.readthedocs.io/), which only the codemod needs.
 
-2. **Run the system checks.** `python manage.py check` reports each old pattern that is still in use, with a link to the section below that explains the fix. The codemod is optional; without it, the checks still list everything.
+2. **Rewrite the code**, with the codemod or by hand. The codemod rewrites every Python file under the paths you give it:
 
-3. **Fix the rest by hand** using the sections below, then uninstall `inertia-django`.
+   ```shell
+   dj-inertiajs-upgrade --diff path/to/project   # review the changes
+   dj-inertiajs-upgrade path/to/project          # write them
+   ```
+
+   It prints, with file and line, every change it could not make on its own. [What the codemod changes](#what-the-codemod-changes) lists each rewrite and the section that explains how to make it by hand.
+
+3. **Run the system checks.** `python manage.py check` reports each old pattern still in use, such as an old setting or layout block, with a link to the section that explains the fix.
+
+4. **Fix the rest by hand**, then uninstall `inertia-django`. Some changes can only be made by hand, because they depend on what your code means: templates, models without `InertiaMeta`, and uses of `share()`.
+
+### Why the codemod is not a management command
+
+Django only finds management commands in apps listed in `INSTALLED_APPS`, and only after it has loaded your settings. Before the upgrade neither holds:
+
+- `dj_inertiajs` is not in `INSTALLED_APPS` yet; adding it is one of the codemod's rewrites. A `manage.py` command would not exist until the codemod had run.
+- Once inertia-django is uninstalled, settings that still list `"inertia"` stop Django from starting, so `manage.py` does not run at all.
+
+The codemod reads your code as text and never imports it, so it works on a project that does not start. Standalone codemods for Django, such as [django-upgrade](https://github.com/adamchainz/django-upgrade), work the same way. What does run inside Django is the system checks, which need a project that starts.
+
+`python -m dj_inertiajs.upgrade` runs the same codemod.
+
+## What the codemod changes
+
+| The codemod rewrites | To do it by hand, see |
+|---|---|
+| Imports from `inertia` and its modules | [Imports](#imports) |
+| `"inertia"` in `INSTALLED_APPS` | [Install and app name](#install-and-app-name) |
+| The middleware path in `MIDDLEWARE` | [Middleware](#middleware) |
+| `INERTIA_*` settings into the `INERTIA` dict, and the encoder path | [Settings](#settings) |
+| Prop helper calls, such as `defer(f)`, into `Prop(...)` | [Props](#props) |
+| `location(url)` into `InertiaLocation(url)` | [Redirects](#redirects) |
+| `encrypt_history(request)` in an `@inertia` view into the decorator's option | [History encryption](#history-encryption) |
+| Test clients, assertion names, and assertions and accessors that read the last response | [Tests](#tests) |
+
+It reports these with file and line, and leaves them for you:
+
+| The codemod reports | See |
+|---|---|
+| Calls to `share()` | [Shared data](#shared-data) |
+| Calls to `preserve_fragment()` | [Redirects](#redirects) |
+| `encrypt_history()` calls outside an `@inertia` view | [History encryption](#history-encryption) |
+| `import inertia`, `from inertia import *`, and names that were removed or were never public | [Imports](#imports) |
+| Reads of `settings.INERTIA_*` | [Settings](#settings) |
+| Assertions with no request before them in the same test method | [Tests](#tests) |
+
+It does not find these; the system checks find the first, and the rest show up when the page renders or the tests run:
+
+| Not handled by the codemod | See |
+|---|---|
+| Layout templates | [Layout templates](#layout-templates) |
+| Models without `InertiaMeta` | [Serialization](#serialization) |
+| Code that reads `request.inertia` | [The request](#the-request) |
+| Code that reads `response.content` before returning a response | [Responses render lazily](#responses-render-lazily) |
 
 ## From inertia-django 1.x
 
@@ -79,6 +130,29 @@ INSTALLED_APPS = [
 
 The codemod rewrites this entry. The `inertia.E009` check reports it if it is left.
 
+## Imports
+
+Change every import from `inertia` to the name below. Names marked "removed" have no direct replacement; the linked section explains what to do instead.
+
+| inertia-django | dj_inertiajs |
+|---|---|
+| `from inertia import render, inertia, InertiaResponse` | `from dj_inertiajs import render, inertia, InertiaResponse` |
+| `from inertia.http import render, inertia, InertiaResponse, clear_history` | `from dj_inertiajs import render, inertia, InertiaResponse, clear_history` |
+| `from inertia import defer, merge, optional, ...` (or `inertia.utils`) | `from dj_inertiajs import Prop`; see [Props](#props) |
+| `from inertia import location` (or `inertia.http`) | `from dj_inertiajs import InertiaLocation`; see [Redirects](#redirects) |
+| `from inertia import preserve_fragment` (or `inertia.http`) | Removed; `from dj_inertiajs import redirect`, see [Redirects](#redirects) |
+| `from inertia.http import encrypt_history` | Removed; see [History encryption](#history-encryption) |
+| `from inertia import share` (or `inertia.share`) | Removed; see [Shared data](#shared-data) |
+| `from inertia.utils import InertiaJsonEncoder` | `from dj_inertiajs.encoders import InertiaJsonEncoder` |
+| `from inertia.middleware import InertiaMiddleware` | `from dj_inertiajs.middleware import InertiaMiddleware` |
+| `from inertia.test import InertiaTestCase` | `from dj_inertiajs.test import InertiaTestCase` |
+| `from inertia.test import inertia_page, inertia_div, BaseInertiaTestCase, ClientWithLastResponse` | Removed; see [Tests](#tests) |
+| `from inertia.settings import settings` | Removed; see [Settings](#settings) |
+
+Other names, such as the classes in `inertia.prop_classes`, `InertiaRequest` and `model_to_dict`, were never public API and have no replacement. `import inertia` followed by `inertia.render(...)` becomes `import dj_inertiajs` and `dj_inertiajs.render(...)`.
+
+Dotted paths in strings change the same way: `"inertia.middleware.InertiaMiddleware"` becomes `"dj_inertiajs.middleware.InertiaMiddleware"`, and `"inertia.utils.InertiaJsonEncoder"` becomes `"dj_inertiajs.encoders.InertiaJsonEncoder"`.
+
 ## Settings
 
 The `INERTIA_*` settings are replaced by one `INERTIA` dict. `JSON_ENCODER` is now a dotted import path instead of a class, so `settings.py` does not import application code.
@@ -104,7 +178,9 @@ INERTIA = {
 }
 ```
 
-The codemod rewrites module-level `INERTIA_*` assignments. The `inertia.E007` check reports any that are left, and `inertia.E001` reports unknown keys in `INERTIA`, such as typos.
+Code that read the old settings, through `django.conf.settings.INERTIA_LAYOUT` or inertia-django's `inertia.settings.settings`, reads `settings.INERTIA` instead.
+
+The codemod rewrites module-level `INERTIA_*` assignments and reports reads of the old names. The `inertia.E007` check reports any that are left, and `inertia.E001` reports unknown keys in `INERTIA`, such as typos.
 
 ## Middleware
 
@@ -166,6 +242,24 @@ The prop helper functions are replaced by one `Prop` class. Each helper becomes 
 The other keywords, such as `key`, `expires_at` and `rescue`, keep their names.
 
 `Prop` raises `ValueError` for options that cannot be combined, where the helpers ignored them silently. For example, `group` needs `defer=True`, `match_on` needs merging, and `fresh` needs `once=True`. If an upgraded view raises one of these errors, the option never had an effect; remove it.
+
+```python
+# Before
+from inertia import defer, merge
+
+return render(request, "Event/Index", {
+    "events": merge(lambda: Event.objects.page(page)),
+    "stats": defer(lambda: Stats.objects.summary(), "sidebar"),
+})
+
+# After
+from dj_inertiajs import Prop
+
+return render(request, "Event/Index", {
+    "events": Prop(lambda: Event.objects.page(page), merge=True),
+    "stats": Prop(lambda: Stats.objects.summary(), defer=True, group="sidebar"),
+})
+```
 
 The codemod rewrites calls to the helpers it can trace to an `inertia` import.
 
@@ -267,7 +361,21 @@ return redirect("articles:show", slug=article.slug, preserve_fragment=True)
 
 `dj_inertiajs.redirect` is `django.shortcuts.redirect` with Inertia's options. The codemod reports each `preserve_fragment` call.
 
-`location(url)` is now a response class, `InertiaLocation(url)`, like `HttpResponseRedirect`. The codemod rewrites the calls.
+`location(url)` is now a response class, `InertiaLocation(url)`, like `HttpResponseRedirect`:
+
+```python
+# Before
+from inertia import location
+
+return location("https://billing.example.com/portal")
+
+# After
+from dj_inertiajs import InertiaLocation
+
+return InertiaLocation("https://billing.example.com/portal")
+```
+
+The codemod rewrites these calls.
 
 ## The request
 
@@ -348,7 +456,25 @@ self.assertEqual(response.inertia.props["name"], "Brandon")
 | `assertHasExactTemplateData` | `assertTemplateDataEqual` |
 | `assertIncludesTemplateData` | `assertTemplateDataContain` |
 
-- `response.inertia` holds the page the response sent: `component`, `props`, `url`, `version`, and the whole page object as `data`. It replaces `page()`, `props()`, `component()`, `merge_props()`, `deferred_props()` and `once_props()`; for example, `self.deferred_props()` becomes `response.inertia.data["deferredProps"]`.
+To make these changes by hand, in each test method:
+
+1. Assign the result of each request to `response`, if the test discarded it.
+2. Rename `self.inertia` to `self.client`, and add `inertia=False` to requests that used the old `self.client`.
+3. Pass `response` as the first argument of each assertion, and rename the assertions as in the table.
+4. Replace the accessors with reads from `response`:
+
+| Before | After |
+|---|---|
+| `self.component()` | `response.inertia.component` |
+| `self.props()` | `response.inertia.props` |
+| `self.page()` | `response.inertia.data` |
+| `self.merge_props()` | `response.inertia.data["mergeProps"]` |
+| `self.deferred_props()` | `response.inertia.data["deferredProps"]` |
+| `self.once_props()` | `response.inertia.data["onceProps"]` |
+| `self.template_data()` | `response.template_data` |
+| `self.client.last_response` | `response` |
+
+- `response.inertia` holds the page the response sent: `component`, `props`, `url`, `version`, and the whole page object as `data`. It replaces the accessors above.
 - `InertiaTestCase` sets Django's `client_class` to `InertiaClient` and `async_client_class` to `AsyncInertiaClient`. `self.inertia` and `last_response` are gone.
 - The assertions live in `InertiaTestMixin`, which also works with `SimpleTestCase`. In pytest, read `response.inertia` directly.
 - `inertia_page()`, `inertia_div()`, `assertJSONResponse` and `BaseInertiaTestCase` were removed. Compare `response.inertia.data` or `response.json()` instead.

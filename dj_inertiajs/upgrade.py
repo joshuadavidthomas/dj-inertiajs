@@ -1,6 +1,7 @@
 """Rewrite a project from inertia-django to this package.
 
-Run ``python -m dj_inertiajs.upgrade [--diff] PATH ...``. It rewrites, in
+Run ``dj-inertiajs-upgrade [--diff] PATH ...``, or
+``python -m dj_inertiajs.upgrade``. It rewrites, in
 every Python file under each path:
 
 - imports from ``inertia`` and its modules,
@@ -17,6 +18,11 @@ every Python file under each path:
 Anything it cannot rewrite safely is printed with its file and line. It does
 not edit templates; ``manage.py check`` and the guide "Upgrading from
 inertia-django" cover those. Requires the ``upgrade`` extra.
+
+It is a standalone command, not a management command, because Django only
+finds those in apps in ``INSTALLED_APPS`` once the settings load, and adding
+the app to ``INSTALLED_APPS`` is one of its rewrites. It reads the code as text
+and never imports it, so it works on a project that does not start.
 """
 
 from __future__ import annotations
@@ -28,8 +34,14 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import libcst as cst
-from libcst.metadata import MetadataWrapper, PositionProvider
+try:
+    import libcst as cst
+    from libcst.metadata import MetadataWrapper, PositionProvider
+except ImportError as e:  # pragma: no cover
+    raise SystemExit(
+        "dj-inertiajs-upgrade needs the upgrade extra: "
+        'pip install "dj-inertiajs[upgrade]"'
+    ) from e
 
 HELPERS = {
     "optional",
@@ -874,7 +886,7 @@ def python_files(paths: Sequence[Path]) -> Iterator[Path]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m dj_inertiajs.upgrade",
+        prog="dj-inertiajs-upgrade",
         description="Rewrite a project from inertia-django to dj_inertiajs.",
     )
     parser.add_argument("paths", nargs="+", type=Path)
