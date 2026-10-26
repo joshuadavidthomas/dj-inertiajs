@@ -5,7 +5,6 @@ every Python file under each path:
 
 - imports from ``inertia`` and its modules,
 - calls to the prop helpers (``defer``, ``merge``, ...) into ``Prop(...)``,
-- calls to ``share`` and the history helpers into ``request.inertia`` methods,
 - ``encrypt_history(request)`` in an ``@inertia`` view into the decorator's
   ``encrypt_history=`` option,
 - module-level ``INERTIA_*`` settings into one ``INERTIA`` dict,
@@ -44,8 +43,8 @@ HELPERS = {
 # Positional parameters after the prop value, by helper.
 POSITIONAL = {"defer": ["group", "merge"], "once": ["fresh"], "scroll": ["scroll"]}
 # Functions that took the request first and are now request.inertia methods.
-REQUEST_METHODS = {"share", "clear_history", "preserve_fragment"}
-PUBLIC = {"InertiaResponse", "inertia", "location", "render"}
+
+PUBLIC = {"InertiaResponse", "clear_history", "inertia", "location", "render", "share"}
 MOVED = {
     "InertiaJsonEncoder": "dj_inertiajs.encoders",
     "InertiaMiddleware": "dj_inertiajs.middleware",
@@ -232,7 +231,7 @@ class Upgrade(cst.CSTTransformer):
         self.module = module
         self.manual: list[str] = []
         self.helpers: dict[str, str] = {}  # local name -> helper
-        self.request_methods: dict[str, str] = {}  # local name -> method
+        self.preserve_names: set[str] = set()  # local names of preserve_fragment
         self.rewritten_calls: set[int] = set()  # ids of the Names they call
         self.encrypt_names: set[str] = set()  # local names of encrypt_history
         self.decorator_names: set[str] = set()  # local names of @inertia
@@ -304,8 +303,8 @@ class Upgrade(cst.CSTTransformer):
                         cst.ImportAlias(cst.Name("Prop"))
                     )
                 continue
-            if name in REQUEST_METHODS:
-                self.request_methods[_alias_name(alias)] = name
+            if name == "preserve_fragment":
+                self.preserve_names.add(_alias_name(alias))
                 continue
             if name == "encrypt_history":
                 self.encrypt_names.add(_alias_name(alias))
@@ -522,10 +521,6 @@ class Upgrade(cst.CSTTransformer):
                 f"class-based view; {guide('History encryption')}.",
             )
             return updated_node
-        if isinstance(func, cst.Name) and func.value in self.request_methods:
-            return self._request_call(
-                original_node, updated_node, self.request_methods[func.value]
-            )
         if isinstance(func, cst.Name) and func.value in self.helpers:
             return self._prop_call(
                 original_node, updated_node, self.helpers[func.value]
@@ -545,8 +540,6 @@ class Upgrade(cst.CSTTransformer):
         return updated_node
 
     def visit_Call(self, node: cst.Call) -> None:
-        if isinstance(node.func, cst.Name) and node.func.value in self.request_methods:
-            self.rewritten_calls.add(id(node.func))
         if isinstance(node.func, cst.Name) and node.func.value in self.encrypt_names:
             self.called_encrypt.add(id(node.func))
 
@@ -557,37 +550,13 @@ class Upgrade(cst.CSTTransformer):
                 "`encrypt_history` is used without being called; it is now an "
                 f"option of @inertia, render() and the views; {guide('History encryption')}.",
             )
-        if node.value in self.request_methods and id(node) not in self.rewritten_calls:
+        if node.value in self.preserve_names:
             self.report(
                 node,
-                f"`{node.value}` is used without being called; it is now "
-                f"`request.inertia.{self.request_methods[node.value]}`; "
-                f"{guide('Request helpers')}.",
+                "`preserve_fragment(request)` is replaced by an option of the "
+                "redirect: `return redirect(..., preserve_fragment=True)`, with "
+                f"`redirect` from dj_inertiajs; {guide('Redirects')}.",
             )
-
-    def _request_call(
-        self, original: cst.Call, updated: cst.Call, method: str
-    ) -> cst.BaseExpression:
-        args = list(updated.args)
-        if (
-            not args
-            or args[0].keyword is not None
-            or args[0].star
-            or not isinstance(
-                args[0].value, (cst.Name, cst.Attribute, cst.Call, cst.Subscript)
-            )
-        ):
-            self.report(
-                original,
-                f"`{method}(...)` has no plain request argument; rewrite it as "
-                f"`request.inertia.{method}(...)` by hand.",
-            )
-            return updated
-        func = cst.Attribute(
-            value=cst.Attribute(value=args[0].value, attr=cst.Name("inertia")),
-            attr=cst.Name(method),
-        )
-        return updated.with_changes(func=func, args=args[1:])
 
     def _prop_call(
         self, original: cst.Call, updated: cst.Call, helper: str

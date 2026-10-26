@@ -6,7 +6,16 @@ from django.shortcuts import render as django_render
 from django.utils.decorators import decorator_from_middleware
 from django.views.generic import FormView, ListView
 
-from dj_inertiajs import Prop, inertia, location, render
+from dj_inertiajs import (
+    Prop,
+    clear_history,
+    inertia,
+    location,
+    render,
+    set_errors,
+    share,
+)
+from dj_inertiajs import redirect as inertia_redirect
 from dj_inertiajs.request import (
     INERTIA_SESSION_CLEAR_HISTORY,
     INERTIA_SESSION_PRESERVE_FRAGMENT,
@@ -21,7 +30,8 @@ class ShareMiddleware:
         self.get_response = get_response
 
     def process_request(self, request):
-        request.inertia.share(
+        share(
+            request,
             position=lambda: "goalie",
             number=29,
         )
@@ -139,13 +149,13 @@ class EncryptedHistoryView(InertiaView):
 
 @inertia("TestComponent")
 def clear_history_test(request):
-    request.inertia.clear_history()
+    clear_history(request)
     return {}
 
 
 @inertia("TestComponent")
 def clear_history_redirect_test(request):
-    request.inertia.clear_history()
+    clear_history(request)
     return redirect(empty_test)
 
 
@@ -172,7 +182,7 @@ def once_test(request):
 def once_shared_test(request):
     """Exercises once props set via share() to verify they appear in onceProps
     metadata and are correctly skipped when the client already holds them."""
-    request.inertia.share(plans=Prop(lambda: ["basic", "pro"], once=True))
+    share(request, plans=Prop(lambda: ["basic", "pro"], once=True))
     return {"name": "Brandon"}
 
 
@@ -189,19 +199,10 @@ def once_fresh_test(request):
 # ---------------------------------------------------------------------------
 
 
-@inertia("TestComponent")
-def preserve_fragment_page_test(request):
-    """Simulates the page rendered after following a redirect that had
-    preserve_fragment set on the preceding response."""
-    request.inertia.preserve_fragment()
-    return {"name": "Brandon"}
-
-
 def preserve_fragment_redirect_test(request):
-    """Sets preserve_fragment and issues a redirect; the flag travels via
-    the session to the next Inertia response."""
-    request.inertia.preserve_fragment()
-    return redirect(empty_test)
+    """Redirects with preserve_fragment; the flag travels via the session to
+    the next Inertia response."""
+    return inertia_redirect(empty_test, preserve_fragment=True)
 
 
 @inertia("TestComponent")
@@ -224,7 +225,7 @@ class ShareErrorsMiddleware:
         self.get_response = get_response
 
     def process_request(self, request):
-        request.inertia.share(errors={"email": "required"})
+        share(request, errors={"email": "required"})
 
 
 @decorator_from_middleware(ShareErrorsMiddleware)
@@ -355,7 +356,7 @@ def shared_props(request):
 def set_errors_test(request):
     form = SportForm(request.POST)
     if not form.is_valid():
-        request.inertia.set_errors(form)
+        set_errors(request, form)
     return redirect(empty_test)
 
 

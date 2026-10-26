@@ -10,22 +10,15 @@ from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_page
 class PreserveFragmentTestCase(ProtocolTestCase):
     """Tests for server-side preserveFragment support introduced in Inertia v3.
 
-    When a view calls preserve_fragment(request) before returning, the
-    subsequent Inertia page response will include preserveFragment: true in
-    the page object.  The client uses this to retain the original URL fragment
+    When a view returns redirect(..., preserve_fragment=True), the Inertia
+    page that follows includes preserveFragment: true in the page object.  The client uses this to retain the original URL fragment
     across the redirect.
     """
 
-    def test_preserve_fragment_is_included_when_set(self):
-        """preserve_fragment(request) causes preserveFragment: true to appear
-        in the rendered page object."""
+    def test_preserve_fragment_is_included_after_the_redirect(self):
         self.assertJSONResponse(
-            self.inertia.get("/preserve-fragment/"),
-            inertia_page(
-                "preserve-fragment",
-                props={"name": "Brandon"},
-                preserve_fragment=True,
-            ),
+            self.inertia.get("/preserve-fragment-redirect/", follow=True),
+            inertia_page("empty", preserve_fragment=True),
         )
 
     def test_preserve_fragment_is_absent_by_default(self):
@@ -36,18 +29,16 @@ class PreserveFragmentTestCase(ProtocolTestCase):
         self.assertNotIn("preserveFragment", page)
 
     def test_preserve_fragment_persists_across_a_redirect(self):
-        """When preserve_fragment is called before a redirect the flag
-        survives in the session and is included in the page response that
-        follows the redirect."""
-        response = self.inertia.get("/preserve-fragment-redirect/", follow=True)
-        page = response.json()
+        """The flag survives in the session for the page that follows the
+        redirect, including for a plain (non-Inertia) request."""
+        response = self.client.get("/preserve-fragment-redirect/", follow=True)
 
-        self.assertTrue(page.get("preserveFragment"))
+        self.assertTrue(response.inertia.data.get("preserveFragment"))
 
     def test_preserve_fragment_is_consumed_after_one_response(self):
         """The session flag is cleared after the first response that reads it,
         so a second request does not see preserveFragment: true."""
-        self.inertia.get("/preserve-fragment/")
+        self.inertia.get("/preserve-fragment-redirect/", follow=True)
         response = self.inertia.get("/empty/")
         page = response.json()
 

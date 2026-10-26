@@ -3,7 +3,13 @@ from typing import Any
 from django.forms import BaseForm
 from django.http import HttpRequest
 
-__all__ = ["InertiaDetails", "InertiaHttpRequest"]
+__all__ = [
+    "InertiaDetails",
+    "InertiaHttpRequest",
+    "clear_history",
+    "set_errors",
+    "share",
+]
 
 INERTIA_SESSION_CLEAR_HISTORY = "_inertia_clear_history"
 INERTIA_SESSION_PRESERVE_FRAGMENT = "_inertia_preserve_fragment"
@@ -14,14 +20,13 @@ class InertiaDetails:
     """Inertia's view of one request, available as ``request.inertia``.
 
     ``InertiaMiddleware`` attaches it, the way ``SessionMiddleware`` attaches
-    ``request.session``. It is truthy when the Inertia client made the
-    request. Its methods change the page this request renders, or with a
-    redirect, the next page.
+    ``request.session``, and only describes the request, like
+    django-htmx's ``request.htmx``. It is truthy when the Inertia client made
+    the request.
     """
 
     def __init__(self, request: HttpRequest) -> None:
         self._request = request
-        self.shared: dict[str, Any] = {}
 
     def __bool__(self) -> bool:
         return "X-Inertia" in self._request.headers
@@ -71,28 +76,6 @@ class InertiaDetails:
         """Whether this request is a partial reload of ``component``."""
         return self.partial_component == component
 
-    def share(self, **props: Any) -> None:
-        """Add props to the page this request renders, as shared props."""
-        self.shared.update(props)
-
-    def clear_history(self) -> None:
-        """Clear the client's encrypted history on the next page."""
-        self._request.session[INERTIA_SESSION_CLEAR_HISTORY] = True
-
-    def preserve_fragment(self) -> None:
-        """Keep the URL fragment across the redirect this view returns."""
-        self._request.session[INERTIA_SESSION_PRESERVE_FRAGMENT] = True
-
-    def set_errors(self, errors: BaseForm | dict[str, Any]) -> None:
-        """Send validation errors as the ``errors`` prop on the next page.
-
-        Call this before redirecting back to the form, the way
-        ``messages.error()`` is used. ``errors`` is a form or a mapping of
-        field names to messages; each field keeps its first message. The
-        errors are sent once, and included in partial reloads too.
-        """
-        self._request.session[INERTIA_SESSION_ERRORS] = error_messages(errors)
-
     def _header_list(self, name: str) -> list[str] | None:
         if name not in self._request.headers:
             return None
@@ -129,3 +112,30 @@ def error_messages(errors: BaseForm | dict[str, Any]) -> dict[str, str]:
         field: str(messages[0]) if isinstance(messages, list) else str(messages)
         for field, messages in errors.items()
     }
+
+
+def share(request: HttpRequest, **props: Any) -> None:
+    """Add props to the page this request renders, as shared props.
+
+    For props on every page, list a function in ``INERTIA["SHARED_PROPS"]``
+    instead.
+    """
+    shared: dict[str, Any] = request.__dict__.setdefault("_inertia_shared", {})
+    shared.update(props)
+
+
+def set_errors(request: HttpRequest, errors: BaseForm | dict[str, Any]) -> None:
+    """Send validation errors as the ``errors`` prop on the next page.
+
+    Call this before redirecting back to the form, the way
+    ``messages.error()`` is used. ``errors`` is a form or a mapping of field
+    names to messages; each field keeps its first message. The errors are
+    sent once, and included in partial reloads too.
+    """
+    request.session[INERTIA_SESSION_ERRORS] = error_messages(errors)
+
+
+def clear_history(request: HttpRequest) -> None:
+    """Clear the client's encrypted history on the next page, for example on
+    logout."""
+    request.session[INERTIA_SESSION_CLEAR_HISTORY] = True

@@ -43,7 +43,6 @@ urlpatterns = [
     path("once-shared/", views.once_shared_test),
     path("once-fresh/", views.once_fresh_test),
     # preserveFragment (Inertia v3)
-    path("preserve-fragment/", views.preserve_fragment_page_test),
     path("preserve-fragment-redirect/", views.preserve_fragment_redirect_test),
     path("preserve-fragment-type-error/", views.preserve_fragment_type_error_test),
     # preserveErrors / shared errors (Inertia v3)

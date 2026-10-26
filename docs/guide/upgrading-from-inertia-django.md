@@ -8,7 +8,7 @@ The protocol the client sees is the same as inertia-django 2.0's, which targets 
 
 Work through three steps. Each one shortens the list for the next.
 
-1. **Run the codemod.** It rewrites imports, prop helpers, request helpers such as `share()`, `encrypt_history()` in `@inertia` views, settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and test assertions:
+1. **Run the codemod.** It rewrites imports, prop helpers, `encrypt_history()` in `@inertia` views, settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and test assertions:
 
    ```shell
    pip install "dj-inertiajs[upgrade] @ git+https://github.com/joshuadavidthomas/inertia-django"
@@ -209,13 +209,13 @@ Code that reads `response.content` on a response it built itself, before returni
 
 ## Shared data
 
-`share(request, **props)` is now `request.inertia.share(**props)`; see [Request helpers](#request-helpers). For props on every page, list functions in a setting instead of writing a middleware, like template context processors:
+`share(request, **props)` works as before. For props on every page, list functions in a setting instead of writing a middleware, like template context processors:
 
 ```python
 # Before: a custom middleware
 def inertia_share(get_response):
     def middleware(request):
-        request.inertia.share(app_name=settings.APP_NAME, user=lambda: request.user)
+        share(request, app_name=settings.APP_NAME, user=lambda: request.user)
         return get_response(request)
     return middleware
 
@@ -227,41 +227,42 @@ def shared(request):
 INERTIA = {"LAYOUT": "base.html", "SHARED_PROPS": ["myapp.inertia.shared"]}
 ```
 
-A middleware calling `request.inertia.share()` keeps working, so this change is optional.
+A middleware calling `share()` keeps working, so this change is optional.
 
 ## Validation errors
 
 Inertia forms read an `errors` prop. inertia-django left it to you to share one. Now:
 
-- In a redirect-after-POST view, call `request.inertia.set_errors(form)` before redirecting. The errors are sent once on the next page, like `messages.error()`.
+- In a redirect-after-POST view, call `set_errors(request, form)` before redirecting. The errors are sent once on the next page, like `messages.error()`.
 - A class-based view whose context holds a bound, invalid `form`, such as `FormView` after `form_invalid`, sends its errors automatically.
 
 Each field keeps its first message, the shape Inertia's `useForm` expects. If you shared `form.errors` yourself, you sent lists of messages; delete that code.
 
 ## Request helpers
 
-The functions that took the request first are now methods of `request.inertia`, which `InertiaMiddleware` attaches like `request.session`:
+`share()` and `clear_history()` are unchanged; only their imports move, which the codemod does. Like `messages.error(request, ...)`, they take the request first.
+
+`preserve_fragment(request)` is gone. Keeping the fragment is a property of the redirect, so it is now an option of it:
 
 ```python
 # Before
-from inertia import share
-from inertia.http import clear_history, preserve_fragment
+from django.shortcuts import redirect
+from inertia.http import preserve_fragment
 
-share(request, team=team)
-clear_history(request)
 preserve_fragment(request)
+return redirect("articles:show", slug=article.slug)
 
 # After
-request.inertia.share(team=team)
-request.inertia.clear_history()
-request.inertia.preserve_fragment()
+from dj_inertiajs import redirect
+
+return redirect("articles:show", slug=article.slug, preserve_fragment=True)
 ```
 
-The codemod makes these rewrites. It reports a helper that is passed around instead of called, or that gets the request as a keyword argument.
+`dj_inertiajs.redirect` is `django.shortcuts.redirect` with Inertia's options. The codemod reports each `preserve_fragment` call.
 
-`request.inertia` also describes the request: it is truthy for Inertia visits, and has `version`, `partial_component`, `partial_data`, `partial_except` and `is_partial()`. In inertia-django, `request.inertia` held only the shared props; code that read it, such as `request.inertia.all()`, must read `request.inertia.shared` instead.
+`request.inertia` changed meaning. In inertia-django it held the shared props; code that read it, such as `request.inertia.all()`, must change. It now describes the request, like django-htmx's `request.htmx`: it is truthy for Inertia visits, and has `version`, `partial_component`, `partial_data`, `partial_except` and `is_partial()`.
 
-`location(url)` is unchanged: it builds a response and does not take the request.
+`location(url)` is unchanged.
 
 ## History encryption
 

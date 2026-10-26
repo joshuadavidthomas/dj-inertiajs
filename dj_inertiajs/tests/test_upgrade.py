@@ -117,20 +117,18 @@ class ImportTestCase(SimpleTestCase):
         self.assertIn("`import inertia` is not rewritten", manual[0])
 
 
-class RequestMethodTestCase(SimpleTestCase):
-    def test_helpers_become_request_inertia_methods(self):
+class RequestHelperTestCase(SimpleTestCase):
+    def test_helpers_keep_their_calls_and_preserve_fragment_is_reported(self):
         code, manual = upgrade(
             """\
-            from inertia import render, share
-            from inertia.http import clear_history
+            from inertia import share
+            from inertia.http import clear_history, preserve_fragment
 
             def view(request):
-                share(
-                    request,
-                    user=lambda: request.user,
-                )
-                clear_history(self.request)
-                return render(request, "Page")
+                share(request, user=lambda: request.user)
+                clear_history(request)
+                preserve_fragment(request)
+                return redirect("home")
             """
         )
 
@@ -138,33 +136,19 @@ class RequestMethodTestCase(SimpleTestCase):
             code,
             dedent(
                 """\
-                from dj_inertiajs import render
+                from dj_inertiajs import share
+                from dj_inertiajs import clear_history
 
                 def view(request):
-                    request.inertia.share(
-                        user=lambda: request.user,
-                    )
-                    self.request.inertia.clear_history()
-                    return render(request, "Page")
+                    share(request, user=lambda: request.user)
+                    clear_history(request)
+                    preserve_fragment(request)
+                    return redirect("home")
                 """
             ),
         )
-        self.assertEqual(manual, [])
-
-    def test_uses_it_cannot_rewrite_are_reported(self):
-        code, manual = upgrade(
-            """\
-            from inertia import share
-
-            callbacks = [share]
-            share(request=request, x=1)
-            """
-        )
-
-        self.assertIn("share(request=request, x=1)", code)
-        self.assertEqual(len(manual), 2)
-        self.assertIn("line 3: `share` is used without being called", manual[0])
-        self.assertIn("line 4: `share(...)` has no plain request argument", manual[1])
+        self.assertEqual(len(manual), 1)
+        self.assertIn("line 7: `preserve_fragment(request)` is replaced", manual[0])
 
 
 class EncryptHistoryTestCase(SimpleTestCase):

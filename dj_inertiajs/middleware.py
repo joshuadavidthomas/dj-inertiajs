@@ -7,7 +7,7 @@ from django.middleware.csrf import get_token
 from django.utils.cache import patch_vary_headers
 
 from .conf import settings
-from .request import InertiaDetails
+from .request import INERTIA_SESSION_PRESERVE_FRAGMENT, InertiaDetails
 from .response import location
 
 
@@ -57,6 +57,9 @@ class InertiaMiddleware:
         # the cookie.  Set the token explicitly here so it is available for
         # both Inertia page visits and non-visit XHR (useHttp) requests.
         get_token(request)
+
+        if getattr(response, "preserve_fragment", False):
+            request.session[INERTIA_SESSION_PRESERVE_FRAGMENT] = True
 
         details: InertiaDetails = request.inertia  # type: ignore[attr-defined]
         if not details:
