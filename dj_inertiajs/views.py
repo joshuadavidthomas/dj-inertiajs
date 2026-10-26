@@ -6,8 +6,8 @@ from django.forms import BaseForm
 from django.http import HttpRequest
 from django.views.generic import View
 
+from .conf import settings
 from .props import PROP_ATTR, Prop
-from .request import error_messages
 from .response import InertiaResponse
 
 __all__ = ["InertiaResponseMixin", "InertiaView"]
@@ -61,7 +61,7 @@ class InertiaResponseMixin:
         props: dict[str, Any] = {}
         form = kwargs.get("form")
         if isinstance(form, BaseForm) and form.is_bound and form.errors:
-            props["errors"] = Prop(error_messages(form), always=True)
+            props["errors"] = Prop(settings.FORM_ERRORS(form), always=True)
         for klass in reversed(type(self).__mro__):
             for name, value in vars(klass).items():
                 if isinstance(value, Prop):

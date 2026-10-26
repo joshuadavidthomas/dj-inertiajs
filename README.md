@@ -248,7 +248,9 @@ def create_event(request):
 
 A class-based view whose context holds a bound, invalid `form`, such as a `FormView` after `form_invalid()`, sends its errors automatically.
 
-Each field keeps its first message, the shape Inertia's `useForm` expects. Errors are included in partial reloads too.
+Each field keeps its first message, the shape Inertia's `useForm` expects. Errors that belong to no field, from `Form.clean()`, are under Django's `"__all__"` key. `set_errors()` also takes a formset: its forms' errors are keyed `"<prefix>.<index>.<field>"`, such as `"sports.1.name"`, and its own errors `"<prefix>"`. Errors are included in partial reloads too.
+
+To send errors in another shape, such as every message per field, point `INERTIA["FORM_ERRORS"]` at a function that takes a form, formset or dict and returns the `errors` prop.
 
 ## The request
 
@@ -392,6 +394,7 @@ All settings live in one `INERTIA` dict:
 | `JSON_ENCODER` | `"dj_inertiajs.encoders.InertiaJsonEncoder"` | Dotted path to the JSON encoder for props. |
 | `ENCRYPT_HISTORY` | `False` | Encrypt the browser history state on every page. |
 | `SHARED_PROPS` | `[]` | Dotted paths to functions whose props are added to every page. |
+| `FORM_ERRORS` | `"dj_inertiajs.request.error_messages"` | Dotted path to a function that turns a form, formset or dict of errors into the `errors` prop. |
 | `SSR` | `{"ENABLED": False, "URL": "http://localhost:13714"}` | Server-side rendering. Keys you leave out keep their defaults. |
 
 ## System checks
@@ -406,6 +409,7 @@ All settings live in one `INERTIA` dict:
 | `inertia.E004` | `InertiaMiddleware` is not in `MIDDLEWARE`. |
 | `inertia.E005` | `SessionMiddleware` is not in `MIDDLEWARE`. |
 | `inertia.E006` | An entry in `INERTIA["SHARED_PROPS"]` cannot be imported. |
+| `inertia.E011` | `INERTIA["JSON_ENCODER"]` or `INERTIA["FORM_ERRORS"]` cannot be imported. |
 | `inertia.E007`–`E010` | Configuration left over from inertia-django. See [Upgrading from inertia-django](docs/guide/upgrading-from-inertia-django.md). |
 
 ## Testing

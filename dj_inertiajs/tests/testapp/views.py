@@ -453,3 +453,9 @@ def async_props_test(request):
 @inertia("TestComponent")
 async def async_view_async_props_test(request):
     return {"score": load_score}
+
+
+def all_error_messages(errors):
+    return {
+        field: [str(m) for m in messages] for field, messages in errors.errors.items()
+    }

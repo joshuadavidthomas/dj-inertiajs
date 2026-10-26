@@ -13,6 +13,7 @@ DEFAULTS: dict[str, Any] = {
     "JSON_ENCODER": "dj_inertiajs.encoders.InertiaJsonEncoder",
     "ENCRYPT_HISTORY": False,
     "SHARED_PROPS": [],
+    "FORM_ERRORS": "dj_inertiajs.request.error_messages",
     "SSR": {
         "ENABLED": False,
         "URL": "http://localhost:13714",
@@ -48,6 +49,10 @@ class InertiaSettings:
     @property
     def SHARED_PROPS(self) -> list[Callable[[HttpRequest], dict[str, Any]]]:
         return [import_string(path) for path in self._get("SHARED_PROPS")]
+
+    @property
+    def FORM_ERRORS(self) -> Callable[[Any], dict[str, Any]]:
+        return import_string(self._get("FORM_ERRORS"))  # type: ignore[no-any-return]
 
     @property
     def SSR_ENABLED(self) -> bool:

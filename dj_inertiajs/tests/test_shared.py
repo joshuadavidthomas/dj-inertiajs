@@ -1,6 +1,8 @@
-from django.test import override_settings
+from django import forms
+from django.test import SimpleTestCase, TestCase, override_settings
 
-from dj_inertiajs.test import InertiaTestCase
+from dj_inertiajs.request import error_messages
+from dj_inertiajs.test import InertiaClient, InertiaTestCase
 
 SHARED = {
     "LAYOUT": "layout.html",
@@ -79,3 +81,59 @@ class SetErrorsTestCase(InertiaTestCase):
         response = self.inertia.post("/set-errors/", {"name": "Hockey"}, follow=True)
 
         self.assertHasExactProps(response, {})
+
+
+class ErrorMessagesTestCase(SimpleTestCase):
+    def test_non_field_and_formset_errors(self):
+        class SportForm(forms.Form):
+            name = forms.CharField()
+            season = forms.CharField(required=False)
+
+            def clean(self):
+                raise forms.ValidationError("Pick a season.")
+
+        form = SportForm({"name": ""})
+        self.assertEqual(
+            error_messages(form),
+            {"name": "This field is required.", "__all__": "Pick a season."},
+        )
+
+        SportFormSet = forms.formset_factory(SportForm, max_num=1, validate_max=True)
+        formset = SportFormSet(
+            {
+                "sports-TOTAL_FORMS": "2",
+                "sports-INITIAL_FORMS": "0",
+                "sports-0-name": "Hockey",
+                "sports-1-season": "Winter",
+            },
+            prefix="sports",
+        )
+        self.assertEqual(
+            error_messages(formset),
+            {
+                "sports": "Please submit at most 1 form.",
+                "sports.0.__all__": "Pick a season.",
+                "sports.1.name": "This field is required.",
+                "sports.1.__all__": "Pick a season.",
+            },
+        )
+
+
+class FormErrorsSettingTestCase(TestCase):
+    @override_settings(
+        INERTIA={
+            "LAYOUT": "layout.html",
+            "FORM_ERRORS": "dj_inertiajs.tests.testapp.views.all_error_messages",
+        }
+    )
+    def test_form_errors_setting_converts_errors(self):
+        response = InertiaClient().post("/set-errors/", {}, follow=True)
+
+        self.assertEqual(
+            response.inertia.props, {"errors": {"name": ["This field is required."]}}
+        )
+
+        response = InertiaClient().post("/sports/create/", {})
+        self.assertEqual(
+            response.inertia.props["errors"], {"name": ["This field is required."]}
+        )

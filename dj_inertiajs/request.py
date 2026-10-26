@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from typing import Any
 
-from django.forms import BaseForm
+from django.forms import BaseForm, BaseFormSet
 from django.http import HttpRequest
+
+from .conf import settings
 
 __all__ = [
     "InertiaDetails",
@@ -104,8 +108,24 @@ def get_details(request: HttpRequest) -> InertiaDetails:
     return details
 
 
-def error_messages(errors: BaseForm | dict[str, Any]) -> dict[str, str]:
-    """Map each field to its first error message, the shape Inertia forms expect."""
+def error_messages(
+    errors: BaseForm | BaseFormSet[Any] | dict[str, Any],
+) -> dict[str, str]:
+    """Map each field to its first error message, the shape Inertia forms expect.
+
+    The default ``INERTIA["FORM_ERRORS"]``. Errors not tied to a field stay
+    under Django's ``"__all__"`` key. A formset's errors are keyed
+    ``"<prefix>.<index>.<field>"``, and its own errors ``"<prefix>"``.
+    """
+    if isinstance(errors, BaseFormSet):
+        prefix = str(errors.prefix)
+        result = {}
+        if errors.non_form_errors():
+            result[prefix] = str(errors.non_form_errors()[0])
+        for index, form in enumerate(errors.forms):
+            for field, message in error_messages(form).items():
+                result[f"{prefix}.{index}.{field}"] = message
+        return result
     if isinstance(errors, BaseForm):
         errors = errors.errors
     return {
@@ -124,15 +144,18 @@ def share(request: HttpRequest, **props: Any) -> None:
     shared.update(props)
 
 
-def set_errors(request: HttpRequest, errors: BaseForm | dict[str, Any]) -> None:
+def set_errors(
+    request: HttpRequest, errors: BaseForm | BaseFormSet[Any] | dict[str, Any]
+) -> None:
     """Send validation errors as the ``errors`` prop on the next page.
 
     Call this before redirecting back to the form, the way
-    ``messages.error()`` is used. ``errors`` is a form or a mapping of field
-    names to messages; each field keeps its first message. The errors are
-    sent once, and included in partial reloads too.
+    ``messages.error()`` is used. ``errors`` is a form, a formset or a
+    mapping of field names to messages, converted by
+    ``INERTIA["FORM_ERRORS"]``; by default each field keeps its first
+    message. The errors are sent once, and included in partial reloads too.
     """
-    request.session[INERTIA_SESSION_ERRORS] = error_messages(errors)
+    request.session[INERTIA_SESSION_ERRORS] = settings.FORM_ERRORS(errors)
 
 
 def clear_history(request: HttpRequest) -> None:

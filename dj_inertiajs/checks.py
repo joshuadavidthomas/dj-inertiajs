@@ -58,6 +58,16 @@ def check_settings(**kwargs: Any) -> list[CheckMessage]:
                     id="inertia.E006",
                 )
             )
+    for key in ("JSON_ENCODER", "FORM_ERRORS"):
+        try:
+            import_string(settings._get(key))
+        except ImportError as e:
+            errors.append(
+                Error(
+                    f'INERTIA["{key}"] cannot be imported: {e}',
+                    id="inertia.E011",
+                )
+            )
     if settings.SSR_ENABLED and find_spec("requests") is None:
         errors.append(
             Error(

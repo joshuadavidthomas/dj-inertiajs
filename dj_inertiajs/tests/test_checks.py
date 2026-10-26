@@ -32,6 +32,12 @@ class ChecksTestCase(SimpleTestCase):
     def test_unimportable_shared_props(self):
         self.assertEqual(inertia_check_ids(), ["inertia.E006"])
 
+    @override_settings(
+        INERTIA={"LAYOUT": "layout.html", "FORM_ERRORS": "nowhere.errors"}
+    )
+    def test_unimportable_dotted_path(self):
+        self.assertEqual(inertia_check_ids(), ["inertia.E011"])
+
     def test_missing_middleware(self):
         middleware = [
             m
