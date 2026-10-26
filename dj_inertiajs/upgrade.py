@@ -36,7 +36,7 @@ from pathlib import Path
 
 try:
     import libcst as cst
-    from libcst.metadata import MetadataWrapper, PositionProvider
+    from libcst.metadata import MetadataWrapper, PositionProvider, ScopeProvider
 except ImportError as e:  # pragma: no cover
     raise SystemExit(
         "dj-inertiajs-upgrade needs the upgrade extra: "
@@ -237,9 +237,15 @@ class Upgrade(cst.CSTTransformer):
         module: str = "",
         is_package: bool = False,
         test_cases: set[str] | None = None,
+        keep: set[str] | None = None,
     ) -> None:
         super().__init__()
         self.module = module
+        # Local names of old imports that are still used after the rewrite,
+        # whose imports stay, so the code fails at import rather than with a
+        # NameError where the name is used.
+        self.keep = keep or set()
+        self.dropped: set[str] = set()  # local names of old imports removed
         self.manual: list[str] = []
         self.helpers: dict[str, str] = {}  # local name -> helper
         self.preserve_names: set[str] = set()  # local names of preserve_fragment
@@ -276,6 +282,24 @@ class Upgrade(cst.CSTTransformer):
 
     # Imports
 
+    def visit_Module(self, node: cst.Module) -> None:
+        # A second run finds the imports the first one added, beside old
+        # imports it kept, and must not add them again.
+        for statement in node.body:
+            if not isinstance(statement, cst.SimpleStatementLine):
+                continue
+            for small in statement.body:
+                if (
+                    isinstance(small, cst.ImportFrom)
+                    and small.module is not None
+                    and not small.relative
+                    and _dotted(small.module) == "dj_inertiajs"
+                    and not isinstance(small.names, cst.ImportStar)
+                ):
+                    names = {_dotted(alias.name) for alias in small.names}
+                    self.prop_imported |= "Prop" in names
+                    self.location_imported |= "InertiaLocation" in names
+
     def visit_ImportFrom(self, node: cst.ImportFrom) -> None:
         self.imports.record_from(node)
 
@@ -310,10 +334,14 @@ class Upgrade(cst.CSTTransformer):
             return updated_node
 
         targets: dict[str, list[cst.ImportAlias]] = {}
+        kept: list[cst.ImportAlias] = []
         for alias in original_node.names:
             name = _dotted(alias.name)
+            if _alias_name(alias) in self.keep:
+                kept.append(alias.with_changes(comma=cst.MaybeSentinel.DEFAULT))
             if name in HELPERS:
                 self.helpers[_alias_name(alias)] = name
+                self.dropped.add(_alias_name(alias))
                 if not self.prop_imported:
                     self.prop_imported = True
                     targets.setdefault("dj_inertiajs", []).append(
@@ -322,6 +350,7 @@ class Upgrade(cst.CSTTransformer):
                 continue
             if name == "location":
                 self.location_names.add(_alias_name(alias))
+                self.dropped.add(_alias_name(alias))
                 if not self.location_imported:
                     self.location_imported = True
                     targets.setdefault("dj_inertiajs", []).append(
@@ -330,12 +359,15 @@ class Upgrade(cst.CSTTransformer):
                 continue
             if name == "share":
                 self.share_names.add(_alias_name(alias))
+                self.dropped.add(_alias_name(alias))
                 continue
             if name == "preserve_fragment":
                 self.preserve_names.add(_alias_name(alias))
+                self.dropped.add(_alias_name(alias))
                 continue
             if name == "encrypt_history":
                 self.encrypt_names.add(_alias_name(alias))
+                self.dropped.add(_alias_name(alias))
                 continue
             if name == "inertia":
                 self.decorator_names.add(_alias_name(alias))
@@ -344,6 +376,7 @@ class Upgrade(cst.CSTTransformer):
                     original_node,
                     f"`{name}` was removed; {guide(REMOVED[name])}.",
                 )
+                self.dropped.add(_alias_name(alias))
                 continue
             if name in PUBLIC:
                 new_module = "dj_inertiajs"
@@ -363,6 +396,8 @@ class Upgrade(cst.CSTTransformer):
                 alias.with_changes(comma=cst.MaybeSentinel.DEFAULT)
             )
 
+        if kept:
+            targets.setdefault(module, []).extend(kept)
         statements = [
             cst.ImportFrom(module=_attribute(new_module), names=names)
             for new_module, names in targets.items()
@@ -892,7 +927,25 @@ def upgrade_source(
 ) -> tuple[str, list[str]]:
     tree = cst.parse_module(source) if isinstance(source, str) else source
     transformer = Upgrade(module, is_package, test_cases)
-    return MetadataWrapper(tree).visit(transformer).code, transformer.manual
+    result = MetadataWrapper(tree).visit(transformer)
+    still_used = _unresolved_names(result) & transformer.dropped
+    if still_used:
+        # Rewrite again, keeping the imports of names left in place, such as
+        # a share() call or a helper call that could not be rewritten.
+        transformer = Upgrade(module, is_package, test_cases, keep=still_used)
+        result = MetadataWrapper(tree).visit(transformer)
+    return result.code, transformer.manual
+
+
+def _unresolved_names(module: cst.Module) -> set[str]:
+    scopes = set(MetadataWrapper(module).resolve(ScopeProvider).values())
+    return {
+        access.node.value
+        for scope in scopes
+        if scope is not None
+        for access in scope.accesses
+        if not access.referents and isinstance(access.node, cst.Name)
+    }
 
 
 def python_files(paths: Sequence[Path]) -> Iterator[Path]:

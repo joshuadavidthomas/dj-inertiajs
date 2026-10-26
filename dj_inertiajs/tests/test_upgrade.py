@@ -95,12 +95,14 @@ class PropHelperTestCase(SimpleTestCase):
             dedent(
                 """\
                 from dj_inertiajs import Prop
+                from inertia import defer
                 x = defer(group="g")
                 y = defer(f, *a)
                 z = defer(f, "g", True, 1)
                 """
             ),
         )
+        self.assertEqual(upgrade(code)[0], code)
         self.assertEqual(
             manual,
             [
@@ -228,7 +230,9 @@ class ImportTestCase(SimpleTestCase):
             dedent(
                 """\
                 from dj_inertiajs import InertiaLocation, InertiaResponse
+                from inertia import location
                 from dj_inertiajs.middleware import InertiaMiddleware
+                from inertia import encrypt_history
                 from . import views
                 from .inertia import thing
 
@@ -314,7 +318,9 @@ class RequestHelperTestCase(SimpleTestCase):
             code,
             dedent(
                 """\
+                from inertia import share
                 from dj_inertiajs import clear_history
+                from inertia.http import preserve_fragment
 
                 def view(request):
                     share(request, user=lambda: request.user)
@@ -350,6 +356,7 @@ class LocationTestCase(SimpleTestCase):
             dedent(
                 """\
                 from dj_inertiajs import InertiaLocation, render
+                from inertia import location as leave
 
                 def portal(request):
                     return InertiaLocation("https://billing.example.com/")
@@ -358,6 +365,7 @@ class LocationTestCase(SimpleTestCase):
                 """
             ),
         )
+        self.assertEqual(upgrade(code)[0], code)
         self.assertEqual(len(manual), 1)
         self.assertIn("line 6: `leave` is used without being called", manual[0])
 
@@ -395,6 +403,7 @@ class EncryptHistoryTestCase(SimpleTestCase):
             dedent(
                 """\
                 from dj_inertiajs import inertia as page
+                from inertia.http import encrypt_history
 
                 @page("Account/Show", encrypt_history=True)
                 def account(request):
@@ -441,6 +450,7 @@ class EncryptHistoryTestCase(SimpleTestCase):
             dedent(
                 """\
                 from dj_inertiajs import inertia
+                from inertia import encrypt_history
 
 
                 @login_required()

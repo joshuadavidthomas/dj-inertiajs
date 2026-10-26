@@ -53,7 +53,7 @@ The codemod reads your code as text and never imports it, so it works on a proje
 | `encrypt_history(request)` in an `@inertia` view into the decorator's option | [History encryption](#history-encryption) |
 | Test clients, assertion names, and assertions and accessors that read the last response | [Tests](#tests) |
 
-It reports these with file and line, and leaves them for you:
+It reports these with file and line, and leaves them for you. Where such code still uses a name imported from inertia-django, the codemod keeps that import, so the file fails at import once inertia-django is uninstalled, instead of with a `NameError` only when the line runs:
 
 | The codemod reports | See |
 |---|---|
@@ -338,7 +338,7 @@ Every other use of `share()` has a replacement:
 | A decorator or mixin, for some views | Change `response.props` on the returned response, which renders lazily, or override `get_props()` on a class-based view |
 | A view, for its own page | Pass the values as props |
 
-Later functions in `SHARED_PROPS` override earlier ones, as later `share()` calls overrode earlier ones, and a view's own props still override shared props. The codemod removes the `share` import and reports each use, since the replacement depends on where the call is.
+Later functions in `SHARED_PROPS` override earlier ones, as later `share()` calls overrode earlier ones, and a view's own props still override shared props. The codemod reports each use of `share`, since the replacement depends on where the call is.
 
 ## Validation errors
 
