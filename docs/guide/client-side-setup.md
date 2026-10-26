@@ -1,8 +1,7 @@
 # Client-side setup
 
 ::: tip
-If you used the [template based setup](/guide/server-side-setup.md#template-based-setup), you can skip client-side setup.
-It is already configured as part of the template based setup.
+If you used the [template based setup](/guide/server-side-setup.md#template-based-setup), the client is already set up, but for the Inertia v2 client. Upgrade it as described there, then skip the rest of this page.
 :::
 
 Once you have [server-side configured](/guide/server-side-setup.md), you then need to setup your client-side framework. Inertia currently provides support for React, Vue, and Svelte.
@@ -14,35 +13,33 @@ First, install the Inertia client-side adapter corresponding to your framework o
 ::: code-group
 
 ```shell [Vue]
-npm install @inertiajs/vue3 vue @vitejs/plugin-vue
+npm install @inertiajs/vue3 vue vite @vitejs/plugin-vue
 ```
 
 ```shell [React]
-npm install @inertiajs/react react react-dom @vitejs/plugin-react
+npm install @inertiajs/react react react-dom vite @vitejs/plugin-react
 ```
 
 ```shell [Svelte]
-npm install @inertiajs/svelte svelte @sveltejs/vite-plugin-svelte
+npm install @inertiajs/svelte svelte vite @sveltejs/vite-plugin-svelte
 ```
 
 :::
 
 ## Configure Vite
 
-Create a `vite.config.js` file in your root directory and configure it for your frontend framework and `django-vite`. It builds `frontend/js/main.js` into `frontend/dist`.
+Create a `vite.config.js` file in your root directory and configure it for your frontend framework and `django-vite`. It builds `frontend/js/main.js` into `frontend/dist`. The config uses ES modules, so add `"type": "module"` to your `package.json`.
 
 ::: code-group
 
 ```js [Vue]
 // vite.config.js
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import vue from "@vitejs/plugin-vue";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-
+export default defineConfig(() => {
   const INPUT_DIR = "./frontend";
   const OUTPUT_DIR = "./frontend/dist";
 
@@ -58,7 +55,6 @@ export default defineConfig(({ mode }) => {
     base: "/static/",
     server: {
       host: "0.0.0.0",
-      port: env.DJANGO_VITE_DEV_SERVER_PORT || 5173,
       watch: {
         usePolling: true,
       },
@@ -69,7 +65,7 @@ export default defineConfig(({ mode }) => {
       outDir: resolve(OUTPUT_DIR),
       rollupOptions: {
         input: {
-          main: join(INPUT_DIR, "/js/main.js"),
+          main: resolve(INPUT_DIR, "js/main.js"),
         },
       },
     },
@@ -80,14 +76,12 @@ export default defineConfig(({ mode }) => {
 
 ```js [React]
 // vite.config.js
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import react from '@vitejs/plugin-react';
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 
 
-export default defineConfig(({ mode }) => {
-	const env = loadEnv(mode, process.cwd(), "");
-
+export default defineConfig(() => {
 	const INPUT_DIR = "./frontend";
 	const OUTPUT_DIR = "./frontend/dist";
 
@@ -102,7 +96,6 @@ export default defineConfig(({ mode }) => {
 		base: "/static/",
 		server: {
 			host: "0.0.0.0",
-			port: env.DJANGO_VITE_DEV_SERVER_PORT || 5173,
 			watch: {
 				usePolling: true,
 			},
@@ -113,7 +106,7 @@ export default defineConfig(({ mode }) => {
 			outDir: resolve(OUTPUT_DIR),
 			rollupOptions: {
 				input: {
-					main: join(INPUT_DIR, "/js/main.js"),
+					main: resolve(INPUT_DIR, "js/main.js"),
 				},
 			},
 		},
@@ -123,14 +116,12 @@ export default defineConfig(({ mode }) => {
 
 ```js [Svelte]
 // vite.config.js
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 
 
-export default defineConfig(({ mode }) => {
-	const env = loadEnv(mode, process.cwd(), "");
-
+export default defineConfig(() => {
 	const INPUT_DIR = "./frontend";
 	const OUTPUT_DIR = "./frontend/dist";
 
@@ -145,7 +136,6 @@ export default defineConfig(({ mode }) => {
 		base: "/static/",
 		server: {
 			host: "0.0.0.0",
-			port: env.DJANGO_VITE_DEV_SERVER_PORT || 5173,
 			watch: {
 				usePolling: true,
 			},
@@ -156,7 +146,7 @@ export default defineConfig(({ mode }) => {
 			outDir: resolve(OUTPUT_DIR),
 			rollupOptions: {
 				input: {
-					main: join(INPUT_DIR, "/js/main.js"),
+					main: resolve(INPUT_DIR, "js/main.js"),
 				},
 			},
 		},

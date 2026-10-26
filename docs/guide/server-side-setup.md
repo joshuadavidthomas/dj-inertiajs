@@ -32,36 +32,10 @@ pipx run copier copy gh:sarthakjariwala/django-vite-inertia myproject
 
 :::
 
-This command will:
-
-- Create a new Django project in your `myproject` directory
-- Ask you to choose your preferred frontend framework:
-    - React
-    - Vue
-    - Svelte
-- Ask you if you want to use Tailwind CSS
-- Ask you the database you want to use
-    - SQLite
-    - PostgreSQL
-- Ask you if you want to use Docker in development
-- Ask you if you want to use Docker in production
-- Set up Vite integration via `django-vite`
-- Set up Django to work with Inertia
-- Initialize the Inertia app
-- Configure CSRF to work properly with Django
-
-Example output:
-```
-? Your project name: todo
-? Which database do you want to use? postgresql
-? Which frontend do you want to use? vue
-? Do you want to use Tailwind CSS? Yes
-? Do you want to use Docker in development? Yes
-? Do you want to use Docker in production? Yes
-```
+The installer asks which frontend framework to use (React, Vue or Svelte), which database, and whether to add Tailwind CSS, django-allauth and Docker. It then creates the Django project with Inertia and `django-vite` set up.
 
 ::: warning
-The template generates a project for inertia-django, the adapter this package was forked from. After generating it, switch it to this package by following [Upgrading from inertia-django](/guide/upgrading-from-inertia-django): run the codemod, then `python manage.py check`.
+The template generates a project for inertia-django, the adapter this package was forked from. After generating it, switch it to this package by following [Upgrading from inertia-django](/guide/upgrading-from-inertia-django): run the codemod, then `python manage.py check`. The template also installs the Inertia v2 client, so follow [From inertia-django 1.x](/guide/upgrading-from-inertia-django#from-inertia-django-1-x) as well, to install the v3 client and remove its CSRF settings.
 :::
 
 You're all set! You can now start your development server.
@@ -86,6 +60,8 @@ uv add "dj-inertiajs @ git+https://github.com/joshuadavidthomas/inertia-django" 
 python -m pip install "dj-inertiajs @ git+https://github.com/joshuadavidthomas/inertia-django" django-vite
 ```
 :::
+
+With uv, run `uv init --bare` first if your project has no `pyproject.toml`.
 
 For server-side rendering, install the `ssr` extra, which adds `requests`: `"dj-inertiajs[ssr] @ git+https://github.com/joshuadavidthomas/inertia-django"`.
 
@@ -127,8 +103,10 @@ DJANGO_VITE = {
 }
 
 # Where Vite builds the assets, as configured in the client-side setup.
-# collectstatic copies them, with Vite's manifest, into STATIC_ROOT.
+# collectstatic copies them, with Vite's manifest, into STATIC_ROOT, where
+# django-vite reads the manifest.
 STATICFILES_DIRS = [BASE_DIR / "frontend" / "dist"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 ```
 
 > For a complete list of available `vite` related settings, see `django-vite` [docs](https://github.com/MrBin99/django-vite?tab=readme-ov-file#django-vite).
@@ -145,7 +123,7 @@ INERTIA = {
 
 ### Update base template
 
-In your base template, load the `inertia` tags. `{% inertia_head %}` goes in `<head>` and outputs the head tags from server-side rendering, if you use it. `{% inertia_body %}` goes where the app mounts and outputs the root element with the page data.
+Create the template `INERTIA["LAYOUT"]` names, such as `templates/base.html`, with `BASE_DIR / "templates"` in `TEMPLATES[0]["DIRS"]`. In it, load the `inertia` tags. `{% inertia_head %}` goes in `<head>` and outputs the head tags from server-side rendering, if you use it. `{% inertia_body %}` goes where the app mounts and outputs the root element with the page data.
 
 ```django
 {% load django_vite inertia %}

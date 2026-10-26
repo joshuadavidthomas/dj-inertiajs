@@ -25,7 +25,7 @@ Every change is described in the sections below, with what to do by hand. The co
 
    It prints, with file and line, every change it could not make on its own. [What the codemod changes](#what-the-codemod-changes) lists each rewrite and the section that explains how to make it by hand.
 
-3. **Run the system checks.** `python manage.py check` reports each old pattern still in use, such as an old setting or layout block, with a link to the section that explains the fix.
+3. **Run the system checks.** `python manage.py check` reports old settings, the old middleware and app entries, and layouts that still use the old blocks, and names the section of this guide that explains each fix.
 
 4. **Fix the rest by hand**, then uninstall `inertia-django`. Some changes can only be made by hand, because they depend on what your code means: templates, models without `InertiaMeta`, and uses of `share()`.
 
@@ -64,7 +64,7 @@ It reports these with file and line, and leaves them for you:
 | Reads of `settings.INERTIA_*` | [Settings](#settings) |
 | Assertions with no request before them in the same test method | [Tests](#tests) |
 
-It does not find these; the system checks find the first, and the rest show up when the page renders or the tests run:
+It does not find these. The system checks find the first; the CSRF option keeps working; the others show up when the page renders or the tests run:
 
 | Not handled by the codemod | See |
 |---|---|
@@ -180,7 +180,7 @@ MIDDLEWARE = [
 ]
 ```
 
-`SessionMiddleware` is now required and checked (`inertia.E005`). inertia-django needed it too, but only failed on the first request.
+`SessionMiddleware` is now required and checked (`inertia.E005`). inertia-django needed it too, but failed only when it handled a request, not at startup.
 
 The codemod rewrites this entry. The `inertia.E008` check reports the old path if it is left.
 
@@ -247,7 +247,7 @@ The prop helper functions are replaced by one `Prop` class. Each helper becomes 
 
 The other keywords, such as `key`, `expires_at` and `rescue`, keep their names.
 
-`Prop` raises `ValueError` for options that cannot be combined, where the helpers ignored them silently. For example, `group` needs `defer=True`, `match_on` needs merging, and `fresh` needs `once=True`. If an upgraded view raises one of these errors, the option never had an effect; remove it.
+`Prop` raises `ValueError` for options that cannot be combined, including some the helpers ignored silently. For example, `group` needs `defer=True`, `match_on` needs merging, and `fresh` needs `once=True`. If an upgraded view raises one of these errors, the option never had an effect; remove it.
 
 ```python
 # Before
@@ -267,14 +267,14 @@ return render(request, "Event/Index", {
 })
 ```
 
-The codemod rewrites calls to the helpers it can trace to an `inertia` import.
+The codemod rewrites calls to helpers imported by name from `inertia` or `inertia.utils`, including under another name. It reports module imports such as `import inertia.utils`, and leaves calls through them, such as `inertia.utils.defer(f)`, for you.
 
 ## Views
 
 `render()` and the `@inertia` decorator keep their shape. Three things change:
 
 - `@inertia` now works on `async def` views.
-- The extra arguments of `render()` and `InertiaResponse` are keyword-only: `template_name`, `status`, `headers` and `encrypt_history`. `InertiaResponse` no longer takes `HttpResponse`'s positional arguments.
+- The extra arguments of `render()` and `InertiaResponse` are keyword-only: `template_name`, `status`, `headers` and `encrypt_history`. `InertiaResponse` no longer takes `HttpResponse`'s other arguments, such as `content` or `content_type`.
 - `@inertia` takes the same keyword arguments, such as `@inertia("Event/Index", template_name="events/base.html")`.
 
 Class-based views are new, in `dj_inertiajs.views`:
@@ -337,7 +337,7 @@ Every other use of `share()` has a replacement:
 | A decorator or mixin, for some views | Change `response.props` on the returned response, which renders lazily, or override `get_props()` on a class-based view |
 | A view, for its own page | Pass the values as props |
 
-Later functions in `SHARED_PROPS` override earlier ones; with `share()`, its props overrode the functions'. The codemod removes the `share` import and reports each use, since the replacement depends on where the call is.
+Later functions in `SHARED_PROPS` override earlier ones, as later `share()` calls overrode earlier ones, and a view's own props still override shared props. The codemod removes the `share` import and reports each use, since the replacement depends on where the call is.
 
 ## Validation errors
 
@@ -407,7 +407,7 @@ def account(request):
 
 `render(request, "Account/Show", props, encrypt_history=True)` and `encrypt_history = True` on a class-based view do the same. `False` opts a page out of `INERTIA["ENCRYPT_HISTORY"]`. To decide at runtime, pass a variable to `render()`, or set `response.encrypt_history` before the response renders.
 
-The codemod moves `encrypt_history(request)` and `encrypt_history(request, value)` from the body of an `@inertia` view to its decorator, and reports every other call.
+The codemod moves `encrypt_history(request)`, `encrypt_history(request, True)` and `encrypt_history(request, False)` from the body of an `@inertia` view to its decorator. It reports every other call, including one whose value is computed in the view; pass that value to `render()` instead.
 
 `clear_history(request)` is unchanged; only its import moves, which the codemod does. Like `messages.error(request, ...)`, it takes the request first, because it applies to the next page.
 
@@ -484,8 +484,8 @@ To make these changes by hand, in each test method:
 - `response.inertia` holds the page the response sent: `component`, `props`, `url`, `version`, and the whole page object as `data`. It replaces the accessors above.
 - `InertiaTestCase` sets Django's `client_class` to `InertiaClient` and `async_client_class` to `AsyncInertiaClient`. `self.inertia` and `last_response` are gone.
 - The assertions live in `InertiaTestMixin`, which also works with `SimpleTestCase`. In pytest, read `response.inertia` directly.
-- `inertia_page()`, `inertia_div()`, `assertJSONResponse` and `BaseInertiaTestCase` were removed. Compare `response.inertia.data` or `response.json()` instead.
+- `inertia_page()`, `inertia_div()`, `assertJSONResponse` and `BaseInertiaTestCase` were removed. Compare `response.inertia.data` or `response.json()` instead. The codemod reports their imports and each `assertJSONResponse` call.
 
 The codemod makes all of these rewrites in every class that descends from an `inertia.test` test case, including through your own base classes in other files. In each test method it keeps the response of the latest request in a variable, assigning `response = ...` where the request's result was discarded, and passes it to the assertions and accessors that read it. It reports an assertion with no request before it in the same method, such as one in a helper method; pass the response to those by hand.
 
-To find base classes in other files, the codemod must see them: run it on the whole project, or include the files that define your base test cases. A test case whose base it cannot find is left as it is, and its assertions fail with a `TypeError` that names the assertion.
+To find base classes in other files, the codemod must see them: run it on the whole project, or include the files that define your base test cases. A test case whose base it cannot find is left as it is. Its tests fail with an `AttributeError` for `self.inertia` or an old assertion name, or a `TypeError` from `assertComponentUsed`, which kept its name.

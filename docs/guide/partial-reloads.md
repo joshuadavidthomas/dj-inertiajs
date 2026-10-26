@@ -26,7 +26,7 @@ def users(request):
 `router.reload({ only: ["users"] })` sends `users` and `auth`. The `companies` and `stats` callables are not called.
 
 - Wrap a prop in a callable, or a `Prop`, to skip its work when it is not sent. A plain value is computed when the view runs, whether or not it is sent.
-- `Prop(..., optional=True)` is never sent on the first load, only when a partial reload asks for it.
+- `Prop(..., optional=True)` is never sent on a full visit, only on a partial reload that selects it: one whose `only` names it, or whose `except` does not.
 - `Prop(..., always=True)` is sent on every partial reload, as is the `errors` prop from `set_errors()`.
 - Props may be nested in dicts and lists; `only` and `except` address them by dotted path, such as `"user.name"`.
 - A partial reload applies only when the view renders the component the client asked about. If it renders another one, for example after a redirect to the login page, the response is built as for a first load: every prop except `optional` and deferred ones.

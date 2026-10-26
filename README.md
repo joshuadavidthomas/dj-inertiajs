@@ -51,7 +51,7 @@ Create the layout. `{% inertia_head %}` outputs server-side rendered head tags, 
 </html>
 ```
 
-`python manage.py check` reports anything missing from this setup.
+`python manage.py check` reports a missing middleware or `INERTIA["LAYOUT"]`. It cannot report the app missing from `INSTALLED_APPS`, because the app registers the checks; then the layout fails with "'inertia' is not a registered tag library".
 
 ### Frontend
 
@@ -88,7 +88,7 @@ async def index(request):
     return {"events": [event async for event in Event.objects.values("id", "title")]}
 ```
 
-The decorator takes the same keyword options as `render()`, for example `@inertia("Event/Index", template_name="events/base.html", status=200)`.
+The decorator takes `render()`'s keyword-only options, `template_name`, `status`, `headers` and `encrypt_history`, for example `@inertia("Event/Index", template_name="events/base.html", status=200)`.
 
 Responses render lazily, like `TemplateResponse`. Until Django's handler renders the response, middleware with `process_template_response` and view decorators can change `response.component`, `response.props` and `response.template_data`.
 
@@ -153,7 +153,7 @@ props = {
 
 | Option | Effect |
 |---|---|
-| `optional=True` | Skipped on the first load. Sent only when a partial reload asks for it. |
+| `optional=True` | Skipped on full visits. Sent on a partial reload that selects it: one whose `only` names it, or whose `except` does not. |
 | `always=True` | Sent even when a partial reload asks for other props. |
 | `defer=True` | Skipped on the first load. The client fetches it right after, together with other deferred props in the same `group`. |
 | `group="name"` | The batch a deferred prop loads in. Requires `defer`. |
@@ -222,7 +222,7 @@ Later functions in the list override earlier ones, and the view's own props over
 
 Inertia forms read validation errors from the `errors` prop.
 
-In a view that redirects after a POST, call `set_errors()` before redirecting. Like `messages.error()`, the errors are stored in the session and sent once, on the next page:
+In a view that redirects after a POST, call `set_errors()` before redirecting. The errors are stored in the session and, like Django messages, sent once, on the next page:
 
 ```python
 from django.shortcuts import redirect
@@ -267,7 +267,7 @@ def show(request: InertiaHttpRequest, pk: int):
         ...
 ```
 
-A request built with `RequestFactory` gets `request.inertia` when the response renders, so views can be unit tested without the middleware.
+A request built with `RequestFactory` has no `request.inertia` until the view builds an Inertia response, and no `request.session`, which rendering needs. Test views with the test client, which runs the middleware.
 
 ## Flash messages
 
@@ -284,7 +284,7 @@ return redirect("events:index")
 
 Return Django's redirects as usual. The middleware turns redirects after `PUT`, `PATCH` and `DELETE` into `303 See Other`, as Inertia requires.
 
-To leave the Inertia app, for an external site or a non-Inertia page, return an `InertiaLocation`. It is the Inertia counterpart of `HttpResponseRedirect`: the client does a full `window.location` visit:
+To leave the Inertia app, for an external site or a non-Inertia page, return an `InertiaLocation`. It is the Inertia counterpart of `HttpResponseRedirect`: on an Inertia visit the client does a full `window.location` visit, and on a full page load the middleware sends an ordinary redirect:
 
 ```python
 from dj_inertiajs import InertiaLocation
@@ -358,7 +358,7 @@ class User(models.Model):
         fields = ("id", "name", "created_at")
 ```
 
-To use your own encoder, set `INERTIA["JSON_ENCODER"]` to its dotted path, or set `json_encoder` on an `InertiaResponse` subclass.
+To use your own encoder, set `INERTIA["JSON_ENCODER"]` to its dotted path, or set `json_encoder` on an `InertiaResponse` subclass and return it from the view, or set it as a class-based view's `response_class`.
 
 ## Server-side rendering
 
@@ -460,7 +460,7 @@ class EventTests(InertiaTestCase):
 
 ## Upgrading from inertia-django
 
-This package breaks inertia-django's API on purpose, so that it follows Django's conventions instead of the Laravel adapter's. Nothing old is kept for compatibility. Each row links to the section of the [upgrade guide](docs/guide/upgrading-from-inertia-django.md) that explains the change.
+This package breaks inertia-django's API on purpose, so that it follows Django's conventions instead of the Laravel adapter's. Nothing old is kept for compatibility. Most rows link to the section of the [upgrade guide](docs/guide/upgrading-from-inertia-django.md) that explains the change.
 
 ### What stays the same
 
@@ -482,14 +482,14 @@ This package breaks inertia-django's API on purpose, so that it follows Django's
 | [Redirects](docs/guide/upgrading-from-inertia-django.md#redirects) | `preserve_fragment(request)`; `location(url)` | `redirect(..., preserve_fragment=True)`; `InertiaLocation(url)` |
 | [The request](docs/guide/upgrading-from-inertia-django.md#the-request) | `request.inertia` holds shared props | `request.inertia` describes the request, like django-htmx's `request.htmx` |
 | [History encryption](docs/guide/upgrading-from-inertia-django.md#history-encryption) | `encrypt_history(request)` inside the view | `encrypt_history=True` on the decorator, `render()` or the class-based view |
-| [Serialization](docs/guide/upgrading-from-inertia-django.md#serialization) | Models encoded with every field except `password` | Models need `InertiaMeta` or explicit fields, like `JsonResponse` |
+| [Serialization](docs/guide/upgrading-from-inertia-django.md#serialization) | Models encoded with every editable field except `password` | Models need `InertiaMeta` or explicit fields, like `JsonResponse` |
 | [Tests](docs/guide/upgrading-from-inertia-django.md#tests) | Stateful assertions read the last response; `self.inertia` client | Assertions take the response; `self.client` makes Inertia visits; `response.inertia` in pytest |
 | [CSRF](docs/guide/upgrading-from-inertia-django.md#csrf) | The client is configured with Django's cookie and header names; cookie set on every response | Works with the client's default `XSRF-TOKEN` names; cookie set only on Inertia responses |
 | Configuration errors | Found at request time | Reported by `manage.py check` |
 
 ### How to upgrade
 
-The [upgrade guide](docs/guide/upgrading-from-inertia-django.md) explains how to make each change by hand. A codemod makes the mechanical ones, and the system checks report what is left:
+The [upgrade guide](docs/guide/upgrading-from-inertia-django.md) explains how to make each change by hand. A codemod makes the mechanical ones and lists the code it could not rewrite, and the system checks report leftover settings, middleware, app and layout:
 
 ```bash
 pip install "dj-inertiajs[upgrade] @ git+https://github.com/joshuadavidthomas/inertia-django"
