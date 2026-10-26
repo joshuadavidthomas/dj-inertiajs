@@ -51,3 +51,38 @@ class ChecksTestCase(SimpleTestCase):
         ]
         with override_settings(MIDDLEWARE=middleware):
             self.assertEqual(inertia_check_ids(), [])
+
+
+class UpgradeChecksTestCase(SimpleTestCase):
+    @override_settings(INERTIA_LAYOUT="base.html", INERTIA_SSR_URL="http://ssr")
+    def test_old_settings(self):
+        messages = [m for m in run_checks() if m.id == "inertia.E007"]
+
+        self.assertEqual(
+            [m.msg for m in messages],
+            [
+                "INERTIA_LAYOUT is an inertia-django setting and is ignored.",
+                "INERTIA_SSR_URL is an inertia-django setting and is ignored.",
+            ],
+        )
+        self.assertIn('Use INERTIA["SSR"]["URL"].', messages[1].hint)
+
+    def test_old_middleware(self):
+        middleware = [*settings.MIDDLEWARE, "inertia.middleware.InertiaMiddleware"]
+        with override_settings(MIDDLEWARE=middleware):
+            self.assertEqual(inertia_check_ids(), ["inertia.E008"])
+
+    def test_old_app(self):
+        with patch(
+            "django_inertia.checks.apps.is_installed",
+            side_effect=lambda n: n == "inertia",
+        ):
+            self.assertEqual(inertia_check_ids(), ["inertia.E009"])
+
+    @override_settings(INERTIA={"LAYOUT": "old_layout.html"})
+    def test_layout_with_old_blocks(self):
+        self.assertEqual(inertia_check_ids(), ["inertia.E010"])
+
+    @override_settings(INERTIA={"LAYOUT": "missing.html"})
+    def test_missing_layout_template_is_left_to_rendering(self):
+        self.assertEqual(inertia_check_ids(), [])

@@ -7,7 +7,8 @@ class InertiaConfig(AppConfig):
     verbose_name = "Inertia"
 
     def ready(self) -> None:
-        from .checks import check_middleware, check_settings
+        from .checks import check_middleware, check_settings, check_upgrade
 
         checks.register(check_settings)
         checks.register(check_middleware)
+        checks.register(check_upgrade)

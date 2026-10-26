@@ -1,14 +1,32 @@
+import re
 from importlib.util import find_spec
 from typing import Any
 
+from django.apps import apps
 from django.conf import settings as django_settings
 from django.core.checks import CheckMessage, Error
+from django.template import TemplateDoesNotExist
+from django.template.loader import get_template
 from django.utils.module_loading import import_string
 
 from .settings import DEFAULTS, settings
 
 SESSION_MIDDLEWARE = "django.contrib.sessions.middleware.SessionMiddleware"
 INERTIA_MIDDLEWARE = "django_inertia.middleware.InertiaMiddleware"
+OLD_MIDDLEWARE = "inertia.middleware.InertiaMiddleware"
+OLD_SETTINGS = {
+    "INERTIA_LAYOUT": 'INERTIA["LAYOUT"]',
+    "INERTIA_VERSION": 'INERTIA["VERSION"]',
+    "INERTIA_JSON_ENCODER": 'INERTIA["JSON_ENCODER"], as a dotted path',
+    "INERTIA_ENCRYPT_HISTORY": 'INERTIA["ENCRYPT_HISTORY"]',
+    "INERTIA_SSR_ENABLED": 'INERTIA["SSR"]["ENABLED"]',
+    "INERTIA_SSR_URL": 'INERTIA["SSR"]["URL"]',
+}
+OLD_LAYOUT_BLOCK = re.compile(r"{%-?\s*block\s+inertia(_head)?\s*-?%}")
+
+
+def guide(section: str) -> str:
+    return f'See the section "{section}" in the guide "Upgrading from inertia-django".'
 
 
 def check_settings(**kwargs: Any) -> list[CheckMessage]:
@@ -81,3 +99,56 @@ def _contains_subclass(class_path: str, candidate_paths: list[str]) -> bool:
         if isinstance(candidate, type) and issubclass(candidate, cls):
             return True
     return False
+
+
+def check_upgrade(**kwargs: Any) -> list[CheckMessage]:
+    """Report inertia-django configuration that this package no longer reads."""
+    errors: list[CheckMessage] = []
+    for name, replacement in OLD_SETTINGS.items():
+        if hasattr(django_settings, name):
+            errors.append(
+                Error(
+                    f"{name} is an inertia-django setting and is ignored.",
+                    hint=f"Use {replacement}. {guide('Settings')}",
+                    id="inertia.E007",
+                )
+            )
+    if OLD_MIDDLEWARE in django_settings.MIDDLEWARE:
+        errors.append(
+            Error(
+                f"'{OLD_MIDDLEWARE}' is inertia-django's middleware.",
+                hint=f"Replace it with '{INERTIA_MIDDLEWARE}'. {guide('Middleware')}",
+                id="inertia.E008",
+            )
+        )
+    if apps.is_installed("inertia"):
+        errors.append(
+            Error(
+                "inertia-django's 'inertia' app is in INSTALLED_APPS.",
+                hint=f"Replace it with 'django_inertia'. {guide('Install and app name')}",
+                id="inertia.E009",
+            )
+        )
+    layout = settings.LAYOUT
+    source = _template_source(layout) if layout else None
+    if source is not None and OLD_LAYOUT_BLOCK.search(source):
+        errors.append(
+            Error(
+                f"The layout {layout!r} uses inertia-django's "
+                "{% block inertia %} or {% block inertia_head %}, which are no "
+                "longer filled, so pages render without the app.",
+                hint="Load inertia and use {% inertia_head %} and {% inertia_body %}. "
+                + guide("Layout templates"),
+                id="inertia.E010",
+            )
+        )
+    return errors
+
+
+def _template_source(name: str) -> str | None:
+    try:
+        template = get_template(name)
+    except TemplateDoesNotExist:
+        return None
+    source = getattr(getattr(template, "template", None), "source", None)
+    return source if isinstance(source, str) else None
