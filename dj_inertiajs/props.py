@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable
 from datetime import datetime, timedelta, timezone
+from inspect import isawaitable
 from typing import Any
+
+from asgiref.sync import async_to_sync
 
 __all__ = ["Prop"]
 
@@ -13,7 +17,8 @@ class Prop:
     """A prop value plus the Inertia options that control when and how it loads.
 
     ``value`` may be a plain value or a callable, which is called at render
-    time and only when the prop is sent.
+    time and only when the prop is sent. An ``async def`` callable is
+    awaited, in sync and async views alike.
 
     Loading, at most one of:
         ``optional``: skipped on the first load; sent only when a partial
@@ -105,7 +110,7 @@ class Prop:
         return f"Prop({self.value!r})"
 
     def resolve(self) -> Any:
-        return self.value() if callable(self.value) else self.value
+        return resolve_value(self.value)
 
     @property
     def skipped_on_first_load(self) -> bool:
@@ -138,3 +143,17 @@ class Prop:
                 value = value.replace(tzinfo=timezone.utc)
             return int(value.timestamp() * 1000)
         return int((datetime.now(timezone.utc).timestamp() + value) * 1000)
+
+
+def resolve_value(value: Any) -> Any:
+    """Call a callable prop value, awaiting it if it returns an awaitable."""
+    if not callable(value):
+        return value
+    result = value()
+    if isawaitable(result):
+        return async_to_sync(_await)(result)
+    return result
+
+
+async def _await(awaitable: Awaitable[Any]) -> Any:
+    return await awaitable

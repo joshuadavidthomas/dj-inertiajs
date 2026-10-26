@@ -56,4 +56,6 @@ urlpatterns = [
     path("v3/deferred-once/", views.v3_deferred_once_test),
     path("request-details/", views.request_details_test),
     path("decorated-options/", views.decorated_options_test),
+    path("async-props/", views.async_props_test),
+    path("async-view-async-props/", views.async_view_async_props_test),
 ]

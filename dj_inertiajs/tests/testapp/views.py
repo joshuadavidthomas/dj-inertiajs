@@ -1,3 +1,5 @@
+import asyncio
+
 from django import forms
 from django.contrib import messages
 from django.http.response import HttpResponse
@@ -439,3 +441,18 @@ def request_details_test(request):
 )
 def decorated_options_test(request):
     return {}
+
+
+async def load_score():
+    await asyncio.sleep(0)
+    return 3
+
+
+@inertia("TestComponent")
+def async_props_test(request):
+    return {"score": load_score, "deferred": Prop(load_score, defer=True)}
+
+
+@inertia("TestComponent")
+async def async_view_async_props_test(request):
+    return {"score": load_score}

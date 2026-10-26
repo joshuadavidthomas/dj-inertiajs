@@ -30,7 +30,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Add upgrade checks that report inertia-django configuration still in use: `INERTIA_*` settings, the old middleware path, the `inertia` app, and layouts that use `{% block inertia %}`. Each hint names the section of the upgrade guide that explains the fix.
 * Add system checks for unknown `INERTIA` keys, unimportable `SHARED_PROPS` entries, a missing layout, SSR without `requests`, and missing Inertia or session middleware.
 * Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
-* Support `async def` views under `@inertia`.
+* Support `async def` views under `@inertia`, and `async def` prop callables, which are awaited in sync and async views alike.
 * Let `process_template_response` middleware and view decorators change `component`, `props` and `template_data` before the page is rendered.
 * Add `status` and `headers` arguments to `render()`. `@inertia` takes the same options as `render()`: `template_name`, `status`, `headers` and `encrypt_history`.
 * Add a per-view layout: `render(..., template_name=...)`, `InertiaResponse(..., template_name=...)` and a `template_name` attribute on class-based views. `INERTIA["LAYOUT"]` is the default.

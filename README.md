@@ -141,7 +141,7 @@ Both take a `template_name` attribute to choose a layout.
 
 ## Props
 
-A prop is any JSON-serializable value. A callable is called at render time, and only if the prop is sent. Props can be nested in dicts and lists; partial reloads address them by dotted path, such as `user.name`.
+A prop is any JSON-serializable value. A callable is called at render time, and only if the prop is sent. An `async def` callable is awaited, so it can use the async ORM, in sync and async views alike. Props can be nested in dicts and lists; partial reloads address them by dotted path, such as `user.name`.
 
 `Prop` wraps a value with the Inertia options that control when and how it loads:
 

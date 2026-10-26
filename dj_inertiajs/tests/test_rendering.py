@@ -267,6 +267,25 @@ class AsyncViewTestCase(TestCase):
         )
 
 
+class AsyncPropsTestCase(ProtocolTestCase):
+    def test_async_callables_are_awaited_in_sync_views(self):
+        response = self.inertia.get("/async-props/")
+        self.assertEqual(response.inertia.props, {"score": 3})
+
+        response = self.inertia.get(
+            "/async-props/",
+            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
+            HTTP_X_INERTIA_PARTIAL_DATA="deferred",
+        )
+        self.assertEqual(response.inertia.props, {"deferred": 3})
+
+    async def test_async_callables_are_awaited_in_async_views(self):
+        response = await AsyncClient().get(
+            "/async-view-async-props/", headers={"X-Inertia": "true"}
+        )
+        self.assertEqual(response.json()["props"], {"score": 3})
+
+
 class LayoutTestCase(ProtocolTestCase):
     root = (
         '<main><script data-page="root" type="application/json">'

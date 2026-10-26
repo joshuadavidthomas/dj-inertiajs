@@ -15,7 +15,7 @@ from django.utils.cache import patch_vary_headers
 from django.utils.encoding import iri_to_uri
 
 from .conf import settings
-from .props import Prop
+from .props import Prop, resolve_value
 from .request import (
     INERTIA_SESSION_CLEAR_HISTORY,
     INERTIA_SESSION_ERRORS,
@@ -36,10 +36,6 @@ __all__ = ["InertiaLocation", "InertiaPage", "InertiaResponse"]
 logger = logging.getLogger(__name__)
 
 SKIP_PROP = object()
-
-
-def resolve_value(value: Any) -> Any:
-    return value() if callable(value) else value
 
 
 class PropsResolver:
