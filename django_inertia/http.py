@@ -27,7 +27,6 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-INERTIA_REQUEST_ENCRYPT_HISTORY = "_inertia_encrypt_history"
 INERTIA_SESSION_CLEAR_HISTORY = "_inertia_clear_history"
 INERTIA_SESSION_PRESERVE_FRAGMENT = "_inertia_preserve_fragment"
 INERTIA_SESSION_ERRORS = "_inertia_errors"
@@ -35,67 +34,125 @@ INERTIA_SESSION_ERRORS = "_inertia_errors"
 SKIP_PROP = object()
 
 
-class InertiaRequest(HttpRequest):
-    def __init__(self, request: HttpRequest):
-        super().__init__()
-        self.__dict__.update(request.__dict__)
+class InertiaDetails:
+    """Inertia's view of one request, available as ``request.inertia``.
+
+    ``InertiaMiddleware`` attaches it, the way ``SessionMiddleware`` attaches
+    ``request.session``. It is truthy when the Inertia client made the
+    request. Its methods change the page this request renders, or with a
+    redirect, the next page.
+    """
+
+    def __init__(self, request: HttpRequest) -> None:
+        self._request = request
+        self.shared: dict[str, Any] = {}
+        self.encrypt_history_override: bool | None = None
+
+    def __bool__(self) -> bool:
+        return "X-Inertia" in self._request.headers
 
     @property
-    def inertia(self) -> dict[str, Any]:
-        inertia_attr = self.__dict__.get("inertia")
-        return (
-            inertia_attr.all() if inertia_attr and hasattr(inertia_attr, "all") else {}
+    def version(self) -> str | None:
+        """The asset version the client has, from ``X-Inertia-Version``."""
+        return self._request.headers.get("X-Inertia-Version")
+
+    @property
+    def partial_component(self) -> str | None:
+        """The component a partial reload is for."""
+        return self._request.headers.get("X-Inertia-Partial-Component")
+
+    @property
+    def partial_data(self) -> list[str] | None:
+        """The only props a partial reload asks for, or ``None`` for all."""
+        return self._header_list("X-Inertia-Partial-Data")
+
+    @property
+    def partial_except(self) -> list[str] | None:
+        """The props a partial reload asks to leave out."""
+        return self._header_list("X-Inertia-Partial-Except")
+
+    @property
+    def reset(self) -> list[str]:
+        """Merge props the client asks to replace instead of merge."""
+        return self._header_list("X-Inertia-Reset") or []
+
+    @property
+    def except_once_props(self) -> list[str]:
+        """Once props the client already holds."""
+        return self._header_list("X-Inertia-Except-Once-Props") or []
+
+    @property
+    def merge_intent(self) -> str:
+        """``"append"`` or ``"prepend"``: where infinite scroll adds merged items."""
+        return self._request.headers.get(
+            "X-Inertia-Infinite-Scroll-Merge-Intent", "append"
         )
 
-    def is_a_partial_render(self, component: str) -> bool:
-        return self.headers.get("X-Inertia-Partial-Component", "") == component
+    @property
+    def prefetch(self) -> bool:
+        return self._request.headers.get("Purpose") == "prefetch"
 
-    def header_list(self, name: str) -> list[str] | None:
-        if name not in self.headers:
+    def is_partial(self, component: str) -> bool:
+        """Whether this request is a partial reload of ``component``."""
+        return self.partial_component == component
+
+    def share(self, **props: Any) -> None:
+        """Add props to the page this request renders, as shared props."""
+        self.shared.update(props)
+
+    def encrypt_history(self, value: bool = True) -> None:
+        """Encrypt this page in the browser's history, overriding
+        ``INERTIA["ENCRYPT_HISTORY"]``."""
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool for encrypt_history, got {type(value).__name__}"
+            )
+        self.encrypt_history_override = value
+
+    def clear_history(self) -> None:
+        """Clear the client's encrypted history on the next page."""
+        self._request.session[INERTIA_SESSION_CLEAR_HISTORY] = True
+
+    def preserve_fragment(self) -> None:
+        """Keep the URL fragment across the redirect this view returns."""
+        self._request.session[INERTIA_SESSION_PRESERVE_FRAGMENT] = True
+
+    def set_errors(self, errors: BaseForm | dict[str, Any]) -> None:
+        """Send validation errors as the ``errors`` prop on the next page.
+
+        Call this before redirecting back to the form, the way
+        ``messages.error()`` is used. ``errors`` is a form or a mapping of
+        field names to messages; each field keeps its first message. The
+        errors are sent once, and included in partial reloads too.
+        """
+        self._request.session[INERTIA_SESSION_ERRORS] = error_messages(errors)
+
+    def _header_list(self, name: str) -> list[str] | None:
+        if name not in self._request.headers:
             return None
         return [
-            value.strip() for value in self.headers[name].split(",") if value.strip()
+            value.strip()
+            for value in self._request.headers[name].split(",")
+            if value.strip()
         ]
 
-    def partial_keys(self) -> list[str] | None:
-        return self.header_list("X-Inertia-Partial-Data")
 
-    def partial_except_keys(self) -> list[str] | None:
-        return self.header_list("X-Inertia-Partial-Except")
+class InertiaHttpRequest(HttpRequest):
+    """An ``HttpRequest`` that has passed through ``InertiaMiddleware``.
 
-    def reset_keys(self) -> list[str]:
-        return self.header_list("X-Inertia-Reset") or []
+    Use it to annotate views that call ``request.inertia``."""
 
-    def except_once_prop_keys(self) -> list[str]:
-        """
-        Return the list of once prop keys that the client reports as already
-        loaded, sourced from the X-Inertia-Except-Once-Props request header.
-        """
-        return self.header_list("X-Inertia-Except-Once-Props") or []
+    inertia: InertiaDetails
 
-    def infinite_scroll_merge_intent(self) -> str:
-        """
-        Return the merge intent for infinite scroll requests.
 
-        The X-Inertia-Infinite-Scroll-Merge-Intent header is set by the client
-        to indicate whether merge-able props in this partial reload should be
-        appended to or prepended before existing client-side data.  Returns
-        "append" when the header is absent.
-        """
-        return self.headers.get("X-Inertia-Infinite-Scroll-Merge-Intent", "append")
-
-    def is_inertia(self) -> bool:
-        return "X-Inertia" in self.headers
-
-    def should_encrypt_history(self) -> bool:
-        should_encrypt = getattr(
-            self, INERTIA_REQUEST_ENCRYPT_HISTORY, settings.ENCRYPT_HISTORY
-        )
-        if not isinstance(should_encrypt, bool):
-            raise TypeError(
-                f"Expected bool for encrypt_history, got {type(should_encrypt).__name__}"
-            )
-        return should_encrypt
+def get_details(request: HttpRequest) -> InertiaDetails:
+    """Return ``request.inertia``, attaching it if no middleware did, such as
+    for a request built with ``RequestFactory``."""
+    details = getattr(request, "inertia", None)
+    if not isinstance(details, InertiaDetails):
+        details = InertiaDetails(request)
+        request.inertia = details  # type: ignore[attr-defined]
+    return details
 
 
 def resolve_value(value: Any) -> Any:
@@ -105,7 +162,7 @@ def resolve_value(value: Any) -> Any:
 class PropsResolver:
     """Resolve props once and collect Inertia v3 metadata by dotted path."""
 
-    def __init__(self, request: InertiaRequest, component: str, props: dict[str, Any]):
+    def __init__(self, request: InertiaDetails, component: str, props: dict[str, Any]):
         self.request = request
         self.component = component
         self.props = props
@@ -206,15 +263,15 @@ class PropsResolver:
         return resolve_value(value)
 
     def _is_partial(self) -> bool:
-        return self.request.is_a_partial_render(self.component)
+        return self.request.is_partial(self.component)
 
     def _excluded_by_partial_request(self, path: str) -> bool:
         if not self._is_partial():
             return False
-        only = self.request.partial_keys()
+        only = self.request.partial_data
         if only is not None and not any(self._paths_overlap(path, key) for key in only):
             return True
-        except_keys = self.request.partial_except_keys() or []
+        except_keys = self.request.partial_except or []
         return any(path == key or path.startswith(f"{key}.") for key in except_keys)
 
     @staticmethod
@@ -227,12 +284,12 @@ class PropsResolver:
 
     def _should_skip_loaded_once_prop(self, prop: Any, path: str) -> bool:
         return (
-            self.request.is_inertia()
+            bool(self.request)
             and not self._is_partial()
             and isinstance(prop, Prop)
             and prop.once
             and not prop.fresh
-            and prop.once_key(path) in self.request.except_once_prop_keys()
+            and prop.once_key(path) in self.request.except_once_props
         )
 
     def _collect_metadata(
@@ -251,7 +308,7 @@ class PropsResolver:
             }
 
     def _collect_merge_metadata(self, prop: Prop, path: str) -> None:
-        reset = path in self.request.reset_keys()
+        reset = path in self.request.reset
         if prop.scroll is not None:
             self.metadata["scrollProps"][path] = {**prop.scroll, "reset": reset}
         if reset:
@@ -263,10 +320,7 @@ class PropsResolver:
             append_paths = prop.merge_paths(path)
             if prepend_paths:
                 self.metadata["prependProps"].extend(prepend_paths)
-            elif (
-                self._is_partial()
-                and self.request.infinite_scroll_merge_intent() == "prepend"
-            ):
+            elif self._is_partial() and self.request.merge_intent == "prepend":
                 self.metadata["prependProps"].extend(append_paths)
             else:
                 self.metadata["mergeProps"].extend(append_paths)
@@ -301,7 +355,7 @@ class InertiaResponse(SimpleTemplateResponse):
     json_encoder: type[JSONEncoder] | None = None
     rendering_attrs = [
         *SimpleTemplateResponse.rendering_attrs,
-        "_inertia_request",
+        "_inertia",
         "component",
         "props",
         "template_data",
@@ -322,9 +376,9 @@ class InertiaResponse(SimpleTemplateResponse):
         ``INERTIA["LAYOUT"]``. It renders the page with the ``inertia_head``
         and ``inertia_body`` tags from ``{% load inertia %}``.
         """
-        inertia_request = InertiaRequest(request)
+        self._inertia = get_details(request)
         content_type = None
-        if inertia_request.is_inertia():
+        if self._inertia:
             headers = {**(headers or {}), "X-Inertia": "true"}
             content_type = "application/json"
         super().__init__(
@@ -333,7 +387,7 @@ class InertiaResponse(SimpleTemplateResponse):
             status=status,
             headers=headers,
         )
-        self._request = self._inertia_request = inertia_request
+        self._request = request
         self.component = component
         self.props = props or {}
         self.template_data = template_data or {}
@@ -351,7 +405,7 @@ class InertiaResponse(SimpleTemplateResponse):
             data.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
         )
         self._page_json = data
-        if self._inertia_request.is_inertia():
+        if self._inertia:
             return data
         return self.build_first_load(data)
 
@@ -372,7 +426,8 @@ class InertiaResponse(SimpleTemplateResponse):
         )
 
     def page_data(self) -> dict[str, Any]:
-        request = self._inertia_request
+        request = self._request
+        details = self._inertia
         clear_history = request.session.pop(INERTIA_SESSION_CLEAR_HISTORY, False)
         if not isinstance(clear_history, bool):
             raise TypeError(
@@ -390,20 +445,24 @@ class InertiaResponse(SimpleTemplateResponse):
         shared: dict[str, Any] = {}
         for provider in settings.SHARED_PROPS:
             shared.update(provider(request))
-        shared.update(request.inertia)
+        shared.update(details.shared)
         errors = request.session.pop(INERTIA_SESSION_ERRORS, None)
         if errors:
             shared["errors"] = Prop(errors, always=True)
 
         resolved_props, metadata = PropsResolver(
-            request, self.component, {**shared, **self.props}
+            details, self.component, {**shared, **self.props}
         ).resolve()
         _page: dict[str, Any] = {
             "component": self.component,
             "props": resolved_props,
             "url": request.get_full_path(),
             "version": settings.VERSION,
-            "encryptHistory": request.should_encrypt_history(),
+            "encryptHistory": (
+                settings.ENCRYPT_HISTORY
+                if details.encrypt_history_override is None
+                else details.encrypt_history_override
+            ),
             "clearHistory": clear_history,
         }
 
@@ -445,9 +504,7 @@ class InertiaResponse(SimpleTemplateResponse):
                 logger.exception("SSR render request failed")
 
         template = self.resolve_template(self.template_name)
-        return template.render(
-            {**self.template_data, "_inertia": page}, self._inertia_request
-        )
+        return template.render({**self.template_data, "_inertia": page}, self._request)
 
 
 def render(
@@ -479,37 +536,6 @@ def location(location: str) -> HttpResponse:
             "X-Inertia-Location": location,
         },
     )
-
-
-def encrypt_history(request: HttpRequest, value: bool = True) -> None:
-    setattr(request, INERTIA_REQUEST_ENCRYPT_HISTORY, value)
-
-
-def clear_history(request: HttpRequest) -> None:
-    request.session[INERTIA_SESSION_CLEAR_HISTORY] = True
-
-
-def preserve_fragment(request: HttpRequest) -> None:
-    """
-    Signal that the URL fragment should be preserved across the next redirect.
-
-    Call this before returning a redirect response from a view.  On the
-    subsequent Inertia page response the page object will include
-    ``preserveFragment: true``, instructing the client to carry the original
-    request's URL fragment to the redirected destination.
-    """
-    request.session[INERTIA_SESSION_PRESERVE_FRAGMENT] = True
-
-
-def set_errors(request: HttpRequest, errors: BaseForm | dict[str, Any]) -> None:
-    """Send validation errors as the ``errors`` prop on the next Inertia page.
-
-    Call this before redirecting back to the form, the way
-    ``messages.error()`` is used. ``errors`` is a form or a mapping of field
-    names to messages; each field keeps its first message. Errors are stored
-    in the session, sent once, and included in partial reloads too.
-    """
-    request.session[INERTIA_SESSION_ERRORS] = error_messages(errors)
 
 
 def error_messages(errors: BaseForm | dict[str, Any]) -> dict[str, str]:

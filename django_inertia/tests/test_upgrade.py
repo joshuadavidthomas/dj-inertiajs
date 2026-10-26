@@ -83,8 +83,8 @@ class ImportTestCase(SimpleTestCase):
     def test_imports_move_to_their_new_modules(self):
         code, manual = upgrade(
             """\
-            from inertia import inertia, render, share
-            from inertia.http import clear_history
+            from inertia import inertia, render
+            from inertia.http import location
             from inertia.test import InertiaTestCase, inertia_page
             from inertia.utils import InertiaJsonEncoder
             """
@@ -94,8 +94,8 @@ class ImportTestCase(SimpleTestCase):
             code,
             dedent(
                 """\
-                from django_inertia import inertia, render, share
-                from django_inertia import clear_history
+                from django_inertia import inertia, render
+                from django_inertia import location
                 from django_inertia.test import InertiaTestCase
                 from django_inertia.utils import InertiaJsonEncoder
                 """
@@ -109,6 +109,58 @@ class ImportTestCase(SimpleTestCase):
 
         self.assertEqual(code, "import inertia\n")
         self.assertIn("`import inertia` is not rewritten", manual[0])
+
+
+class RequestMethodTestCase(SimpleTestCase):
+    def test_helpers_become_request_inertia_methods(self):
+        code, manual = upgrade(
+            """\
+            from inertia import render, share
+            from inertia.http import clear_history, encrypt_history as encrypt
+
+            def view(request):
+                share(
+                    request,
+                    user=lambda: request.user,
+                )
+                encrypt(request, False)
+                clear_history(self.request)
+                return render(request, "Page")
+            """
+        )
+
+        self.assertEqual(
+            code,
+            dedent(
+                """\
+                from django_inertia import render
+
+                def view(request):
+                    request.inertia.share(
+                        user=lambda: request.user,
+                    )
+                    request.inertia.encrypt_history(False)
+                    self.request.inertia.clear_history()
+                    return render(request, "Page")
+                """
+            ),
+        )
+        self.assertEqual(manual, [])
+
+    def test_uses_it_cannot_rewrite_are_reported(self):
+        code, manual = upgrade(
+            """\
+            from inertia import share
+
+            callbacks = [share]
+            share(request=request, x=1)
+            """
+        )
+
+        self.assertIn("share(request=request, x=1)", code)
+        self.assertEqual(len(manual), 2)
+        self.assertIn("line 3: `share` is used without being called", manual[0])
+        self.assertIn("line 4: `share(...)` has no plain request argument", manual[1])
 
 
 class SettingsTestCase(SimpleTestCase):

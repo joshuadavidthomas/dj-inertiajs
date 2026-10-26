@@ -8,7 +8,7 @@ The protocol the client sees is the same as inertia-django 2.0's, which targets 
 
 Work through three steps. Each one shortens the list for the next.
 
-1. **Run the codemod.** It rewrites imports, prop helpers, settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and test assertions:
+1. **Run the codemod.** It rewrites imports, prop helpers, request helpers such as `share()`, settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and test assertions:
 
    ```shell
    pip install "<package>[upgrade]"
@@ -209,13 +209,13 @@ Code that reads `response.content` on a response it built itself, before returni
 
 ## Shared data
 
-`share(request, **props)` works as before. For props on every page, list functions in a setting instead of writing a middleware, like template context processors:
+`share(request, **props)` is now `request.inertia.share(**props)`; see [Request helpers](#request-helpers). For props on every page, list functions in a setting instead of writing a middleware, like template context processors:
 
 ```python
 # Before: a custom middleware
 def inertia_share(get_response):
     def middleware(request):
-        share(request, app_name=settings.APP_NAME, user=lambda: request.user)
+        request.inertia.share(app_name=settings.APP_NAME, user=lambda: request.user)
         return get_response(request)
     return middleware
 
@@ -227,24 +227,43 @@ def shared(request):
 INERTIA = {"LAYOUT": "base.html", "SHARED_PROPS": ["myapp.inertia.shared"]}
 ```
 
-The middleware keeps working, so this change is optional.
+A middleware calling `request.inertia.share()` keeps working, so this change is optional.
 
 ## Validation errors
 
 Inertia forms read an `errors` prop. inertia-django left it to you to share one. Now:
 
-- In a redirect-after-POST view, call `set_errors(request, form)` before redirecting. The errors are sent once on the next page, like `messages.error()`.
+- In a redirect-after-POST view, call `request.inertia.set_errors(form)` before redirecting. The errors are sent once on the next page, like `messages.error()`.
 - A class-based view whose context holds a bound, invalid `form`, such as `FormView` after `form_invalid`, sends its errors automatically.
 
 Each field keeps its first message, the shape Inertia's `useForm` expects. If you shared `form.errors` yourself, you sent lists of messages; delete that code.
 
-## History and fragment helpers
+## Request helpers
 
-`encrypt_history`, `clear_history` and `preserve_fragment` work as before. All three are exported from the package:
+The functions that took the request first are now methods of `request.inertia`, which `InertiaMiddleware` attaches like `request.session`:
 
 ```python
-from django_inertia import clear_history, encrypt_history, preserve_fragment
+# Before
+from inertia import share
+from inertia.http import clear_history, encrypt_history, preserve_fragment
+
+share(request, team=team)
+encrypt_history(request)
+clear_history(request)
+preserve_fragment(request)
+
+# After
+request.inertia.share(team=team)
+request.inertia.encrypt_history()
+request.inertia.clear_history()
+request.inertia.preserve_fragment()
 ```
+
+The codemod makes these rewrites. It reports a helper that is passed around instead of called, or that gets the request as a keyword argument.
+
+`request.inertia` also describes the request: it is truthy for Inertia visits, and has `version`, `partial_component`, `partial_data`, `partial_except` and `is_partial()`. In inertia-django, `request.inertia` held only the shared props; code that read it, such as `request.inertia.all()`, must read `request.inertia.shared` instead.
+
+`location(url)` is unchanged: it builds a response and does not take the request.
 
 ## Serialization
 

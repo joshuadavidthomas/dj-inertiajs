@@ -1,5 +1,7 @@
-from django.test import AsyncClient, TestCase
+from django.contrib.sessions.backends.signed_cookies import SessionStore
+from django.test import AsyncClient, RequestFactory, TestCase
 
+from django_inertia import InertiaResponse
 from django_inertia.tests.utils import ProtocolTestCase
 
 
@@ -55,3 +57,32 @@ class MiddlewareTestCase(ProtocolTestCase):
         self.assertEqual(response.status_code, 409)
         self.assertIn("X-Inertia-Location", response.headers)
         self.assertEqual("http://foobar.com/", response.headers["X-Inertia-Location"])
+
+
+class RequestDetailsTestCase(ProtocolTestCase):
+    def test_request_inertia_describes_the_request(self):
+        response = self.client.get("/request-details/")
+        self.assertEqual(
+            response.inertia.props,
+            {"inertia": False, "partial_data": None, "is_partial": False},
+        )
+
+        response = self.inertia.get(
+            "/request-details/",
+            HTTP_X_INERTIA_PARTIAL_COMPONENT="OtherComponent",
+            HTTP_X_INERTIA_PARTIAL_DATA="stats, plans",
+        )
+        self.assertEqual(
+            response.inertia.props,
+            {"inertia": True, "partial_data": ["stats", "plans"], "is_partial": False},
+        )
+
+    def test_responses_work_without_the_middleware(self):
+        request = RequestFactory().get("/", HTTP_X_INERTIA="true")
+        request.session = SessionStore()
+
+        response = InertiaResponse(request, "TestComponent", {"name": "Brandon"})
+        response.render()
+
+        self.assertEqual(response.inertia.props, {"name": "Brandon"})
+        self.assertFalse(request.inertia.partial_except)

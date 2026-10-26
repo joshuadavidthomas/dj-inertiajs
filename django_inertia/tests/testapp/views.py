@@ -6,17 +6,7 @@ from django.shortcuts import render as django_render
 from django.utils.decorators import decorator_from_middleware
 from django.views.generic import FormView, ListView
 
-from django_inertia import (
-    Prop,
-    clear_history,
-    encrypt_history,
-    inertia,
-    location,
-    preserve_fragment,
-    render,
-    set_errors,
-    share,
-)
+from django_inertia import Prop, inertia, location, render
 from django_inertia.http import (
     INERTIA_SESSION_CLEAR_HISTORY,
     INERTIA_SESSION_PRESERVE_FRAGMENT,
@@ -31,8 +21,7 @@ class ShareMiddleware:
         self.get_response = get_response
 
     def process_request(self, request):
-        share(
-            request,
+        request.inertia.share(
             position=lambda: "goalie",
             number=29,
         )
@@ -131,31 +120,31 @@ def share_test(request):
 
 @inertia("TestComponent")
 def encrypt_history_test(request):
-    encrypt_history(request)
+    request.inertia.encrypt_history()
     return {}
 
 
 @inertia("TestComponent")
 def encrypt_history_false_test(request):
-    encrypt_history(request, False)
+    request.inertia.encrypt_history(False)
     return {}
 
 
 @inertia("TestComponent")
 def encrypt_history_type_error_test(request):
-    encrypt_history(request, "foo")
+    request.inertia.encrypt_history("foo")
     return {}
 
 
 @inertia("TestComponent")
 def clear_history_test(request):
-    clear_history(request)
+    request.inertia.clear_history()
     return {}
 
 
 @inertia("TestComponent")
 def clear_history_redirect_test(request):
-    clear_history(request)
+    request.inertia.clear_history()
     return redirect(empty_test)
 
 
@@ -182,7 +171,7 @@ def once_test(request):
 def once_shared_test(request):
     """Exercises once props set via share() to verify they appear in onceProps
     metadata and are correctly skipped when the client already holds them."""
-    share(request, plans=Prop(lambda: ["basic", "pro"], once=True))
+    request.inertia.share(plans=Prop(lambda: ["basic", "pro"], once=True))
     return {"name": "Brandon"}
 
 
@@ -203,14 +192,14 @@ def once_fresh_test(request):
 def preserve_fragment_page_test(request):
     """Simulates the page rendered after following a redirect that had
     preserve_fragment set on the preceding response."""
-    preserve_fragment(request)
+    request.inertia.preserve_fragment()
     return {"name": "Brandon"}
 
 
 def preserve_fragment_redirect_test(request):
     """Sets preserve_fragment and issues a redirect; the flag travels via
     the session to the next Inertia response."""
-    preserve_fragment(request)
+    request.inertia.preserve_fragment()
     return redirect(empty_test)
 
 
@@ -234,7 +223,7 @@ class ShareErrorsMiddleware:
         self.get_response = get_response
 
     def process_request(self, request):
-        share(request, errors={"email": "required"})
+        request.inertia.share(errors={"email": "required"})
 
 
 @decorator_from_middleware(ShareErrorsMiddleware)
@@ -365,7 +354,7 @@ def shared_props(request):
 def set_errors_test(request):
     form = SportForm(request.POST)
     if not form.is_valid():
-        set_errors(request, form)
+        request.inertia.set_errors(form)
     return redirect(empty_test)
 
 
@@ -429,3 +418,12 @@ class MissingComponentView(InertiaView):
 class BadMethodNameView(InertiaView):
     component = "Dashboard"
     stats = Prop("get_missing")
+
+
+@inertia("TestComponent")
+def request_details_test(request):
+    return {
+        "inertia": bool(request.inertia),
+        "partial_data": request.inertia.partial_data,
+        "is_partial": request.inertia.is_partial("TestComponent"),
+    }

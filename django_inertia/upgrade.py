@@ -5,6 +5,7 @@ every Python file under each path:
 
 - imports from ``inertia`` and its modules,
 - calls to the prop helpers (``defer``, ``merge``, ...) into ``Prop(...)``,
+- calls to ``share`` and the history helpers into ``request.inertia`` methods,
 - module-level ``INERTIA_*`` settings into one ``INERTIA`` dict,
 - the ``inertia`` entries in ``MIDDLEWARE``, ``INSTALLED_APPS`` and encoder paths,
 - in classes that descend from an ``inertia.test`` test case, also through
@@ -40,16 +41,9 @@ HELPERS = {
 }
 # Positional parameters after the prop value, by helper.
 POSITIONAL = {"defer": ["group", "merge"], "once": ["fresh"], "scroll": ["scroll"]}
-PUBLIC = {
-    "InertiaResponse",
-    "clear_history",
-    "encrypt_history",
-    "inertia",
-    "location",
-    "preserve_fragment",
-    "render",
-    "share",
-}
+# Functions that took the request first and are now request.inertia methods.
+REQUEST_METHODS = {"share", "encrypt_history", "clear_history", "preserve_fragment"}
+PUBLIC = {"InertiaResponse", "inertia", "location", "render"}
 MOVED = {
     "InertiaJsonEncoder": "django_inertia.utils",
     "InertiaMiddleware": "django_inertia.middleware",
@@ -236,6 +230,8 @@ class Upgrade(cst.CSTTransformer):
         self.module = module
         self.manual: list[str] = []
         self.helpers: dict[str, str] = {}  # local name -> helper
+        self.request_methods: dict[str, str] = {}  # local name -> method
+        self.rewritten_calls: set[int] = set()  # ids of the Names they call
         self.imports = Imports(module, is_package)
         # Dotted paths of test case classes, from other modules and this one.
         self.test_case_paths = set(test_cases or ())
@@ -297,6 +293,9 @@ class Upgrade(cst.CSTTransformer):
                     targets.setdefault("django_inertia", []).append(
                         cst.ImportAlias(cst.Name("Prop"))
                     )
+                continue
+            if name in REQUEST_METHODS:
+                self.request_methods[_alias_name(alias)] = name
                 continue
             if name in REMOVED:
                 self.report(
@@ -445,6 +444,10 @@ class Upgrade(cst.CSTTransformer):
                     "`assertJSONResponse` was removed; compare `response.json()` "
                     f"instead; {guide('Tests')}.",
                 )
+        if isinstance(func, cst.Name) and func.value in self.request_methods:
+            return self._request_call(
+                original_node, updated_node, self.request_methods[func.value]
+            )
         if isinstance(func, cst.Name) and func.value in self.helpers:
             return self._prop_call(
                 original_node, updated_node, self.helpers[func.value]
@@ -462,6 +465,43 @@ class Upgrade(cst.CSTTransformer):
                     f"setting; {guide('Settings')}.",
                 )
         return updated_node
+
+    def visit_Call(self, node: cst.Call) -> None:
+        if isinstance(node.func, cst.Name) and node.func.value in self.request_methods:
+            self.rewritten_calls.add(id(node.func))
+
+    def visit_Name(self, node: cst.Name) -> None:
+        if node.value in self.request_methods and id(node) not in self.rewritten_calls:
+            self.report(
+                node,
+                f"`{node.value}` is used without being called; it is now "
+                f"`request.inertia.{self.request_methods[node.value]}`; "
+                f"{guide('Request helpers')}.",
+            )
+
+    def _request_call(
+        self, original: cst.Call, updated: cst.Call, method: str
+    ) -> cst.BaseExpression:
+        args = list(updated.args)
+        if (
+            not args
+            or args[0].keyword is not None
+            or args[0].star
+            or not isinstance(
+                args[0].value, (cst.Name, cst.Attribute, cst.Call, cst.Subscript)
+            )
+        ):
+            self.report(
+                original,
+                f"`{method}(...)` has no plain request argument; rewrite it as "
+                f"`request.inertia.{method}(...)` by hand.",
+            )
+            return updated
+        func = cst.Attribute(
+            value=cst.Attribute(value=args[0].value, attr=cst.Name("inertia")),
+            attr=cst.Name(method),
+        )
+        return updated.with_changes(func=func, args=args[1:])
 
     def _prop_call(
         self, original: cst.Call, updated: cst.Call, helper: str

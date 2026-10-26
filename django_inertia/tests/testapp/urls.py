@@ -54,4 +54,5 @@ urlpatterns = [
     path("v3/scroll/", views.v3_scroll_test),
     path("v3/deferred-scroll/", views.v3_deferred_scroll_test),
     path("v3/deferred-once/", views.v3_deferred_once_test),
+    path("request-details/", views.request_details_test),
 ]

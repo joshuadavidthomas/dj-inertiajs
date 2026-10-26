@@ -6,7 +6,7 @@ from django.http import HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from django.utils.cache import patch_vary_headers
 
-from .http import location
+from .http import InertiaDetails, location
 from .settings import settings
 
 
@@ -19,6 +19,9 @@ class InertiaMiddleware:
     - Convert PUT/PATCH/DELETE redirects to 303 so the subsequent request
       is always treated as a GET by the browser.
     - Detect asset version mismatches and force a full-page refresh.
+
+    It also attaches ``request.inertia``, an ``InertiaDetails``, before the
+    view runs.
 
     Non-Inertia requests (e.g. those made via the useHttp hook in Inertia v3)
     pass through this middleware without modification beyond CSRF cookie
@@ -35,6 +38,7 @@ class InertiaMiddleware:
             markcoroutinefunction(self)
 
     def __call__(self, request: HttpRequest) -> Any:
+        request.inertia = InertiaDetails(request)  # type: ignore[attr-defined]
         if iscoroutinefunction(self):
             return self.__acall__(request)
         return self.process_response(request, self.get_response(request))
@@ -53,13 +57,14 @@ class InertiaMiddleware:
         # both Inertia page visits and non-visit XHR (useHttp) requests.
         get_token(request)
 
-        if not self.is_inertia_request(request):
+        details: InertiaDetails = request.inertia  # type: ignore[attr-defined]
+        if not details:
             return response
 
-        if request.method == "GET" and self.is_stale(request):
+        if request.method == "GET" and details.version not in (None, settings.VERSION):
             return self.force_refresh(request)
 
-        if self.redirect_has_fragment(response) and not self.is_prefetch(request):
+        if self.redirect_has_fragment(response) and not details.prefetch:
             return self.inertia_redirect(response)
 
         if self.is_non_post_redirect(request, response):
@@ -76,9 +81,6 @@ class InertiaMiddleware:
             "DELETE",
         ]
 
-    def is_inertia_request(self, request: HttpRequest) -> bool:
-        return "X-Inertia" in request.headers
-
     def is_redirect_request(self, response: HttpResponse) -> bool:
         return response.status_code in [301, 302]
 
@@ -87,20 +89,11 @@ class InertiaMiddleware:
             "Location", ""
         )
 
-    def is_prefetch(self, request: HttpRequest) -> bool:
-        return request.headers.get("Purpose") == "prefetch"
-
     def inertia_redirect(self, response: HttpResponse) -> HttpResponse:
         return HttpResponse(
             "",
             status=409,
             headers={"X-Inertia-Redirect": response.headers["Location"]},
-        )
-
-    def is_stale(self, request: HttpRequest) -> bool:
-        return (
-            request.headers.get("X-Inertia-Version", settings.VERSION)
-            != settings.VERSION
         )
 
     def force_refresh(self, request: HttpRequest) -> HttpResponse:

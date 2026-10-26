@@ -212,12 +212,10 @@ INERTIA = {
 }
 ```
 
-To add shared props for one request, for example from a middleware, call `share()`:
+To add shared props for one request, for example from a middleware, call `request.inertia.share()`:
 
 ```python
-from django_inertia import share
-
-share(request, team=lambda: request.user.team.name)
+request.inertia.share(team=lambda: request.user.team.name)
 ```
 
 The view's own props override shared props with the same name. The page reports shared keys in `sharedProps`.
@@ -226,18 +224,16 @@ The view's own props override shared props with the same name. The page reports 
 
 Inertia forms read validation errors from the `errors` prop.
 
-In a view that redirects after a POST, call `set_errors()` before redirecting. Like `messages.error()`, the errors are stored in the session and sent once, on the next page:
+In a view that redirects after a POST, call `request.inertia.set_errors()` before redirecting. Like `messages.error()`, the errors are stored in the session and sent once, on the next page:
 
 ```python
 from django.shortcuts import redirect
-
-from django_inertia import set_errors
 
 
 def create_event(request):
     form = EventForm(request.POST)
     if not form.is_valid():
-        set_errors(request, form)
+        request.inertia.set_errors(form)
         return redirect("events:create")
     form.save()
     return redirect("events:index")
@@ -246,6 +242,31 @@ def create_event(request):
 A class-based view whose context holds a bound, invalid `form`, such as a `FormView` after `form_invalid()`, sends its errors automatically.
 
 Each field keeps its first message, the shape Inertia's `useForm` expects. Errors are included in partial reloads too.
+
+## The request
+
+`InertiaMiddleware` attaches `request.inertia`, the way `SessionMiddleware` attaches `request.session`. It is truthy when the Inertia client made the request, and describes what the client asked for:
+
+```python
+if request.inertia:                 # an Inertia visit, not a full page load
+    request.inertia.version         # the client's asset version
+    request.inertia.partial_component, request.inertia.partial_data, request.inertia.partial_except
+    request.inertia.is_partial("Event/Index")
+```
+
+Its methods change the page this request renders, or with a redirect, the next one: `share()`, `set_errors()`, `encrypt_history()`, `clear_history()` and `preserve_fragment()`, each described in its section.
+
+For type checkers, annotate views with `InertiaHttpRequest`:
+
+```python
+from django_inertia.http import InertiaHttpRequest
+
+
+def show(request: InertiaHttpRequest, pk: int):
+    request.inertia.share(section="events")
+```
+
+A request built with `RequestFactory` gets `request.inertia` when the response renders, so views can be unit tested without the middleware.
 
 ## Flash messages
 
@@ -272,17 +293,14 @@ def billing_portal(request):
     return location("https://billing.example.com/")
 ```
 
-When a request URL has a fragment, such as `/article/old-slug#section`, and the view redirects, call `preserve_fragment()` so the client keeps the fragment on the new URL:
+When a request URL has a fragment, such as `/article/old-slug#section`, and the view redirects, call `request.inertia.preserve_fragment()` so the client keeps the fragment on the new URL:
 
 ```python
-from django_inertia import preserve_fragment
-
-
 def rename_article(request, slug):
     article = Article.objects.get(slug=slug)
     article.slug = request.POST["new_slug"]
     article.save()
-    preserve_fragment(request)
+    request.inertia.preserve_fragment()
     return redirect("articles:show", slug=article.slug)
 ```
 
@@ -293,16 +311,16 @@ Inertia can [encrypt the history state](https://inertiajs.com/history-encryption
 Turn it on for every page with `INERTIA["ENCRYPT_HISTORY"] = True`, or per view:
 
 ```python
-from django_inertia import clear_history, encrypt_history, inertia
+from django_inertia import inertia
 
 
 @inertia("Account/Show")
 def account(request):
-    encrypt_history(request)  # encrypt_history(request, False) opts out
+    request.inertia.encrypt_history()  # encrypt_history(False) opts out
     return {"account": request.user.account}
 ```
 
-Call `clear_history(request)` to discard the encrypted history on the next page, for example on logout:
+Call `request.inertia.clear_history()` to discard the encrypted history on the next page, for example on logout:
 
 ```python
 from django.contrib.auth import views as auth_views
@@ -311,7 +329,7 @@ from django.contrib.auth import views as auth_views
 class LogoutView(auth_views.LogoutView):
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
-        clear_history(request)
+        request.inertia.clear_history()
         return response
 ```
 
