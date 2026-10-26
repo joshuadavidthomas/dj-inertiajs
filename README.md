@@ -82,7 +82,7 @@ from .models import Event
 
 
 def index(request):
-    return render(request, "Event/Index", {"events": Event.objects.all()})
+    return render(request, "Event/Index", {"events": Event.objects.values("id", "title")})
 ```
 
 It also takes `template_data` (extra context for the layout), and the keyword-only `template_name` (a layout other than `INERTIA["LAYOUT"]`), `status` and `headers`.
@@ -95,8 +95,10 @@ from dj_inertiajs import inertia
 
 @inertia("Event/Index")
 async def index(request):
-    return {"events": [event async for event in Event.objects.all()]}
+    return {"events": [event async for event in Event.objects.values("id", "title")]}
 ```
+
+The decorator takes the same keyword options as `render()`, for example `@inertia("Event/Index", template_name="events/base.html", status=200)`.
 
 Responses render lazily, like `TemplateResponse`. Until Django's handler renders the response, middleware with `process_template_response` and view decorators can change `response.component`, `response.props` and `response.template_data`.
 
@@ -115,7 +117,7 @@ class EventList(InertiaResponseMixin, ListView):
     model = Event
 
     def get_props(self, **kwargs):
-        return {**super().get_props(**kwargs), "events": list(kwargs["object_list"])}
+        return {**super().get_props(**kwargs), "events": list(kwargs["object_list"].values("id", "title"))}
 ```
 
 Only what `get_props()` returns is sent, so context such as `view` or `paginator` never reaches the page by accident.

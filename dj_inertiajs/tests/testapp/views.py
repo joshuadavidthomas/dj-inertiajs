@@ -429,3 +429,13 @@ def request_details_test(request):
         "partial_data": request.inertia.partial_data,
         "is_partial": request.inertia.is_partial("TestComponent"),
     }
+
+
+@inertia(
+    "TestComponent",
+    template_name="other_layout.html",
+    status=202,
+    headers={"X-Team": "Penguins"},
+)
+def decorated_options_test(request):
+    return {}

@@ -198,7 +198,7 @@ class EventList(InertiaResponseMixin, ListView):
     model = Event
 
     def get_props(self, **kwargs):
-        return {**super().get_props(**kwargs), "events": list(kwargs["object_list"])}
+        return {**super().get_props(**kwargs), "events": list(kwargs["object_list"].values("id", "title"))}
 ```
 
 ## Responses render lazily

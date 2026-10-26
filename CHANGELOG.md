@@ -32,7 +32,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
 * Support `async def` views under `@inertia`.
 * Let `process_template_response` middleware and view decorators change `component`, `props` and `template_data` before the page is rendered.
-* Add `status` and `headers` arguments to `render()`.
+* Add `status` and `headers` arguments to `render()`. `@inertia` takes the same options as `render()`: `template_name`, `status`, `headers` and `encrypt_history`.
 * Add a per-view layout: `render(..., template_name=...)`, `InertiaResponse(..., template_name=...)` and a `template_name` attribute on class-based views. `INERTIA["LAYOUT"]` is the default.
 * Add `INERTIA["SHARED_PROPS"]`: dotted paths to `(request) -> dict` functions whose props are added to every page, like template context processors. View props override them, and `share()` still adds per-request values.
 * Add `set_errors(request, form_or_dict)`, which sends validation errors as the `errors` prop on the next page, once, the way `contrib.messages` works. Each field keeps its first message, and the prop is included in partial reloads.

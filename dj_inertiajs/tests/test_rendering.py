@@ -280,6 +280,13 @@ class LayoutTestCase(ProtocolTestCase):
         self.assertContains(response, self.root)
         self.assertContains(response, '</script>\n  <div id="root"></div></main>')
 
+    def test_decorator_takes_the_render_options(self):
+        response = self.client.get("/decorated-options/")
+
+        self.assertTemplateUsed(response, "other_layout.html")
+        self.assertContains(response, self.root, status_code=202)
+        self.assertEqual(response["X-Team"], "Penguins")
+
     def test_class_based_view_takes_a_layout(self):
         response = self.client.get("/other-layout-view/")
 
