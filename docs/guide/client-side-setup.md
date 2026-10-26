@@ -319,9 +319,9 @@ By default we recommend eager loading your components, which will result in a si
 ## Defining a root element
 
 By default, Inertia assumes that your application's root template has a root element with an `id` of `app`.
-This is already configured if you use the `{% block inertia %} {% endblock %}` template tag from `inertia-django` in your base html template.
+The `{% inertia_body %}` template tag renders this element in your layout.
 
-If your application's root element has a different `id`, you can provide it using the `id` property.
+To use a different `id`, pass it to both the tag, as `{% inertia_body id="my-app" %}`, and the client, using the `id` property.
 
 ```js
 createInertiaApp({

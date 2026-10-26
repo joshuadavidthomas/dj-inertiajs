@@ -1,6 +1,6 @@
 # Server-side setup
 
-To get started with Inertia in Django, the first step is to configure Django to use the `inertia-django` server-side adapter.
+To get started with Inertia in Django, the first step is to configure Django to use the `django_inertia` server-side adapter.
 
 ::: tip
 For new projects, we recommend following the [template based setup](#template-based-setup) guide.
@@ -60,6 +60,10 @@ Example output:
 ? Do you want to use Docker in production? Yes
 ```
 
+::: warning
+The template generates a project for inertia-django, the adapter this package was forked from. After generating it, switch it to this package by following [Upgrading from inertia-django](/guide/upgrading-from-inertia-django): run the codemod, then `python manage.py check`.
+:::
+
 You're all set! You can now start your development server.
 
 ## Manual setup
@@ -70,45 +74,49 @@ Skip this section if you used the [template based setup](#template-based-setup) 
 
 ### Install dependencies
 
-Install the `inertia-django` server-side adapter and related dependencies.
+Install the server-side adapter and `django-vite`. The distribution name is not final yet, so install the adapter from Git for now.
 
 ::: code-group
 
 ```shell [uv]
-uv add inertia-django django-vite
+uv add "inertia-django @ git+https://github.com/joshuadavidthomas/inertia-django" django-vite
 ```
 
 ```shell [pip]
-python -m pip install inertia-django django-vite
+python -m pip install "git+https://github.com/joshuadavidthomas/inertia-django" django-vite
 ```
 :::
 
+For server-side rendering, also install the `ssr` extra, which adds `requests`.
+
 ### Update installed apps
 
-Add `django_vite` and `inertia` to your `INSTALLED_APPS` in `settings.py`.
+Add `django_vite` and `django_inertia` to your `INSTALLED_APPS` in `settings.py`.
 
 ```python
 INSTALLED_APPS = [
     # ...
     "django_vite",
-    "inertia",
+    "django_inertia",
 ]
 ```
 
 ### Update middleware
 
-Next, add `inertia.middleware.InertiaMiddleware` to your `MIDDLEWARE` in `settings.py`.
+Next, add `django_inertia.middleware.InertiaMiddleware` to your `MIDDLEWARE` in `settings.py`. Inertia stores some state in the session, so `SessionMiddleware` must be there too; new Django projects include it.
 
 ```python
 MIDDLEWARE = [
     # ...
-    "inertia.middleware.InertiaMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    # ...
+    "django_inertia.middleware.InertiaMiddleware",
 ]
 ```
 
 ### Configure settings
 
-Configure `django-vite` and `inertia-django` specific settings in `settings.py`.
+Configure `django-vite` and Inertia in `settings.py`.
 
 ```python
 # django-vite settings
@@ -131,28 +139,42 @@ STATICFILES_DIRS = [DJANGO_VITE_ASSETS_PATH]
 
 > For a complete list of available `vite` related settings, see `django-vite` [docs](https://github.com/MrBin99/django-vite?tab=readme-ov-file#django-vite).
 
+All Inertia settings live in one `INERTIA` dict. Only `LAYOUT` is required:
+
 ```python
-# inertia-django settings
-INERTIA_LAYOUT = "base.html" # update with your base template name
+INERTIA = {
+    "LAYOUT": "base.html",  # update with your base template name
+}
 ```
 
-> For a complete list of available `inertia-django` settings, see [readme](https://github.com/inertiajs/inertia-django?tab=readme-ov-file#settings).
+> For the other settings, such as `VERSION`, `SHARED_PROPS` and `SSR`, see the [readme](https://github.com/joshuadavidthomas/inertia-django?tab=readme-ov-file#settings).
 
 ### Update base template
 
-In your base html template, add the following:
+In your base template, load the `inertia` tags. `{% inertia_head %}` goes in `<head>` and outputs the head tags from server-side rendering, if you use it. `{% inertia_body %}` goes where the app mounts and outputs the root element with the page data.
 
-```html
-{% load django_vite %}
+```django
+{% load django_vite inertia %}
 
 ...
 <head>
     ...
     {% vite_hmr_client %}
     {% vite_asset 'js/main.js' %}
+    {% inertia_head %}
 </head>
 
 <body>
-    {% block inertia %}{% endblock %}
+    {% inertia_body %}
 </body>
+```
+
+A view can render a different layout by passing `template_name` to `render()`, or by setting `template_name` on a class-based view.
+
+### Check the setup
+
+Run Django's system checks. They report a missing setting, middleware or dependency before the first request:
+
+```shell
+python manage.py check
 ```

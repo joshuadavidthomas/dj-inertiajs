@@ -2,55 +2,64 @@
 
 # Inertia.js Django Adapter
 
-[Official Docs and installation instructions are available here](https://inertiajs.github.io/inertia-django/)
+A Django-native server-side adapter for [Inertia.js](https://inertiajs.com/), forked from [inertia-django](https://github.com/inertiajs/inertia-django) 2.0.0. It speaks the same Inertia v3 protocol, so the client side is unchanged, but its API follows Django's conventions: one settings dict, system checks, class-based views, lazy responses like `TemplateResponse`, template tags, and test assertions that take the response.
+
+Coming from inertia-django? See [Upgrading from inertia-django](docs/guide/upgrading-from-inertia-django.md). A codemod and system checks do most of the work.
+
+The import package is `django_inertia`. The distribution name is not final yet, so install it from Git for now.
 
 ## Installation
 
 ### Backend
 
-Install the following python package via pip
-
 ```bash
-pip install inertia-django
+pip install "git+https://github.com/joshuadavidthomas/inertia-django"
 ```
 
-Add the Inertia app to your `INSTALLED_APPS` in `settings.py`
+Add the app and the middleware. Inertia stores some state in the session, so `SessionMiddleware` is required too:
 
 ```python
 INSTALLED_APPS = [
-  # django apps,
-  'inertia',
-  # your project's apps,
+    # ...
+    "django_inertia",
 ]
-```
 
-Add the Inertia middleware to your `MIDDLEWARE` in `settings.py`
-
-```python
 MIDDLEWARE = [
-  # django middleware,
-  'inertia.middleware.InertiaMiddleware',
-  # your project's middleware,
+    # ...
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    # ...
+    "django_inertia.middleware.InertiaMiddleware",
 ]
+
+INERTIA = {
+    "LAYOUT": "base.html",
+}
 ```
 
-Finally, create a layout which exposes `{% block inertia %}{% endblock %}` in the body and set the path to this layout as `INERTIA_LAYOUT` in your `settings.py` file.
+Create the layout. `{% inertia_head %}` outputs server-side rendered head tags, and `{% inertia_body %}` outputs the element the client mounts on:
 
-Now you're all set!
+```django
+{% load inertia %}
+<!doctype html>
+<html>
+  <head>
+    {% inertia_head %}
+  </head>
+  <body>
+    {% inertia_body %}
+  </body>
+</html>
+```
+
+`python manage.py check` reports anything missing from this setup.
 
 ### Frontend
 
-Django specific frontend docs coming soon. For now, we recommend installing [django_vite](https://github.com/MrBin99/django-vite)
-and following the commits on the Django Vite [example repo](https://github.com/MrBin99/django-vite-example). Once Vite is setup with
-your frontend of choice, just replace the contents of `entry.js` with [this file (example in react)](https://github.com/BrandonShar/inertia-rails-template/blob/main/app/frontend/entrypoints/application.jsx)
-
-You can also check out the official Inertia docs at https://inertiajs.com/.
+See the [client-side setup guide](docs/guide/client-side-setup.md). We recommend [django-vite](https://github.com/MrBin99/django-vite) to serve your frontend assets.
 
 ### CSRF
 
-Django's CSRF tokens are tightly coupled with rendering templates, so Inertia Django automatically handles adding the CSRF cookie to every response — including non-visit XHR requests made via the `useHttp` hook introduced in Inertia v3.
-
-The Inertia v3 HTTP client defaults to Laravel's `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header, while Django defaults to `csrftoken` and `X-CSRFToken`. Configure the client with Django's names (or use your project's custom CSRF names):
+The middleware sets Django's CSRF cookie on every response, including requests made with Inertia v3's `useHttp`. The v3 HTTP client defaults to Laravel's cookie and header names, so configure Django's (or your project's custom names):
 
 ```javascript
 createInertiaApp({
@@ -62,414 +71,364 @@ createInertiaApp({
 })
 ```
 
-## Upgrading to Inertia v3
+## Responses
 
-See the [Inertia v3 upgrade guide](docs/guide/upgrading-to-v3.md) for the required client, template, partial reload, flash, redirect, and cache changes.
-
-## Usage
-
-### Responses
-
-Render Inertia responses is simple, you can either use the provided inertia render function or, for the most common use case, the inertia decorator. The render function accepts four arguments, the first is your request object. The second is the name of the component you want to render from within your pages directory (without extension). The third argument is a dict of `props` that should be provided to your components. The final argument is `template_data`, for any variables you want to provide to your template, but this is much less common.
+`render()` works like `django.shortcuts.render`, with a component instead of a template:
 
 ```python
-from inertia import render
+from django_inertia import render
+
 from .models import Event
 
-def index(request):
-  return render(request, 'Event/Index', props={
-    'events': Event.objects.all()
-  })
-```
-
-Or use the simpler decorator for the most common use cases
-
-```python
-from inertia import inertia
-from .models import Event
-
-@inertia('Event/Index')
-def index(request):
-  return {
-    'events': Event.objects.all(),
-  }
-```
-
-If you need more control, you can also directly return the InertiaResponse class. It has the same arguments as the render method and subclasses HttpResponse to accept of all its arguments as well.
-
-```python
-from inertia import InertiaResponse
-from .models import Event
 
 def index(request):
-  return InertiaResponse(
-    request,
-    'Event/Index',
-    props={
-      'events': Event.objects.all()
-    }
-  )
+    return render(request, "Event/Index", {"events": Event.objects.all()})
 ```
 
-### Shared Data
+It also takes `template_data` (extra context for the layout), and the keyword-only `template_name` (a layout other than `INERTIA["LAYOUT"]`), `status` and `headers`.
 
-If you have data that you want to be provided as a prop to every component (a common use-case is information about the authenticated user) you can use the `share` method. A common place to put this would be in some custom middleware.
+For views that only return props, use the decorator. It works on sync and `async` views, and passes any `HttpResponse` the view returns, such as a redirect, through unchanged:
 
 ```python
-from inertia import share
-from django.conf import settings
-from .models import User
+from django_inertia import inertia
 
-def inertia_share(get_response):
-  def middleware(request):
-    share(request,
-      app_name=settings.APP_NAME,
-      user_count=lambda: User.objects.count(), # evaluated lazily at render time
-      user=lambda: request.user, # evaluated lazily at render time
-    )
 
-    return get_response(request)
-  return middleware
+@inertia("Event/Index")
+async def index(request):
+    return {"events": [event async for event in Event.objects.all()]}
 ```
 
-### Prop Serialization
+Responses render lazily, like `TemplateResponse`. Until Django's handler renders the response, middleware with `process_template_response` and view decorators can change `response.component`, `response.props` and `response.template_data`.
 
-Unlike Rails and Laravel, Django does not handle converting objects to JSON by default so Inertia Django offers two different ways to handle prop serialization.
+### Class-based views
 
-#### InertiaJsonEncoder
-
-The default behavior is via the InertiaJsonEncoder. The InertiaJsonEncoder is a barebones implementation
-that extends the DjangoJSONEncoder with the ability to handle QuerySets and models. Models are JSON encoded
-via Django's `model_to_dict` method excluding the field `password`. This method has limitations though, as
-`model_to_dict` does not include fields where editable=False (such as automatic timestamps).
-
-#### InertiaMeta
-
-Starting in Inertia Django v1.2, Inertia Django supports an InertiaMeta nested class. Similar to Django Rest Framework's serializers, any class (not just models) can contain an InertiaMeta class which can specify how that class should be serialized to JSON. At this time, in only supports `fields`, but this may be extended in future versions.
+`InertiaResponseMixin` is the Inertia counterpart of `TemplateResponseMixin`: put it before a generic view and the view renders a component. Props come from `get_props()`, which receives the context the generic view built:
 
 ```python
-class User(models.Model):
-  name = models.CharField(max_length=255)
-  password = models.CharField(max_length=255)
-  created_at = models.DateField(auto_now_add=True)
+from django.views.generic import ListView
 
-  class InertiaMeta:
-    fields = ('name', 'created_at')
+from django_inertia.views import InertiaResponseMixin
+
+
+class EventList(InertiaResponseMixin, ListView):
+    component = "Event/Index"
+    model = Event
+
+    def get_props(self, **kwargs):
+        return {**super().get_props(**kwargs), "events": list(kwargs["object_list"])}
 ```
 
-### External Redirects
+Only what `get_props()` returns is sent, so context such as `view` or `paginator` never reaches the page by accident.
 
-It is possible to redirect to an external website, or even another non-Inertia endpoint in your app while handling an Inertia request.
-This can be accomplished using a server-side initiated `window.location` visit via the `location` method:
+`InertiaView` renders `component` on GET, like `TemplateView`. Props can be declared on the class with `Prop`. A `Prop` whose value is a string names a method on the view, which runs only when the prop is sent:
 
 ```python
-from inertia import location
+from django_inertia import Prop
+from django_inertia.views import InertiaView
 
-def external():
-    return location("http://foobar.com/")
+
+class Dashboard(InertiaView):
+    component = "Dashboard"
+    stats = Prop("get_stats", defer=True)
+
+    def get_stats(self):
+        return Stats.objects.summary()
 ```
 
-It will generate a `409 Conflict` response and include the destination URL in the `X-Inertia-Location` header.
-When this response is received client-side, Inertia will automatically perform a `window.location = url` visit.
+Both take a `template_name` attribute to choose a layout.
 
-### Optional Props
+## Props
 
-On the front end, Inertia supports the concept of "partial reloads" where only the props requested
-are returned by the server. Sometimes, you may want to use this flow to avoid processing a particularly slow prop on the intial load. In this case, you can use `Optional props`. Optional props aren't evaluated unless they're specifically requested by name in a partial reload.
+A prop is any JSON-serializable value. A callable is called at render time, and only if the prop is sent. Props can be nested in dicts and lists; partial reloads address them by dotted path, such as `user.name`.
 
-```python
-from inertia import optional, inertia
-
-@inertia('ExampleComponent')
-def example(request):
-  return {
-    'name': lambda: 'Brandon', # this will be rendered on the first load as usual
-    'data': optional(lambda: some_long_calculation()), # this will only be run when specifically requested by partial props and WILL NOT be included on the initial load
-  }
-```
-
-Use `always()` for data that must be included even when the client requests a different subset of props:
+`Prop` wraps a value with the Inertia options that control when and how it loads:
 
 ```python
-from inertia import always
+from datetime import timedelta
 
-return {
-  'currentUser': always(lambda: request.user.username),
-  'reports': optional(load_reports),
+from django_inertia import Prop
+
+props = {
+    "name": "Brandon",
+    "reports": Prop(load_reports, optional=True),
+    "user": Prop(lambda: request.user.username, always=True),
+    "stats": Prop(load_stats, defer=True, group="charts"),
+    "plans": Prop(Plan.objects.all, once=True, expires_at=timedelta(hours=1)),
+    "feed": Prop(load_feed, merge="items", match_on="items.id"),
 }
 ```
 
-### Deferred Props
+| Option | Effect |
+|---|---|
+| `optional=True` | Skipped on the first load. Sent only when a partial reload asks for it. |
+| `always=True` | Sent even when a partial reload asks for other props. |
+| `defer=True` | Skipped on the first load. The client fetches it right after, together with other deferred props in the same `group`. |
+| `group="name"` | The batch a deferred prop loads in. Requires `defer`. |
+| `rescue=True` | If resolving a deferred prop raises, omit it and report it to the client instead of failing the request. Requires `defer`. |
+| `merge=True` | Append to the client's existing value instead of replacing it. A path or list of paths, such as `merge="items"`, appends inside the prop. |
+| `prepend=True` | Like `merge`, but prepends. |
+| `deep_merge=True` | Merge nested objects and arrays recursively. |
+| `match_on="id"` | Paths of keys that identify records when merging. |
+| `scroll={...}` | Pagination metadata for Inertia's infinite scroll: `pageName`, `previousPage`, `nextPage` and `currentPage`. Implies `merge`. |
+| `once=True` | Resolved once and kept by the client across visits. |
+| `key="name"` | The client-side cache key of a `once` prop, by default its path. |
+| `expires_at=...` | When a `once` prop expires: a `datetime`, a `timedelta`, or seconds from now. |
+| `fresh=True` | Resolve a `once` prop on every request even if the client has it. |
 
-As of version 2.0, Inertia supports the ability to defer the fetching of props until after the page has been initially rendered. Essentially this is similar to the concept of `Optional props` however Inertia provides convenient frontend components to automatically fetch the deferred props after the page has initially loaded, instead of requiring the user to initiate a reload. For more info, see [Deferred props](https://inertiajs.com/deferred-props) in the Inertia documentation.
+Loading options exclude each other: use at most one of `optional`, `defer` and `always`. `Prop` raises `ValueError` for combinations that have no effect, such as `group` without `defer`.
 
-To mark props as deferred on the server side use the `defer` function.
-
-```python
-from inertia import defer, inertia
-
-@inertia('ExampleComponent')
-def example(request):
-  return {
-    'name': lambda: 'Brandon', # this will be rendered on the first load as usual
-    'data': defer(lambda: some_long_calculation()), # this will only be run after the frontend has initially loaded and inertia requests this prop
-  }
-```
-
-#### Grouping requests
-
-By default, all deferred props get fetched in one request after the initial page is rendered, but you can choose to fetch data in parallel by grouping props together.
-
-```python
-from inertia import defer, inertia
-
-@inertia('ExampleComponent')
-def example(request):
-  return {
-    'name': lambda: 'Brandon', # this will be rendered on the first load as usual
-    'data': defer(lambda: some_long_calculation()),
-    'data1': defer(lambda: some_long_calculation1(), group='group'),
-    'data2': defer(lambda: some_long_calculation1(), 'group'),
-  }
-```
-
-In the example above, the `data1`, and `data2` props will be fetched in one request, while the `data` prop will be fetched in a separate request in parallel. Group names are arbitrary strings and can be anything you choose.
-
-### Merge Props
-
-By default, Inertia overwrites props with the same name when reloading a page. However, there are instances, such as pagination or infinite scrolling, where that is not the desired behavior. In these cases, you can merge props instead of overwriting them.
+For example, an infinite-scroll list whose first page loads after the initial render:
 
 ```python
-from inertia import merge, inertia
-
-@inertia('ExampleComponent')
-def example(request):
-  return {
-    'name': lambda: 'Brandon',
-    'data': merge(Paginator(objects, 3)),
-  }
-```
-
-You can also combine deferred props with mergeable props to defer the loading of the prop and ultimately mark it as mergeable once it's loaded.
-
-```python
-from inertia import defer, inertia
-
-@inertia('ExampleComponent')
-def example(request):
-  return {
-    'name': lambda: 'Brandon',
-    'data': defer(lambda: Paginator(objects, 3), merge=True),
-  }
-```
-
-For Inertia v3, `merge()` can target nested arrays and match incoming records by a stable key. `deep_merge()` merges nested objects and arrays recursively:
-
-```python
-from inertia import deep_merge, merge
-
-return {
-  'feed': merge(load_feed, append='items', match_on='items.id'),
-  'chat': deep_merge(load_chat, match_on='messages.id'),
-}
-```
-
-### Scroll Props
-
-`scroll()` adds the pagination metadata used by Inertia v3's infinite-scroll components. Pass `defer=True` to load its first page after the initial render.
-
-```python
-from inertia import scroll
-
-return {
-  'players': scroll(
+"players": Prop(
     load_players,
-    {'pageName': 'page', 'previousPage': None, 'nextPage': 2, 'currentPage': 1},
+    scroll={"pageName": "page", "previousPage": None, "nextPage": 2, "currentPage": 1},
     defer=True,
-  ),
+)
+```
+
+See [Partial reloads](docs/guide/partial-reloads.md) and the Inertia docs on [deferred props](https://inertiajs.com/deferred-props) for how the client uses these.
+
+## Shared data
+
+Props that every page needs, such as the signed-in user, come from functions listed in `INERTIA["SHARED_PROPS"]`, like template context processors. Each takes the request and returns a dict:
+
+```python
+# myapp/inertia.py
+from django_inertia import Prop
+
+
+def shared(request):
+    return {
+        "app_name": "Scoreboard",
+        "user": Prop(lambda: request.user.get_username(), always=True),
+    }
+```
+
+```python
+INERTIA = {
+    "LAYOUT": "base.html",
+    "SHARED_PROPS": ["myapp.inertia.shared"],
 }
 ```
 
-### Once Props
-
-Some data rarely changes, is expensive to compute, or is simply large. Rather than sending it on every response, you can use `once` props. Once props are resolved on the first visit and remembered by the client. On subsequent visits the server skips re-resolving them, saving both CPU and bandwidth.
+To add shared props for one request, for example from a middleware, call `share()`:
 
 ```python
-from inertia import once, inertia
+from django_inertia import share
 
-@inertia('ExampleComponent')
-def example(request):
-  return {
-    'name': lambda: 'Brandon',
-    'plans': once(lambda: Plan.objects.all()), # resolved once, then cached client-side
-  }
+share(request, team=lambda: request.user.team.name)
 ```
 
-Pass `fresh=True` to force re-resolution on every request, regardless of whether the client already holds the value:
+The view's own props override shared props with the same name. The page reports shared keys in `sharedProps`.
 
-```python
-@inertia('Billing/Plans')
-def plans(request):
-  return {
-    'plans': once(lambda: Plan.objects.all(), fresh=True),
-  }
-```
+## Forms and validation errors
 
-Once props also work in shared data:
+Inertia forms read validation errors from the `errors` prop.
 
-```python
-share(request, countries=once(lambda: list(Country.objects.values('code', 'name'))))
-```
-
-### Flash Data
-
-Django messages are automatically exposed through the page object's top-level `flash.messages` field.
-
-```python
-from django.contrib import messages
-
-messages.success(request, 'Brandon scored!')
-return redirect('players:index')
-```
-
-### Preserve Fragment
-
-When a user visits a URL with a fragment (e.g. `/article/old-slug#section`) and the server redirects to a different URL, the fragment is normally lost. Call `preserve_fragment()` before returning the redirect to carry the fragment to the new URL:
+In a view that redirects after a POST, call `set_errors()` before redirecting. Like `messages.error()`, the errors are stored in the session and sent once, on the next page:
 
 ```python
 from django.shortcuts import redirect
 
-from inertia import preserve_fragment
+from django_inertia import set_errors
+
+
+def create_event(request):
+    form = EventForm(request.POST)
+    if not form.is_valid():
+        set_errors(request, form)
+        return redirect("events:create")
+    form.save()
+    return redirect("events:index")
+```
+
+A class-based view whose context holds a bound, invalid `form`, such as a `FormView` after `form_invalid()`, sends its errors automatically.
+
+Each field keeps its first message, the shape Inertia's `useForm` expects. Errors are included in partial reloads too.
+
+## Flash messages
+
+Django messages are sent as the page's top-level `flash.messages`, a list of `{"level": ..., "message": ...}`:
+
+```python
+from django.contrib import messages
+
+messages.success(request, "Event saved.")
+return redirect("events:index")
+```
+
+## Redirects
+
+Return Django's redirects as usual. The middleware turns redirects after `PUT`, `PATCH` and `DELETE` into `303 See Other`, as Inertia requires.
+
+To leave the Inertia app, for an external site or a non-Inertia page, return `location()`. It makes the client do a full `window.location` visit:
+
+```python
+from django_inertia import location
+
+
+def billing_portal(request):
+    return location("https://billing.example.com/")
+```
+
+When a request URL has a fragment, such as `/article/old-slug#section`, and the view redirects, call `preserve_fragment()` so the client keeps the fragment on the new URL:
+
+```python
+from django_inertia import preserve_fragment
+
 
 def rename_article(request, slug):
     article = Article.objects.get(slug=slug)
-    article.slug = request.POST['new_slug']
+    article.slug = request.POST["new_slug"]
     article.save()
     preserve_fragment(request)
-    return redirect('articles:show', slug=article.slug)
+    return redirect("articles:show", slug=article.slug)
 ```
 
-The client will navigate to `/article/new-slug#section` instead of `/article/new-slug`.
+## History encryption
 
-### Json Encoding
+Inertia can [encrypt the history state](https://inertiajs.com/history-encryption) it keeps in the browser, for pages with sensitive data. It needs HTTPS, because it uses `window.crypto.subtle`.
 
-Inertia Django ships with a custom JsonEncoder at `inertia.utils.InertiaJsonEncoder` that extends Django's
-`DjangoJSONEncoder` with additional logic to handle encoding models and Querysets. If you have other json
-encoding logic you'd prefer, you can set a new JsonEncoder via the settings.
-
-### History Encryption
-
-Inertia.js supports [history encryption](https://inertiajs.com/history-encryption) to protect sensitive data in the browser's history state. This is useful when your pages contain sensitive information that shouldn't be stored in plain text in the browser's history. This feature requires HTTPS since it relies on `window.crypto.subtle` which is only available in secure contexts.
-
-You can enable history encryption globally via the `INERTIA_ENCRYPT_HISTORY` setting in your `settings.py`:
+Turn it on for every page with `INERTIA["ENCRYPT_HISTORY"] = True`, or per view:
 
 ```python
-INERTIA_ENCRYPT_HISTORY = True
+from django_inertia import clear_history, encrypt_history, inertia
+
+
+@inertia("Account/Show")
+def account(request):
+    encrypt_history(request)  # encrypt_history(request, False) opts out
+    return {"account": request.user.account}
 ```
 
-For more granular control, you can enable encryption on specific views:
+Call `clear_history(request)` to discard the encrypted history on the next page, for example on logout:
 
 ```python
-from inertia import encrypt_history, inertia
-
-@inertia('TestComponent')
-def encrypt_history_test(request):
-    encrypt_history(request)
-    return {}
-
-# If you have INERTIA_ENCRYPT_HISTORY = True but want to disable encryption for specific views:
-@inertia('PublicComponent')
-def public_view(request):
-    encrypt_history(request, False)  # Explicitly disable encryption for this view
-    return {}
-```
-
-When users log out, you might want to clear the history to ensure no sensitive data can be accessed. You can do this by extending the logout view:
-
-```python
-from inertia import clear_history
 from django.contrib.auth import views as auth_views
 
+
 class LogoutView(auth_views.LogoutView):
-    def dispatch(self, request, *args, **kwargs):
-        response = super().dispatch(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
         clear_history(request)
         return response
 ```
 
-### SSR
+## Serialization
 
-The SSR is handled by a separate Node server. Your backend acts like a proxy, receiving requests from the frontend, calling the Node server (SSR server), and returning the rendered HTML to the frontend.
+Props are encoded with `INERTIA["JSON_ENCODER"]`, by default `django_inertia.utils.InertiaJsonEncoder`. It extends `DjangoJSONEncoder`:
 
-Look at the [examples section](#examples) to see working examples of SSR with Django and React or Svelte.
+- A model is encoded with `model_to_dict`, without a field named `password`. `model_to_dict` skips fields with `editable=False`, such as `auto_now_add` timestamps.
+- A `QuerySet` is encoded as a list.
+- Any class with an `InertiaMeta` inner class is encoded as the attributes listed in `InertiaMeta.fields`:
 
-#### Backend
+```python
+class User(models.Model):
+    name = models.CharField(max_length=255)
+    password = models.CharField(max_length=255)
+    created_at = models.DateField(auto_now_add=True)
 
-* Ensure `requests` is installed, so inertia-django can do SSR requests.
-  * `requests` is configured as a dependency if you install the `[ssr]` extra,
-    e.g. `inertia-django[ssr]` in your requirements.
-* Enable SSR via the `INERTIA_SSR_URL` and `INERTIA_SSR_ENABLED` settings.
+    class InertiaMeta:
+        fields = ("name", "created_at")
+```
 
-#### Frontend
+To use your own encoder, set `INERTIA["JSON_ENCODER"]` to its dotted path, or set `json_encoder` on an `InertiaResponse` subclass.
 
-Follow the [current Inertiajs docs for setting up SSR](https://inertiajs.com/docs/v2/advanced/server-side-rendering).
+## Server-side rendering
+
+Server-side rendering runs in a separate Node server. Django posts the page to it and puts the returned HTML into the layout through `{% inertia_head %}` and `{% inertia_body %}`. If the request fails, the error is logged and the page renders client-side.
+
+1. Install the `ssr` extra, which adds `requests`.
+2. Turn it on:
+
+   ```python
+   INERTIA = {
+       "LAYOUT": "base.html",
+       "SSR": {"ENABLED": True, "URL": "http://localhost:13714"},
+   }
+   ```
+
+3. Set up the frontend as described in the Inertia docs on [server-side rendering](https://inertiajs.com/server-side-rendering).
 
 ## Settings
 
-Inertia Django has a few different settings options that can be set from within your project's `settings.py` file. Some of them have defaults.
+All settings live in one `INERTIA` dict:
 
-The default config is shown below
+| Key | Default | Purpose |
+|---|---|---|
+| `LAYOUT` | none, required | The layout template for full page loads. Views can choose another with `template_name`. |
+| `VERSION` | `"1.0"` | The asset version. When the client's version differs, it reloads the page. |
+| `JSON_ENCODER` | `"django_inertia.utils.InertiaJsonEncoder"` | Dotted path to the JSON encoder for props. |
+| `ENCRYPT_HISTORY` | `False` | Encrypt the browser history state on every page. |
+| `SHARED_PROPS` | `[]` | Dotted paths to functions whose props are added to every page. |
+| `SSR` | `{"ENABLED": False, "URL": "http://localhost:13714"}` | Server-side rendering. Keys you leave out keep their defaults. |
 
-```python
-INERTIA_VERSION = '1.0' # defaults to '1.0'
-INERTIA_LAYOUT = 'layout.html' # required and has no default
-INERTIA_JSON_ENCODER = CustomJsonEncoder # defaults to inertia.utils.InertiaJsonEncoder
-INERTIA_SSR_URL = 'http://localhost:13714' # defaults to http://localhost:13714
-INERTIA_SSR_ENABLED = False # defaults to False
-INERTIA_ENCRYPT_HISTORY = False # defaults to False
-```
+## System checks
+
+`python manage.py check` reports configuration problems before the first request:
+
+| ID | Problem |
+|---|---|
+| `inertia.E001` | Unknown key in `INERTIA`, such as a typo. |
+| `inertia.E002` | `INERTIA["LAYOUT"]` is not set. |
+| `inertia.E003` | Server-side rendering is on, but `requests` is not installed. |
+| `inertia.E004` | `InertiaMiddleware` is not in `MIDDLEWARE`. |
+| `inertia.E005` | `SessionMiddleware` is not in `MIDDLEWARE`. |
+| `inertia.E006` | An entry in `INERTIA["SHARED_PROPS"]` cannot be imported. |
+| `inertia.E007`–`E010` | Configuration left over from inertia-django. See [Upgrading from inertia-django](docs/guide/upgrading-from-inertia-django.md). |
 
 ## Testing
 
-Inertia Django ships with a custom TestCase to give you some nice helper methods and assertions.
-To use it, just make sure your TestCase inherits from `InertiaTestCase`. `InertiaTestCase` inherits from Django's `django.test.TestCase` so it includes transaction support and a client.
+Every rendered `InertiaResponse` has the page it sent as `response.inertia`, with `component`, `props`, `url`, `version`, and the whole page object as `data`. In pytest, read it directly:
 
 ```python
-from inertia.test import InertiaTestCase
+def test_events(client):
+    response = client.get("/events/", headers={"X-Inertia": "true"})
 
-class ExampleTestCase(InertiaTestCase):
-  def test_show_assertions(self):
-    self.client.get('/events/')
-
-    # check the component
-    self.assertComponentUsed('Event/Index')
-
-    # access the component name
-    self.assertEqual(self.component(), 'Event/Index')
-
-    # props (including shared props)
-    self.assertHasExactProps({name: 'Brandon', sport: 'hockey'})
-    self.assertIncludesProps({sport: 'hockey'})
-
-    # access props
-    self.assertEquals(self.props()['name'], 'Brandon')
-
-    # template data
-    self.assertHasExactTemplateData({name: 'Brian', sport: 'basketball'})
-    self.assertIncludesTemplateData({sport: 'basketball'})
-
-    # access template data
-    self.assertEquals(self.template_data()['name'], 'Brian')
+    assert response.inertia.component == "Event/Index"
+    assert response.inertia.props["events"] == []
 ```
 
-The inertia test helper also includes a special `inertia` client that pre-sets the inertia headers
-for you to simulate an inertia response. You can access and use it just like the normal client with commands like `self.inertia.get('/events/')`. When using the inertia client, inertia custom assertions **are not** enabled though, so only use it if you want to directly assert against the json response.
+`response.inertia` works for full page loads too.
+
+With Django's test cases, `InertiaTestCase` adds assertions that take the response first, like `assertTemplateUsed`. `self.inertia` is a client whose requests are Inertia visits:
+
+```python
+from django_inertia.test import InertiaTestCase
+
+
+class EventTests(InertiaTestCase):
+    def test_index(self):
+        response = self.inertia.get("/events/")
+
+        self.assertComponentUsed(response, "Event/Index")
+        self.assertIncludesProps(response, {"sport": "hockey"})
+        self.assertHasExactProps(response, {"sport": "hockey", "events": []})
+        self.assertIncludesTemplateData(response, {"title": "Events"})
+        self.assertHasExactTemplateData(response, {"title": "Events"})
+```
+
+`InertiaTestCase` is `InertiaTestMixin` plus `django.test.TestCase`. Combine the mixin with `SimpleTestCase` or another test case when you need to.
+
+## Upgrading from inertia-django
+
+Run the codemod, then the system checks, then follow the [upgrade guide](docs/guide/upgrading-from-inertia-django.md) for the rest:
+
+```bash
+pip install "inertia-django[upgrade] @ git+https://github.com/joshuadavidthomas/inertia-django"
+python -m django_inertia.upgrade --diff path/to/project   # review
+python -m django_inertia.upgrade path/to/project          # write
+python manage.py check
+```
 
 ## Examples
 
-- [Django Svelte Template](https://github.com/pmdevita/Django-Svelte-Template) - A Django template and example project demonstrating Inertia with Svelte and SSR.
-- [Django React](https://github.com/willianantunes/inertia-django-playground): A Django + React project including CRUD operations, form handling, authentication, deployment using Docker, SSR, and more.
+These projects use inertia-django. They show the overall setup; their Python code needs the upgrade above.
+
+- [Django Svelte Template](https://github.com/pmdevita/Django-Svelte-Template): Inertia with Svelte and SSR.
+- [Django React](https://github.com/willianantunes/inertia-django-playground): a Django and React project with CRUD, forms, authentication, Docker deployment and SSR.
 
 ## Thank you
 
-A huge thank you to the community members who have worked on InertiaJS for Django before us. Parts of this repo were particularly inspired by [Andres Vargas](https://github.com/zodman) and [Samuel Girardin](https://github.com/girardinsamuel). Additional thanks to Andres for the Pypi project.
+This package builds on [inertia-django](https://github.com/inertiajs/inertia-django) by Brandon Shar and its contributors. Parts of that project were inspired by [Andres Vargas](https://github.com/zodman) and [Samuel Girardin](https://github.com/girardinsamuel).
