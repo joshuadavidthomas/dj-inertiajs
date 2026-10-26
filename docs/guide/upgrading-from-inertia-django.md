@@ -267,7 +267,26 @@ The codemod makes these rewrites. It reports a helper that is passed around inst
 
 ## Serialization
 
-`InertiaJsonEncoder` and `InertiaMeta` are unchanged. Only the setting that selects the encoder changed; see [Settings](#settings).
+`InertiaMeta` is unchanged, and `QuerySet`s are still encoded as lists. What changed is models without `InertiaMeta`. inertia-django encoded them with `model_to_dict`, dropping a field named `password` and every field with `editable=False`. That sent every other field to the browser, including ones the page never used, and silently left out fields such as `auto_now_add` timestamps. Now such a model raises `TypeError` when the page renders, naming the model, like `JsonResponse` does.
+
+For each model the error names, choose the fields the page should receive:
+
+```python
+# Before: every field except password and non-editable ones
+return render(request, "Users/Show", {"user": user})
+
+# After: the fields named in the view
+return render(request, "Users/Show", {"user": {"id": user.id, "name": user.name}})
+
+# Or on the model, for every page that sends it
+class User(models.Model):
+    class InertiaMeta:
+        fields = ("id", "name", "created_at")
+```
+
+For a list, `User.objects.values("id", "name")` sends dicts. Neither the codemod nor the checks can find these props, because which models reach a page is only known when it renders; render each page once, or run your view tests, to find them.
+
+The setting that selects the encoder changed too; see [Settings](#settings).
 
 ## Tests
 

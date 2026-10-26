@@ -335,11 +335,12 @@ class LogoutView(auth_views.LogoutView):
 
 ## Serialization
 
-Props are encoded with `INERTIA["JSON_ENCODER"]`, by default `django_inertia.utils.InertiaJsonEncoder`. It extends `DjangoJSONEncoder`:
+Props are encoded with `INERTIA["JSON_ENCODER"]`, by default `django_inertia.utils.InertiaJsonEncoder`. It extends `DjangoJSONEncoder`, which handles dates, times, decimals and UUIDs, and adds two things:
 
-- A model is encoded with `model_to_dict`, without a field named `password`. `model_to_dict` skips fields with `editable=False`, such as `auto_now_add` timestamps.
-- A `QuerySet` is encoded as a list.
-- Any class with an `InertiaMeta` inner class is encoded as the attributes listed in `InertiaMeta.fields`:
+- Any class with an `InertiaMeta` inner class is encoded as the attributes listed in `InertiaMeta.fields`.
+- A `QuerySet` is encoded as a list of its items, so `Event.objects.values("id", "title")` sends dicts.
+
+Like `JsonResponse`, it does not encode models on its own: a model without `InertiaMeta` raises `TypeError`. Everything a page receives is visible in the browser, so name the fields to send, in the view or on the model:
 
 ```python
 class User(models.Model):
@@ -348,7 +349,7 @@ class User(models.Model):
     created_at = models.DateField(auto_now_add=True)
 
     class InertiaMeta:
-        fields = ("name", "created_at")
+        fields = ("id", "name", "created_at")
 ```
 
 To use your own encoder, set `INERTIA["JSON_ENCODER"]` to its dotted path, or set `json_encoder` on an `InertiaResponse` subclass.

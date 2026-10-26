@@ -3,24 +3,28 @@ from typing import Any
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models.query import QuerySet
-from django.forms.models import model_to_dict as base_model_to_dict
-
-
-def model_to_dict(model: models.Model) -> dict[str, Any]:
-    return base_model_to_dict(model, exclude=("password",))
 
 
 class InertiaJsonEncoder(DjangoJSONEncoder):
+    """Encode props like ``DjangoJSONEncoder``, plus two additions.
+
+    An object whose class has an ``InertiaMeta`` inner class is encoded as
+    the attributes listed in ``InertiaMeta.fields``, and a ``QuerySet`` as a
+    list of its items. Models are not encoded implicitly, so a prop sends
+    only the fields a view or ``InertiaMeta`` names.
+    """
+
     def default(self, o: Any) -> Any:
-        if hasattr(o.__class__, "InertiaMeta"):
-            return {
-                field: getattr(o, field) for field in o.__class__.InertiaMeta.fields
-            }
-        if isinstance(o, models.Model):
-            return model_to_dict(o)
+        meta = getattr(type(o), "InertiaMeta", None)
+        if meta is not None:
+            return {field: getattr(o, field) for field in meta.fields}
         if isinstance(o, QuerySet):
-            return [
-                (model_to_dict(obj) if isinstance(o.model, models.Model) else obj)
-                for obj in o
-            ]
+            return list(o)
+        if isinstance(o, models.Model):
+            raise TypeError(
+                f"Object of type {type(o).__name__} is not JSON serializable. "
+                "Models are not encoded implicitly: send a dict of the fields "
+                "the page needs, use QuerySet.values(), or list the fields in "
+                f"an InertiaMeta inner class on {type(o).__name__}."
+            )
         return super().default(o)
