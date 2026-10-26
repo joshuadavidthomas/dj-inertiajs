@@ -97,6 +97,10 @@ export default defineConfig({
                     text: "Upgrading",
                     items: [
                         {
+                            text: "From inertia-django",
+                            link: "/guide/upgrading-from-inertia-django",
+                        },
+                        {
                             text: "Upgrading to v3",
                             link: "/guide/upgrading-to-v3",
                         },
