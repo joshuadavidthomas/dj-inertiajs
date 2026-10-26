@@ -1,73 +1,86 @@
 [build-system]
-requires = ["uv_build>=0.12.5,<0.13"]
 build-backend = "uv_build"
+requires = ["uv_build>=0.12.5,<0.13"]
+
+[dependency-groups]
+dev = [
+  "django-stubs[compatible-mypy]>=5.2.2,<6.0.0",
+  "mypy>=1.17.0,<2.0.0",
+  "nox[uv]>=2025.5.1",
+  "pytest>=8.3.5,<9.0.0",
+  "pytest-cov>=6.0.0,<7.0.0",
+  "pytest-django>=4.10.0,<5.0.0",
+  "ruff>=0.11.2,<0.12.0",
+  "types-requests>=2.32.4.20250611,<3.0.0"
+]
 
 [project]
-name = "dj-inertiajs"
-version = "2.0.0"
-description = "Django adapter for the InertiaJS framework"
-authors = [{name = "Josh Thomas", email = "josh@joshthomas.dev"}]
-license = "MIT"
-requires-python = ">=3.10"
-readme = "README.md"
-keywords = ["inertia", "inertiajs", "django"]
+authors = [{ name = "Josh Thomas", email = "josh@joshthomas.dev" }]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Framework :: Django :: 5.2",
-    "Framework :: Django :: 6.1",
-    "Topic :: Software Development :: Libraries :: Python Modules",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Framework :: Django :: 5.2",
+  "Framework :: Django :: 6.1",
+  "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-    "django>=5.2",
+  "django>=5.2"
 ]
-
-[project.urls]
-Homepage = "https://github.com/joshuadavidthomas/inertia-django"
-Repository = "https://github.com/joshuadavidthomas/inertia-django"
+description = "Django adapter for the InertiaJS framework"
+keywords = ["inertia", "inertiajs", "django"]
+license = "MIT"
+name = "dj-inertiajs"
+readme = "README.md"
+requires-python = ">=3.10"
+version = "2.0.0"
 
 [project.optional-dependencies]
 # Requests is requires for server-side rendering.
 ssr = ["requests>=2"]
 
-[dependency-groups]
-dev = [
-    "django-stubs[compatible-mypy]>=5.2.2,<6.0.0",
-    "mypy>=1.17.0,<2.0.0",
-    "pytest>=8.3.5,<9.0.0",
-    "pytest-cov>=6.0.0,<7.0.0",
-    "pytest-django>=4.10.0,<5.0.0",
-    "ruff>=0.11.2,<0.12.0",
-    "types-requests>=2.32.4.20250611,<3.0.0",
-]
+[project.urls]
+Homepage = "https://github.com/joshuadavidthomas/inertia-django"
+Repository = "https://github.com/joshuadavidthomas/inertia-django"
 
-[tool.uv.build-backend]
-module-name = "dj_inertiajs"
-module-root = ""
-
-[tool.ruff.lint]
-select = [
-    "E", # pycodestyle
-    "W", # pycodestyle
-    "F", # Pyflakes
-    "B", # flake8-bugbear
-    "SIM", # flake8-simplify
-    "I", # isort
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:"
 ]
-ignore = ["E501"] # line too long, formatter will handle this
-unfixable = ["B", "SIM"]
+fail_under = 90
+
+[tool.coverage.run]
+branch = true
+omit = ["dj_inertiajs/tests/*"]
+source = ["dj_inertiajs"]
+
+[tool.django-stubs]
+django_settings_module = "dj_inertiajs.tests.settings"
+
+[tool.mypy]
+exclude = [
+  "dj_inertiajs/tests/"
+]
+plugins = ["mypy_django_plugin.main"]
+strict = true
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "dj_inertiajs.tests.settings"
 django_find_project = false
 
-[tool.mypy]
-plugins = ["mypy_django_plugin.main"]
-strict = true
-exclude = [
-    "dj_inertiajs/tests/"
+[tool.ruff.lint]
+ignore = ["E501"]  # line too long, formatter will handle this
+select = [
+  "E",  # pycodestyle
+  "W",  # pycodestyle
+  "F",  # Pyflakes
+  "B",  # flake8-bugbear
+  "SIM",  # flake8-simplify
+  "I"  # isort
 ]
+unfixable = ["B", "SIM"]
 
-[tool.django-stubs]
-django_settings_module = "dj_inertiajs.tests.settings"
+[tool.uv.build-backend]
+module-name = "dj_inertiajs"
+module-root = ""
