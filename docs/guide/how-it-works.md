@@ -1,15 +1,22 @@
 # How it works
 
-With Inertia you build applications just like you've always done with your server-side web framework of choice. You use Django's URL routing, views, middleware, authentication, permissions, ORM, and more.
+A Django view usually renders a template. With Inertia, it renders a page component, and passes it props instead of template context:
 
-However, Inertia replaces your application's view layer. Instead of using server-side rendering via Django templates, the views returned by your application are JavaScript page components. This allows you to build your entire frontend using React, Vue, or Svelte, while still enjoying the productivity of Django.
+```python
+from dj_inertiajs import inertia
 
-As you might expect, simply creating your frontend in JavaScript doesn't give you a single-page application experience. If you were to click a link, your browser would make a full page visit, which would then cause your client-side framework to reboot on the subsequent page load. This is where Inertia changes everything.
 
-At its core, Inertia is essentially a client-side routing library. It allows you to make page visits without forcing a full page reload. This is done using the `<Link>` component, a light-weight wrapper around a normal anchor link. When you click an Inertia link, Inertia intercepts the click and makes the visit via XHR instead. You can even make these visits programmatically in JavaScript using `router.visit()`.
+@inertia("Event/Index")
+def index(request):
+    return {"events": list(Event.objects.values("id", "title"))}
+```
 
-When Inertia makes an XHR visit, the server detects that it's an Inertia visit and, instead of returning a full HTML response, it returns a JSON response with the JavaScript page component name and data (props). Inertia then dynamically swaps out the previous page component with the new page component and updates the browser's history state.
+`Event/Index` is a component in your frontend, such as `frontend/pages/Event/Index.vue`, which receives `events` as a prop.
 
-**The end result is a silky smooth single-page experience. :tada:**
+1. **The first visit is an ordinary request.** The view runs and returns your layout template, with the component's name and props embedded as JSON. The Inertia client starts, reads the JSON and renders the component.
+2. **Later visits are Inertia requests.** Inertia's `<Link>` component and its `router` intercept navigation and make the request with XHR, adding an `X-Inertia` header. The same view runs, but this time the response is JSON: the component name and its props. The client swaps in the new component and updates the browser history, without a full page load.
+3. **Forms post to Django views too.** A view validates the data and redirects, as usual. `set_errors()` sends validation errors back to the form, and Django messages arrive as flash messages.
 
-To learn more about the nitty-gritty, technical details of how Inertia works under the hood, check out [the protocol page](/guide/the-protocol.md).
+Routing, authentication, permissions, the ORM and forms all stay in Django. There is no API to build and no client-side router.
+
+[The protocol](/guide/the-protocol) describes the requests and responses in detail. Inertia's own explanation is on [inertiajs.com](https://inertiajs.com/docs/v3/core-concepts/how-it-works).

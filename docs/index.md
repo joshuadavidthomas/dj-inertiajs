@@ -15,8 +15,15 @@ hero:
         - theme: alt
           text: Install
           link: /guide/server-side-setup
-
-    image:
-        src: /logo.svg
-        alt: Inertia.js Logo
 ---
+
+<p class="disclaimer">dj-inertiajs is an independent project. It is not affiliated with or endorsed by the Inertia.js project or <a href="https://github.com/inertiajs/inertia-django">inertia-django</a>.</p>
+
+<style>
+.disclaimer {
+    max-width: 1152px;
+    margin: 0 auto;
+    color: var(--vp-c-text-2);
+    font-size: 14px;
+}
+</style>

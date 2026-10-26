@@ -1,30 +1,21 @@
 ---
 prev: false
 next:
-  text: 'Server-side'
-  link: '/guide/server-side-setup'
+  text: 'How it works'
+  link: '/guide/how-it-works'
 ---
 
 # Introduction
 
-Welcome to the documentation for dj-inertiajs, a Django-native adapter forked from [inertia-django](https://github.com/inertiajs/inertia-django), for [Django](https://www.djangoproject.com/) and [Inertia.js](https://inertiajs.com/).
+dj-inertiajs connects Django to [Inertia.js](https://inertiajs.com/docs/v3/getting-started). Your views stay Django views, but instead of rendering a template they render a page component written in React, Vue or Svelte. Inertia turns those pages into a single-page app, without an API between the two.
 
-## Why adapter-specific documentation?
+dj-inertiajs is an independent project. It is not affiliated with or endorsed by the Inertia.js project or [inertia-django](https://github.com/inertiajs/inertia-django). It was forked from inertia-django 2.0.0 and speaks the same Inertia v3 protocol, so the client side is the standard Inertia client. Its Python API is new, and follows Django's conventions: one settings dict, system checks, class-based views, lazy responses like `TemplateResponse`, and test assertions that take the response. Coming from inertia-django? See [Upgrading from inertia-django](/guide/upgrading-from-inertia-django).
 
-The [official documentation for Inertia.js](https://inertiajs.com) is great, but it's not Django-specific. This documentation aims to fill in the gaps and provide Django-specific examples and explanations.
+## Where things are documented
 
-## JavaScript apps the monolith way
+- **The Django side** is documented here and in the [README](https://github.com/joshuadavidthomas/inertia-django#readme): installing the adapter, views, props, forms, settings and testing.
+- **The client side**, such as page components, links, forms and layouts, is documented by Inertia itself at [inertiajs.com](https://inertiajs.com/docs/v3/getting-started). Its [who is it for](https://inertiajs.com/docs/v3/core-concepts/who-is-it-for) page explains when Inertia is a good fit.
 
-Inertia is a new approach to building classic server-driven web apps. We call it the modern monolith.
+## Next steps
 
-Inertia allows you to create fully client-side rendered, single-page apps, without the complexity that comes with modern SPAs. It does this by leveraging existing server-side patterns that you already love.
-
-**Inertia has no client-side routing, nor does it require an API.** Simply write Django like you've always done!
-
-### Not a framework
-
-Inertia isn't a framework, nor is it a replacement for your existing server-side or client-side frameworks. Rather, it's designed to work with them. Think of Inertia as glue that connects the two. Inertia does this via adapters. We currently have three official client-side adapters (React, Vue, and Svelte).
-
-### Next steps
-
-Want to learn a bit more before diving in? Check out the [who is it for](/guide/who-is-it-for.md) and [how it works](/guide/how-it-works.md) pages. Or, if you're ready to get started, jump right into the [installation instructions](/guide/server-side-setup.md).
+Read [how it works](/guide/how-it-works), or go straight to the [server-side setup](/guide/server-side-setup).

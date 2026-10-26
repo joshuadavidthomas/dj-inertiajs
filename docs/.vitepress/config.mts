@@ -18,9 +18,6 @@ export default defineConfig({
     cleanUrls: true,
 
     head: [
-        ["link", { rel: "icon", href: "/favicon.ico", sizes: "32x32" }],
-        ["link", { rel: "icon", href: "/logo.svg", type: "image/svg+xml" }],
-
         ["meta", { name: "twitter:description", content: description }],
 
         ["meta", { property: "og:type", content: "website" }],
@@ -62,7 +59,6 @@ export default defineConfig({
             { text: "LLMs", link: "./llms-full.txt" },
         ],
 
-        logo: "/logo.svg",
 
         sidebar: {
             "/guide/": [
@@ -94,7 +90,6 @@ export default defineConfig({
                 {
                     text: "Core concepts",
                     items: [
-                        { text: "Who is it for", link: "/guide/who-is-it-for" },
                         { text: "How it works", link: "/guide/how-it-works" },
                         { text: "The protocol", link: "/guide/the-protocol" },
                     ],

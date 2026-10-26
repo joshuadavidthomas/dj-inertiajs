@@ -1,8 +1,8 @@
-![image](https://user-images.githubusercontent.com/6599653/114456558-032e2200-9bab-11eb-88bc-a19897f417ba.png)
-
 # dj-inertiajs
 
 A Django-native server-side adapter for [Inertia.js](https://inertiajs.com/), forked from [inertia-django](https://github.com/inertiajs/inertia-django) 2.0.0. It speaks the same Inertia v3 protocol, so the client side is unchanged, but its API follows Django's conventions: one settings dict, system checks, class-based views, lazy responses like `TemplateResponse`, template tags, and test assertions that take the response.
+
+dj-inertiajs is an independent project. It is not affiliated with or endorsed by the Inertia.js project or [inertia-django](https://github.com/inertiajs/inertia-django).
 
 Coming from inertia-django? [Upgrading from inertia-django](#upgrading-from-inertia-django) lists what changed, and a codemod and system checks do most of the upgrade.
 
