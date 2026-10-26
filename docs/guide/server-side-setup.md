@@ -35,7 +35,7 @@ pipx run copier copy gh:sarthakjariwala/django-vite-inertia myproject
 The installer asks which frontend framework to use (React, Vue or Svelte), which database, and whether to add Tailwind CSS, django-allauth and Docker. It then creates the Django project with Inertia and `django-vite` set up.
 
 ::: warning
-The template generates a project for inertia-django, the adapter this package was forked from. After generating it, switch it to this package by following [Upgrading from inertia-django](/guide/upgrading-from-inertia-django): run the codemod, then `python manage.py check`. The template also installs the Inertia v2 client, so follow [From inertia-django 1.x](/guide/upgrading-from-inertia-django#from-inertia-django-1-x) as well, to install the v3 client and remove its CSRF settings.
+The template generates a project for inertia-django, the adapter this package was forked from. After generating it, switch it to this package by following [Upgrading from inertia-django](/guide/upgrading-from-inertia-django). The template also installs the Inertia v2 client, so follow [From inertia-django 1.x](/guide/upgrading-from-inertia-django#from-inertia-django-1-x) as well, to install the v3 client and remove its CSRF settings.
 :::
 
 You're all set! You can now start your development server.

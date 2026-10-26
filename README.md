@@ -4,7 +4,7 @@ A Django-native server-side adapter for [Inertia.js](https://inertiajs.com/), fo
 
 dj-inertiajs is an independent project. It is not affiliated with or endorsed by the Inertia.js project or [inertia-django](https://github.com/inertiajs/inertia-django).
 
-Coming from inertia-django? [Upgrading from inertia-django](#upgrading-from-inertia-django) lists what changed, and a codemod and system checks do most of the upgrade.
+Coming from inertia-django? [Upgrading from inertia-django](#upgrading-from-inertia-django) lists what changed, and system checks report leftover configuration.
 
 The distribution is `dj-inertiajs` and the import package `dj_inertiajs`. It is not on PyPI yet, so install it from Git for now.
 
@@ -489,14 +489,7 @@ This package breaks inertia-django's API on purpose, so that it follows Django's
 
 ### How to upgrade
 
-The [upgrade guide](docs/guide/upgrading-from-inertia-django.md) explains how to make each change by hand. A codemod makes the mechanical ones and lists the code it could not rewrite, and the system checks report leftover settings, middleware, app and layout:
-
-```bash
-pip install "dj-inertiajs[upgrade] @ git+https://github.com/joshuadavidthomas/inertia-django"
-dj-inertiajs-upgrade --diff path/to/project   # review
-dj-inertiajs-upgrade path/to/project          # write
-python manage.py check
-```
+The [upgrade guide](docs/guide/upgrading-from-inertia-django.md) shows each change before and after, and lists them in one table with how a missed change shows itself. `python manage.py check` reports leftover settings, middleware, app and layout, and names the guide section that explains each fix.
 
 ## Examples
 

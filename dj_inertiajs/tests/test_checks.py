@@ -1,3 +1,5 @@
+import re
+from pathlib import Path
 from unittest.mock import patch
 
 from django.conf import settings
@@ -96,3 +98,13 @@ class UpgradeChecksTestCase(SimpleTestCase):
     @override_settings(INERTIA={"LAYOUT": "missing.html"})
     def test_missing_layout_template_is_left_to_rendering(self):
         self.assertEqual(inertia_check_ids(), [])
+
+    def test_every_guide_section_the_hints_name_exists(self):
+        package = Path(__file__).parents[1]
+        guide = package.parent / "docs/guide/upgrading-from-inertia-django.md"
+        headings = set(re.findall(r"^#+ (.+)$", guide.read_text(), re.MULTILINE))
+        source = (package / "checks.py").read_text()
+        named = set(re.findall(r"""guide\(["']([^"']+)["']\)""", source))
+
+        self.assertTrue(named)
+        self.assertEqual(named - headings, set())
