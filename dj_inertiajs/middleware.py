@@ -3,7 +3,6 @@ from typing import Any, Callable
 from asgiref.sync import iscoroutinefunction, markcoroutinefunction
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
-from django.middleware.csrf import get_token
 from django.utils.cache import patch_vary_headers
 
 from .conf import settings
@@ -15,8 +14,6 @@ class InertiaMiddleware:
     """Central middleware for all Inertia.js protocol concerns.
 
     Responsibilities:
-    - Ensure a CSRF cookie is always set, including for non-Inertia (useHttp)
-      requests that do not go through Django's normal template rendering path.
     - Convert PUT/PATCH/DELETE redirects to 303 so the subsequent request
       is always treated as a GET by the browser.
     - Detect asset version mismatches and force a full-page refresh.
@@ -25,8 +22,7 @@ class InertiaMiddleware:
     view runs.
 
     Non-Inertia requests (e.g. those made via the useHttp hook in Inertia v3)
-    pass through this middleware without modification beyond CSRF cookie
-    injection.  It is the responsibility of the individual view to return an
+    pass through this middleware without modification.  It is the responsibility of the individual view to return an
     appropriate response (e.g. 422 JSON) for useHttp validation errors.
     """
 
@@ -51,12 +47,6 @@ class InertiaMiddleware:
         self, request: HttpRequest, response: HttpResponse
     ) -> HttpResponse:
         patch_vary_headers(response, ("X-Inertia",))
-
-        # Inertia requests bypass Django's normal template rendering and
-        # therefore never hit the standard CSRF middleware path that attaches
-        # the cookie.  Set the token explicitly here so it is available for
-        # both Inertia page visits and non-visit XHR (useHttp) requests.
-        get_token(request)
 
         if getattr(response, "preserve_fragment", False):
             request.session[INERTIA_SESSION_PRESERVE_FRAGMENT] = True

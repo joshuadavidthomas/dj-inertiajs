@@ -29,6 +29,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Add an upgrade codemod, `python -m dj_inertiajs.upgrade [--diff] PATH ...`, with the `upgrade` extra. It rewrites imports, prop helper calls, `location()` calls into `InertiaLocation`, `encrypt_history(request)` in `@inertia` views into the decorator's option, `INERTIA_*` settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and `InertiaTestCase` assertions and accessors to take the response, including in test cases that inherit from it through base classes in other files, preserving formatting, and lists what it could not rewrite.
 * Add upgrade checks that report inertia-django configuration still in use: `INERTIA_*` settings, the old middleware path, the `inertia` app, and layouts that use `{% block inertia %}`. Each hint names the section of the upgrade guide that explains the fix.
 * Add system checks for unknown `INERTIA` keys, unimportable `SHARED_PROPS` entries, a missing layout, SSR without `requests`, and missing Inertia or session middleware.
+* Set the CSRF cookie only on Inertia responses. The middleware set it on every response, which added `Vary: Cookie` to pages that are not Inertia pages.
 * Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
 * Support `async def` views under `@inertia`, and `async def` prop callables, which are awaited in sync and async views alike.
 * Let `process_template_response` middleware and view decorators change `component`, `props` and `template_data` before the page is rendered.

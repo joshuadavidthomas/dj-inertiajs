@@ -202,9 +202,8 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
 class UseHttpCsrfTestCase(ProtocolTestCase):
     """Tests that verify CSRF token availability for useHttp (non-visit XHR).
 
-    useHttp requests do not carry the X-Inertia header.  The middleware must
-    still set the CSRF cookie so the client can include the token in its
-    request headers.
+    useHttp requests do not carry the X-Inertia header, so the cookie must
+    come from the Inertia page the app loaded with.
     """
 
     def test_csrf_token_is_set_for_non_inertia_requests(self):
@@ -217,6 +216,13 @@ class UseHttpCsrfTestCase(ProtocolTestCase):
         """Inertia-flagged requests also receive the CSRF cookie."""
         response = self.inertia.get("/props/")
         self.assertIsNotNone(response.cookies.get("csrftoken"))
+
+    def test_plain_django_responses_get_no_csrf_cookie(self):
+        """Pages that are not Inertia pages keep Django's own CSRF behavior,
+        so they stay cacheable."""
+        response = self.client.get("/test/")
+        self.assertIsNone(response.cookies.get("csrftoken"))
+        self.assertNotIn("Cookie", response.get("Vary", ""))
 
     def test_non_inertia_response_is_not_modified_by_middleware(self):
         """The middleware does not alter the status or content of a response

@@ -10,6 +10,7 @@ from typing import Any
 from django.contrib.messages import get_messages
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest, HttpResponse
+from django.middleware.csrf import get_token
 from django.template.response import ContentNotRenderedError, SimpleTemplateResponse
 from django.utils.cache import patch_vary_headers
 from django.utils.encoding import iri_to_uri
@@ -317,6 +318,9 @@ class InertiaResponse(SimpleTemplateResponse):
     def page_data(self) -> dict[str, Any]:
         request = self._request
         details = self._inertia
+        # The client sends this cookie's token with every visit and useHttp
+        # request, but an Inertia page never renders {% csrf_token %}.
+        get_token(request)
         clear_history = request.session.pop(INERTIA_SESSION_CLEAR_HISTORY, False)
         if not isinstance(clear_history, bool):
             raise TypeError(
