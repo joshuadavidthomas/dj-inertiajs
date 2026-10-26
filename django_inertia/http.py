@@ -101,7 +101,7 @@ class InertiaRequest(HttpRequest):
 
     def should_encrypt_history(self) -> bool:
         should_encrypt = getattr(
-            self, INERTIA_REQUEST_ENCRYPT_HISTORY, settings.INERTIA_ENCRYPT_HISTORY
+            self, INERTIA_REQUEST_ENCRYPT_HISTORY, settings.ENCRYPT_HISTORY
         )
         if not isinstance(should_encrypt, bool):
             raise TypeError(
@@ -317,7 +317,7 @@ class BaseInertiaResponseMixin:
             "component": self.component,
             "props": resolved_props,
             "url": self.request.get_full_path(),
-            "version": settings.INERTIA_VERSION,
+            "version": settings.VERSION,
             "encryptHistory": self.request.should_encrypt_history(),
             "clearHistory": clear_history,
         }
@@ -351,14 +351,11 @@ class BaseInertiaResponseMixin:
     def build_first_load(self, data: Any) -> str:
         context, template = self.build_first_load_context_and_template(data)
 
-        try:
-            layout = settings.INERTIA_LAYOUT
-            if not layout:
-                raise AttributeError("INERTIA_LAYOUT is set, but has a falsy value")
-        except AttributeError as ae:
+        layout = settings.LAYOUT
+        if not layout:
             raise ImproperlyConfigured(
-                "INERTIA_LAYOUT must be set in your Django settings"
-            ) from ae
+                'INERTIA["LAYOUT"] must be set in your Django settings'
+            )
 
         return render_to_string(
             template,
@@ -373,10 +370,10 @@ class BaseInertiaResponseMixin:
     def build_first_load_context_and_template(
         self, data: Any
     ) -> tuple[dict[str, Any], str]:
-        if settings.INERTIA_SSR_ENABLED:
+        if settings.SSR_ENABLED:
             try:
                 response = requests.post(
-                    f"{settings.INERTIA_SSR_URL}/render",
+                    f"{settings.SSR_URL}/render",
                     data=data,
                     headers={"Content-Type": "application/json"},
                 )
@@ -415,7 +412,7 @@ class InertiaResponse(BaseInertiaResponseMixin, HttpResponse):
 
         data = json_encode(
             self.page_data(),
-            cls=self.json_encoder or settings.INERTIA_JSON_ENCODER,
+            cls=self.json_encoder or settings.JSON_ENCODER,
         )
         # Page data is embedded in a JSON script tag for Inertia v3 clients.
         # Escape the few characters that could terminate or alter that script.

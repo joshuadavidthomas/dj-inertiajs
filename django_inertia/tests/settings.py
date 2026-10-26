@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = True
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", "testserver"]
 
-INERTIA_LAYOUT = os.environ.get("INERTIA_LAYOUT", "layout.html")
+INERTIA = {"LAYOUT": os.environ.get("INERTIA_LAYOUT", "layout.html")}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

@@ -129,7 +129,7 @@ def inertia_page(
         "component": component,
         "props": props,
         "url": f"/{url}/",
-        "version": settings.INERTIA_VERSION,
+        "version": settings.VERSION,
         "encryptHistory": False,
         "clearHistory": False,
     }

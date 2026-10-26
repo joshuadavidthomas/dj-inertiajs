@@ -1,4 +1,19 @@
+from django.test import AsyncClient, TestCase
+
 from django_inertia.test import InertiaTestCase
+
+
+class AsyncMiddlewareTestCase(TestCase):
+    async def test_protocol_handling_under_asgi(self):
+        client = AsyncClient()
+
+        response = await client.put("/redirect/", headers={"X-Inertia": "true"})
+        self.assertEqual(response.status_code, 303)
+
+        response = await client.get(
+            "/test/", headers={"X-Inertia": "true", "X-Inertia-Version": "stale"}
+        )
+        self.assertEqual(response.status_code, 409)
 
 
 class MiddlewareTestCase(InertiaTestCase):

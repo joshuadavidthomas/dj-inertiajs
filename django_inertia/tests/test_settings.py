@@ -4,7 +4,7 @@ from django_inertia.test import InertiaTestCase
 
 
 class SettingsTestCase(InertiaTestCase):
-    @override_settings(INERTIA_VERSION="2.0")
+    @override_settings(INERTIA={"LAYOUT": "layout.html", "VERSION": "2.0"})
     def test_version_works(self):
         response = self.inertia.get("/empty/", HTTP_X_INERTIA_VERSION="2.0")
 

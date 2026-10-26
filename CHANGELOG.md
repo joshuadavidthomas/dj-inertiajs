@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+This is a separate, Django-native package forked from inertia-django 2.0.0. It breaks the API on purpose; a migration guide will cover every change.
+
+### Breaking changes
+
+* Rename the import package from `inertia` to `django_inertia` (placeholder until the final name is chosen).
+* Replace the `INERTIA_*` settings with one `INERTIA` dict: `LAYOUT`, `VERSION`, `JSON_ENCODER`, `ENCRYPT_HISTORY`, and `SSR` with `ENABLED` and `URL`. `JSON_ENCODER` is now a dotted import path.
+
+### Added
+
+* Add system checks for unknown `INERTIA` keys, a missing layout, SSR without `requests`, and missing Inertia or session middleware.
+* Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
+
 ## [2.0.0] - 2026-08-16
 
 ### Breaking changes

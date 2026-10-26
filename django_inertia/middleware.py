@@ -1,5 +1,6 @@
-from typing import Callable
+from typing import Any, Callable
 
+from asgiref.sync import iscoroutinefunction, markcoroutinefunction
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
@@ -25,11 +26,25 @@ class InertiaMiddleware:
     appropriate response (e.g. 422 JSON) for useHttp validation errors.
     """
 
-    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
-        self.get_response = get_response
+    sync_capable = True
+    async_capable = True
 
-    def __call__(self, request: HttpRequest) -> HttpResponse:
-        response = self.get_response(request)
+    def __init__(self, get_response: Callable[[HttpRequest], Any]) -> None:
+        self.get_response = get_response
+        if iscoroutinefunction(get_response):
+            markcoroutinefunction(self)
+
+    def __call__(self, request: HttpRequest) -> Any:
+        if iscoroutinefunction(self):
+            return self.__acall__(request)
+        return self.process_response(request, self.get_response(request))
+
+    async def __acall__(self, request: HttpRequest) -> HttpResponse:
+        return self.process_response(request, await self.get_response(request))
+
+    def process_response(
+        self, request: HttpRequest, response: HttpResponse
+    ) -> HttpResponse:
         patch_vary_headers(response, ("X-Inertia",))
 
         # Inertia requests bypass Django's normal template rendering and
@@ -84,8 +99,8 @@ class InertiaMiddleware:
 
     def is_stale(self, request: HttpRequest) -> bool:
         return (
-            request.headers.get("X-Inertia-Version", settings.INERTIA_VERSION)
-            != settings.INERTIA_VERSION
+            request.headers.get("X-Inertia-Version", settings.VERSION)
+            != settings.VERSION
         )
 
     def force_refresh(self, request: HttpRequest) -> HttpResponse:

@@ -1,24 +1,55 @@
+import json
 from typing import Any
 
 from django.conf import settings as django_settings
+from django.utils.module_loading import import_string
 
-from .utils import InertiaJsonEncoder
+__all__ = ["DEFAULTS", "settings"]
 
-__all__ = ["settings"]
+DEFAULTS: dict[str, Any] = {
+    "LAYOUT": None,
+    "VERSION": "1.0",
+    "JSON_ENCODER": "django_inertia.utils.InertiaJsonEncoder",
+    "ENCRYPT_HISTORY": False,
+    "SSR": {
+        "ENABLED": False,
+        "URL": "http://localhost:13714",
+    },
+}
 
 
 class InertiaSettings:
-    INERTIA_VERSION = "1.0"
-    INERTIA_JSON_ENCODER = InertiaJsonEncoder
-    INERTIA_SSR_URL = "http://localhost:13714"
-    INERTIA_SSR_ENABLED = False
-    INERTIA_ENCRYPT_HISTORY = False
+    """The project's ``INERTIA`` setting merged over ``DEFAULTS``.
 
-    def __getattribute__(self, name: str) -> Any:
-        try:
-            return getattr(django_settings, name)
-        except AttributeError:
-            return super().__getattribute__(name)
+    Read on every access so ``override_settings(INERTIA=...)`` takes effect.
+    """
+
+    def _get(self, key: str) -> Any:
+        return getattr(django_settings, "INERTIA", {}).get(key, DEFAULTS[key])
+
+    @property
+    def LAYOUT(self) -> str | None:
+        return self._get("LAYOUT")  # type: ignore[no-any-return]
+
+    @property
+    def VERSION(self) -> str:
+        return self._get("VERSION")  # type: ignore[no-any-return]
+
+    @property
+    def JSON_ENCODER(self) -> type[json.JSONEncoder]:
+        return import_string(self._get("JSON_ENCODER"))  # type: ignore[no-any-return]
+
+    @property
+    def ENCRYPT_HISTORY(self) -> bool:
+        return self._get("ENCRYPT_HISTORY")  # type: ignore[no-any-return]
+
+    @property
+    def SSR_ENABLED(self) -> bool:
+        return {**DEFAULTS["SSR"], **self._get("SSR")}["ENABLED"]  # type: ignore[no-any-return]
+
+    @property
+    def SSR_URL(self) -> str:
+        return {**DEFAULTS["SSR"], **self._get("SSR")}["URL"]  # type: ignore[no-any-return]
 
 
 settings = InertiaSettings()

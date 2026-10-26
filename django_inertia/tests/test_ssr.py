@@ -7,9 +7,11 @@ from django_inertia.test import InertiaTestCase, inertia_div, inertia_page
 
 
 @override_settings(
-    INERTIA_SSR_ENABLED=True,
-    INERTIA_SSR_URL="ssr-url",
-    INERTIA_VERSION="1.0",
+    INERTIA={
+        "LAYOUT": "layout.html",
+        "VERSION": "1.0",
+        "SSR": {"ENABLED": True, "URL": "ssr-url"},
+    },
 )
 class SSRTestCase(InertiaTestCase):
     @patch("django_inertia.http.requests")

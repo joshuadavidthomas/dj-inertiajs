@@ -254,10 +254,10 @@ class MergePropsTestCase(InertiaTestCase):
 class MisconfiguredLayoutTestCase(InertiaTestCase):
     def test_with_props(self):
         with (
-            override_settings(INERTIA_LAYOUT=None),
+            override_settings(INERTIA={}),
             self.assertRaisesMessage(
                 ImproperlyConfigured,
-                "INERTIA_LAYOUT must be set",
+                'INERTIA["LAYOUT"] must be set',
             ),
         ):
             self.client.get("/props/")

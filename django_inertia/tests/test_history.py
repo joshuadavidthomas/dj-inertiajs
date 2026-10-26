@@ -8,7 +8,9 @@ class HistoryTestCase(InertiaTestCase):
         self.client.get("/empty/")
         assert self.page()["encryptHistory"] is False
 
-        with override_settings(INERTIA_ENCRYPT_HISTORY=True):
+        with override_settings(
+            INERTIA={"LAYOUT": "layout.html", "ENCRYPT_HISTORY": True}
+        ):
             self.client.get("/empty/")
             assert self.page()["encryptHistory"] is True
 
@@ -16,7 +18,9 @@ class HistoryTestCase(InertiaTestCase):
         self.client.get("/encrypt-history/")
         assert self.page()["encryptHistory"] is True
 
-        with override_settings(INERTIA_ENCRYPT_HISTORY=True):
+        with override_settings(
+            INERTIA={"LAYOUT": "layout.html", "ENCRYPT_HISTORY": True}
+        ):
             self.client.get("/no-encrypt-history/")
             assert self.page()["encryptHistory"] is False
 
