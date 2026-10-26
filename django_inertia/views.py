@@ -18,7 +18,8 @@ class InertiaResponseMixin:
     The Inertia counterpart of ``TemplateResponseMixin``. Put it before a
     generic view, as in ``class EventList(InertiaResponseMixin, ListView)``,
     and the generic view's ``render_to_response()`` calls render the
-    component instead of a template.
+    component instead of a template. ``template_name`` is the layout for
+    full page loads, by default ``INERTIA["LAYOUT"]``.
 
     Props come from ``get_props()``. By default that collects the ``Prop``
     attributes declared on the class. A declared ``Prop`` whose value is a
@@ -35,6 +36,7 @@ class InertiaResponseMixin:
 
     request: HttpRequest
     component: str | None = None
+    template_name: str | None = None
     response_class: type[InertiaResponse] = InertiaResponse
 
     def get_component(self) -> str:
@@ -71,6 +73,7 @@ class InertiaResponseMixin:
             self.request,
             self.get_component(),
             self.get_props(**context),
+            template_name=self.template_name,
             **response_kwargs,
         )
 

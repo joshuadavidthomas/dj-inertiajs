@@ -33,7 +33,7 @@ class SSRTestCase(ProtocolTestCase):
             ),
             headers={"Content-Type": "application/json"},
         )
-        self.assertTemplateUsed("inertia_ssr.html")
+        self.assertTemplateUsed(response, "layout.html")
         self.assertContains(response, "<div>Body Works</div>")
         self.assertContains(response, "head--<title>Head works</title>--head")
 
@@ -49,7 +49,7 @@ class SSRTestCase(ProtocolTestCase):
 
         response = self.client.get("/template_data/")
 
-        self.assertTemplateUsed("inertia_ssr.html")
+        self.assertTemplateUsed(response, "layout.html")
         self.assertContains(response, "<div>Body Works</div>")
         self.assertContains(response, "head--<title>Head works</title>--head")
         self.assertContains(response, "Brian, Basketball")

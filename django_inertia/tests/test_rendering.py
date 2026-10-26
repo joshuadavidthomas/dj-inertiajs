@@ -40,7 +40,7 @@ class FirstLoadTestCase(ProtocolTestCase):
         self.assertEqual(self.client.get("/empty/").status_code, 200)
 
     def test_template_rendered(self):
-        self.assertTemplateUsed(self.client.get("/empty/"), "inertia.html")
+        self.assertTemplateUsed(self.client.get("/empty/"), "layout.html")
 
 
 class SubsequentLoadTestCase(ProtocolTestCase):
@@ -232,7 +232,7 @@ class MisconfiguredLayoutTestCase(ProtocolTestCase):
             override_settings(INERTIA={}),
             self.assertRaisesMessage(
                 ImproperlyConfigured,
-                'INERTIA["LAYOUT"] must be set',
+                'Set INERTIA["LAYOUT"] in your Django settings',
             ),
         ):
             self.client.get("/props/")
@@ -264,4 +264,31 @@ class AsyncViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.json(), inertia_page("async", props={"name": "Brandon"})
+        )
+
+
+class LayoutTestCase(ProtocolTestCase):
+    root = (
+        '<main><script data-page="root" type="application/json">'
+        '{"component": "TestComponent"'
+    )
+
+    def test_render_takes_a_layout_per_view(self):
+        response = self.client.get("/other-layout/")
+
+        self.assertTemplateUsed(response, "other_layout.html")
+        self.assertContains(response, self.root)
+        self.assertContains(response, '</script>\n  <div id="root"></div></main>')
+
+    def test_class_based_view_takes_a_layout(self):
+        response = self.client.get("/other-layout-view/")
+
+        self.assertTemplateUsed(response, "other_layout.html")
+        self.assertContains(response, self.root)
+
+    def test_tags_render_nothing_outside_an_inertia_response(self):
+        response = self.client.get("/plain-layout/")
+
+        self.assertEqual(
+            response.content.decode(), "head----head\n\ntemplate data:Brian, \n"
         )

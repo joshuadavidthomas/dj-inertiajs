@@ -2,6 +2,7 @@ from django import forms
 from django.contrib import messages
 from django.http.response import HttpResponse
 from django.shortcuts import redirect
+from django.shortcuts import render as django_render
 from django.utils.decorators import decorator_from_middleware
 from django.views.generic import FormView, ListView
 
@@ -371,6 +372,19 @@ def set_errors_test(request):
 @inertia("TestComponent")
 def overrides_shared_test(request):
     return {"app_name": "From the view"}
+
+
+def other_layout_test(request):
+    return render(request, "TestComponent", template_name="other_layout.html")
+
+
+class OtherLayoutView(InertiaView):
+    component = "TestComponent"
+    template_name = "other_layout.html"
+
+
+def plain_layout_test(request):
+    return django_render(request, "layout.html", {"name": "Brian"})
 
 
 def status_test(request):

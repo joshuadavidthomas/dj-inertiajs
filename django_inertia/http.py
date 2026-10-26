@@ -12,7 +12,6 @@ from django.contrib.messages import get_messages
 from django.core.exceptions import ImproperlyConfigured
 from django.forms import BaseForm
 from django.http import HttpRequest, HttpResponse
-from django.template.loader import render_to_string
 from django.template.response import ContentNotRenderedError, SimpleTemplateResponse
 from django.utils.cache import patch_vary_headers
 
@@ -33,8 +32,6 @@ INERTIA_SESSION_CLEAR_HISTORY = "_inertia_clear_history"
 INERTIA_SESSION_PRESERVE_FRAGMENT = "_inertia_preserve_fragment"
 INERTIA_SESSION_ERRORS = "_inertia_errors"
 
-INERTIA_TEMPLATE = "inertia.html"
-INERTIA_SSR_TEMPLATE = "inertia_ssr.html"
 SKIP_PROP = object()
 
 
@@ -317,18 +314,26 @@ class InertiaResponse(SimpleTemplateResponse):
         props: dict[str, Any] | None = None,
         template_data: dict[str, Any] | None = None,
         *,
+        template_name: str | None = None,
         status: int | None = None,
         headers: dict[str, Any] | None = None,
     ) -> None:
+        """``template_name`` is the layout for full page loads, by default
+        ``INERTIA["LAYOUT"]``. It renders the page with the ``inertia_head``
+        and ``inertia_body`` tags from ``{% load inertia %}``.
+        """
         inertia_request = InertiaRequest(request)
         content_type = None
         if inertia_request.is_inertia():
             headers = {**(headers or {}), "X-Inertia": "true"}
             content_type = "application/json"
         super().__init__(
-            INERTIA_TEMPLATE, content_type=content_type, status=status, headers=headers
+            template_name or settings.LAYOUT or "",
+            content_type=content_type,
+            status=status,
+            headers=headers,
         )
-        self._inertia_request = inertia_request
+        self._request = self._inertia_request = inertia_request
         self.component = component
         self.props = props or {}
         self.template_data = template_data or {}
@@ -418,14 +423,13 @@ class InertiaResponse(SimpleTemplateResponse):
         return _page
 
     def build_first_load(self, data: str) -> str:
-        layout = settings.LAYOUT
-        if not layout:
+        if not self.template_name:
             raise ImproperlyConfigured(
-                'INERTIA["LAYOUT"] must be set in your Django settings'
+                'Set INERTIA["LAYOUT"] in your Django settings, '
+                "or pass template_name to the response."
             )
 
-        context: dict[str, Any] = {"page": data}
-        template = INERTIA_TEMPLATE
+        page = {"json": data, "head": "", "body": None}
         if settings.SSR_ENABLED:
             try:
                 ssr_response = requests.post(
@@ -434,14 +438,15 @@ class InertiaResponse(SimpleTemplateResponse):
                     headers={"Content-Type": "application/json"},
                 )
                 ssr_response.raise_for_status()
-                context, template = ssr_response.json(), INERTIA_SSR_TEMPLATE
+                rendered = ssr_response.json()
+                page["head"] = "".join(rendered["head"])
+                page["body"] = rendered["body"]
             except Exception:
                 logger.exception("SSR render request failed")
 
-        return render_to_string(
-            template,
-            {"inertia_layout": layout, **context, **self.template_data},
-            self._inertia_request,
+        template = self.resolve_template(self.template_name)
+        return template.render(
+            {**self.template_data, "_inertia": page}, self._inertia_request
         )
 
 
@@ -451,11 +456,18 @@ def render(
     props: dict[str, Any] | None = None,
     template_data: dict[str, Any] | None = None,
     *,
+    template_name: str | None = None,
     status: int | None = None,
     headers: dict[str, Any] | None = None,
 ) -> InertiaResponse:
     return InertiaResponse(
-        request, component, props, template_data, status=status, headers=headers
+        request,
+        component,
+        props,
+        template_data,
+        template_name=template_name,
+        status=status,
+        headers=headers,
     )
 
 
