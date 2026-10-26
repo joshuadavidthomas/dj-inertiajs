@@ -262,7 +262,7 @@ return redirect("articles:show", slug=article.slug, preserve_fragment=True)
 
 `request.inertia` changed meaning. In inertia-django it held the shared props; code that read it, such as `request.inertia.all()`, must change. It now describes the request, like django-htmx's `request.htmx`: it is truthy for Inertia visits, and has `version`, `partial_component`, `partial_data`, `partial_except` and `is_partial()`.
 
-`location(url)` is unchanged.
+`location(url)` is now a response class, `InertiaLocation(url)`, like `HttpResponseRedirect`. The codemod rewrites the calls.
 
 ## History encryption
 

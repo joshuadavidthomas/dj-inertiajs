@@ -7,10 +7,10 @@ from django.utils.decorators import decorator_from_middleware
 from django.views.generic import FormView, ListView
 
 from dj_inertiajs import (
+    InertiaLocation,
     Prop,
     clear_history,
     inertia,
-    location,
     render,
     set_errors,
     share,
@@ -56,7 +56,7 @@ def inertia_redirect_test(request):
 
 
 def external_redirect_test(request):
-    return location("http://foobar.com/")
+    return InertiaLocation("http://foobar.com/")
 
 
 @inertia("TestComponent")

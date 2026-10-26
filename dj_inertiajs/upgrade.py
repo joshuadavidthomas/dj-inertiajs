@@ -5,6 +5,7 @@ every Python file under each path:
 
 - imports from ``inertia`` and its modules,
 - calls to the prop helpers (``defer``, ``merge``, ...) into ``Prop(...)``,
+- calls to ``location(url)`` into ``InertiaLocation(url)``,
 - ``encrypt_history(request)`` in an ``@inertia`` view into the decorator's
   ``encrypt_history=`` option,
 - module-level ``INERTIA_*`` settings into one ``INERTIA`` dict,
@@ -44,7 +45,7 @@ HELPERS = {
 POSITIONAL = {"defer": ["group", "merge"], "once": ["fresh"], "scroll": ["scroll"]}
 # Functions that took the request first and are now request.inertia methods.
 
-PUBLIC = {"InertiaResponse", "clear_history", "inertia", "location", "render", "share"}
+PUBLIC = {"InertiaResponse", "clear_history", "inertia", "render", "share"}
 MOVED = {
     "InertiaJsonEncoder": "dj_inertiajs.encoders",
     "InertiaMiddleware": "dj_inertiajs.middleware",
@@ -232,6 +233,9 @@ class Upgrade(cst.CSTTransformer):
         self.manual: list[str] = []
         self.helpers: dict[str, str] = {}  # local name -> helper
         self.preserve_names: set[str] = set()  # local names of preserve_fragment
+        self.location_names: set[str] = set()  # local names of location
+        self.called_location: set[int] = set()
+        self.location_imported = False
         self.rewritten_calls: set[int] = set()  # ids of the Names they call
         self.encrypt_names: set[str] = set()  # local names of encrypt_history
         self.decorator_names: set[str] = set()  # local names of @inertia
@@ -301,6 +305,14 @@ class Upgrade(cst.CSTTransformer):
                     self.prop_imported = True
                     targets.setdefault("dj_inertiajs", []).append(
                         cst.ImportAlias(cst.Name("Prop"))
+                    )
+                continue
+            if name == "location":
+                self.location_names.add(_alias_name(alias))
+                if not self.location_imported:
+                    self.location_imported = True
+                    targets.setdefault("dj_inertiajs", []).append(
+                        cst.ImportAlias(cst.Name("InertiaLocation"))
                     )
                 continue
             if name == "preserve_fragment":
@@ -521,6 +533,8 @@ class Upgrade(cst.CSTTransformer):
                 f"class-based view; {guide('History encryption')}.",
             )
             return updated_node
+        if isinstance(func, cst.Name) and func.value in self.location_names:
+            return updated_node.with_changes(func=cst.Name("InertiaLocation"))
         if isinstance(func, cst.Name) and func.value in self.helpers:
             return self._prop_call(
                 original_node, updated_node, self.helpers[func.value]
@@ -540,10 +554,18 @@ class Upgrade(cst.CSTTransformer):
         return updated_node
 
     def visit_Call(self, node: cst.Call) -> None:
+        if isinstance(node.func, cst.Name) and node.func.value in self.location_names:
+            self.called_location.add(id(node.func))
         if isinstance(node.func, cst.Name) and node.func.value in self.encrypt_names:
             self.called_encrypt.add(id(node.func))
 
     def visit_Name(self, node: cst.Name) -> None:
+        if node.value in self.location_names and id(node) not in self.called_location:
+            self.report(
+                node,
+                f"`{node.value}` is used without being called; `location(url)` "
+                f"is now `InertiaLocation(url)`; {guide('Redirects')}.",
+            )
         if node.value in self.encrypt_names and id(node) not in self.called_encrypt:
             self.report(
                 node,

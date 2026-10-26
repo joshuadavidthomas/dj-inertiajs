@@ -8,7 +8,7 @@ from django.utils.cache import patch_vary_headers
 
 from .conf import settings
 from .request import INERTIA_SESSION_PRESERVE_FRAGMENT, InertiaDetails
-from .response import location
+from .response import InertiaLocation
 
 
 class InertiaMiddleware:
@@ -105,6 +105,6 @@ class InertiaMiddleware:
         storage = messages.get_messages(request)
         if not isinstance(storage, list):
             storage.used = False
-        response = location(request.build_absolute_uri())
+        response = InertiaLocation(request.build_absolute_uri())
         patch_vary_headers(response, ("X-Inertia",))
         return response

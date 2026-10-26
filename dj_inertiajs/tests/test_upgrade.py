@@ -96,7 +96,7 @@ class ImportTestCase(SimpleTestCase):
             dedent(
                 """\
                 from dj_inertiajs import inertia, render
-                from dj_inertiajs import location
+                from dj_inertiajs import InertiaLocation
                 from dj_inertiajs.test import InertiaTestCase
                 from dj_inertiajs.encoders import InertiaJsonEncoder
                 from inertia.helpers import deep_transform_callables
@@ -149,6 +149,36 @@ class RequestHelperTestCase(SimpleTestCase):
         )
         self.assertEqual(len(manual), 1)
         self.assertIn("line 7: `preserve_fragment(request)` is replaced", manual[0])
+
+
+class LocationTestCase(SimpleTestCase):
+    def test_location_becomes_a_response_class(self):
+        code, manual = upgrade(
+            """\
+            from inertia import location as leave, render
+
+            def portal(request):
+                return leave("https://billing.example.com/")
+
+            handlers = [leave]
+            """
+        )
+
+        self.assertEqual(
+            code,
+            dedent(
+                """\
+                from dj_inertiajs import InertiaLocation, render
+
+                def portal(request):
+                    return InertiaLocation("https://billing.example.com/")
+
+                handlers = [leave]
+                """
+            ),
+        )
+        self.assertEqual(len(manual), 1)
+        self.assertIn("line 6: `leave` is used without being called", manual[0])
 
 
 class EncryptHistoryTestCase(SimpleTestCase):

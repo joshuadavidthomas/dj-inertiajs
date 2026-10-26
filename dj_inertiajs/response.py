@@ -12,6 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest, HttpResponse
 from django.template.response import ContentNotRenderedError, SimpleTemplateResponse
 from django.utils.cache import patch_vary_headers
+from django.utils.encoding import iri_to_uri
 
 from .conf import settings
 from .props import Prop
@@ -30,7 +31,7 @@ try:
 except ImportError:
     requests = None  # type: ignore[assignment]
 
-__all__ = ["InertiaPage", "InertiaResponse", "location"]
+__all__ = ["InertiaLocation", "InertiaPage", "InertiaResponse"]
 
 logger = logging.getLogger(__name__)
 
@@ -399,11 +400,19 @@ class InertiaResponse(SimpleTemplateResponse):
         return template.render({**self.template_data, "_inertia": page}, self._request)
 
 
-def location(location: str) -> HttpResponse:
-    return HttpResponse(
-        "",
-        status=HTTPStatus.CONFLICT,
-        headers={
-            "X-Inertia-Location": location,
-        },
-    )
+class InertiaLocation(HttpResponse):
+    """Make the Inertia client leave the app and load ``url`` in full.
+
+    The Inertia counterpart of ``HttpResponseRedirect``, for an external
+    site or a page that is not an Inertia page.
+    """
+
+    status_code = HTTPStatus.CONFLICT
+
+    def __init__(self, url: str, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self["X-Inertia-Location"] = iri_to_uri(url)
+
+    @property
+    def url(self) -> str:
+        return self["X-Inertia-Location"]

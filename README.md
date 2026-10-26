@@ -286,14 +286,14 @@ return redirect("events:index")
 
 Return Django's redirects as usual. The middleware turns redirects after `PUT`, `PATCH` and `DELETE` into `303 See Other`, as Inertia requires.
 
-To leave the Inertia app, for an external site or a non-Inertia page, return `location()`. It makes the client do a full `window.location` visit:
+To leave the Inertia app, for an external site or a non-Inertia page, return an `InertiaLocation`. It is the Inertia counterpart of `HttpResponseRedirect`: the client does a full `window.location` visit:
 
 ```python
-from dj_inertiajs import location
+from dj_inertiajs import InertiaLocation
 
 
 def billing_portal(request):
-    return location("https://billing.example.com/")
+    return InertiaLocation("https://billing.example.com/")
 ```
 
 When a request URL has a fragment, such as `/article/old-slug#section`, redirect with `preserve_fragment=True` so the client keeps the fragment on the new URL. `dj_inertiajs.redirect` is `django.shortcuts.redirect` with Inertia's options:
