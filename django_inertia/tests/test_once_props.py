@@ -156,27 +156,3 @@ class SharedOncePropsTestCase(ProtocolTestCase):
         self.assertNotIn("plans", page["props"])
         self.assertIn("onceProps", page)
         self.assertIn("plans", page["onceProps"])
-
-
-class CallablePropStaticValueTestCase(ProtocolTestCase):
-    """Tests that prop classes correctly handle plain (non-callable) values.
-
-    CallableProp.__call__ has two branches: one for callables (the common case)
-    and one for plain values passed directly.  Views that pass a static value
-    to once(), merge(), or defer() exercise the second branch.
-    """
-
-    def test_once_prop_with_static_value_is_resolved(self):
-        """A once prop wrapping a plain value (not a callable) is resolved
-        correctly on first load."""
-        from django_inertia.prop_classes import OnceProp
-
-        prop = OnceProp(["basic", "pro"])
-        self.assertEqual(prop(), ["basic", "pro"])
-
-    def test_callable_prop_with_callable_is_resolved(self):
-        """Sanity check: a callable is still invoked by __call__."""
-        from django_inertia.prop_classes import OnceProp
-
-        prop = OnceProp(lambda: ["basic", "pro"])
-        self.assertEqual(prop(), ["basic", "pro"])

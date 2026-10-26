@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from django.http import HttpResponseRedirect
 from django.test import RequestFactory
 
-from django_inertia import merge, once
+from django_inertia import Prop
 from django_inertia.middleware import InertiaMiddleware
 from django_inertia.tests.utils import ProtocolTestCase
 
@@ -32,8 +32,8 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
         )
 
     def test_merge_prepend_does_not_require_append_false(self):
-        nested = merge(lambda: [], prepend="items")
-        root = merge(lambda: [], prepend=True)
+        nested = Prop(lambda: [], prepend="items")
+        root = Prop(lambda: [], prepend=True)
 
         self.assertEqual(nested.merge_paths("feed", prepend=True), ["feed.items"])
         self.assertEqual(nested.merge_paths("feed"), [])
@@ -123,7 +123,9 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
 
     def test_once_supports_custom_keys_and_expiration(self):
         expires_at = datetime(2030, 1, 1, tzinfo=timezone.utc)
-        prop = once(lambda: "Hockey", key="favorite-sport", expires_at=expires_at)
+        prop = Prop(
+            lambda: "Hockey", once=True, key="favorite-sport", expires_at=expires_at
+        )
 
         self.assertEqual(prop.once_key("sport"), "favorite-sport")
         self.assertEqual(prop.once_expires_at(), 1893456000000)

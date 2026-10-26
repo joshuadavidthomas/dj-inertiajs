@@ -15,14 +15,7 @@ from django.template.loader import render_to_string
 from django.template.response import ContentNotRenderedError, SimpleTemplateResponse
 from django.utils.cache import patch_vary_headers
 
-from .prop_classes import (
-    AlwaysProp,
-    CallableProp,
-    DeferredProp,
-    IgnoreOnFirstLoadProp,
-    MergeableProp,
-    ScrollProp,
-)
+from .props import Prop
 from .settings import settings
 
 try:
@@ -115,6 +108,10 @@ class InertiaRequest(HttpRequest):
         return should_encrypt
 
 
+def resolve_value(value: Any) -> Any:
+    return value() if callable(value) else value
+
+
 class PropsResolver:
     """Resolve props once and collect Inertia v3 metadata by dotted path."""
 
@@ -151,7 +148,7 @@ class PropsResolver:
     def _resolve_prop(self, prop: Any, path: str, parent_resolved: bool = False) -> Any:
         if (
             not parent_resolved
-            and not isinstance(prop, AlwaysProp)
+            and not (isinstance(prop, Prop) and prop.always)
             and self._excluded_by_partial_request(path)
         ):
             return SKIP_PROP
@@ -172,22 +169,22 @@ class PropsResolver:
         )
         if is_cached_once_prop:
             return SKIP_PROP
-        if not self._is_partial() and (
-            isinstance(prop, IgnoreOnFirstLoadProp)
-            or isinstance(prop, ScrollProp)
-            and prop.defer
+        if (
+            not self._is_partial()
+            and isinstance(prop, Prop)
+            and prop.skipped_on_first_load
         ):
             return SKIP_PROP
 
         try:
-            value = prop() if callable(prop) else prop
+            value = prop.resolve() if isinstance(prop, Prop) else resolve_value(prop)
         except Exception:
-            if isinstance(prop, DeferredProp) and prop.rescue:
+            if isinstance(prop, Prop) and prop.rescue:
                 self.metadata["rescuedProps"].append(path)
                 return SKIP_PROP
             raise
 
-        if isinstance(value, CallableProp):
+        if isinstance(value, Prop):
             return self._resolve_prop(value, path, parent_resolved=True)
         if isinstance(value, dict):
             if not value:
@@ -214,9 +211,9 @@ class PropsResolver:
         item_path = f"{path}.{index}"
         if isinstance(value, dict):
             return self._resolve_mapping(value, item_path, parent_resolved)
-        if isinstance(value, CallableProp):
+        if isinstance(value, Prop):
             return self._resolve_prop(value, item_path, parent_resolved)
-        return value() if callable(value) else value
+        return resolve_value(value)
 
     def _is_partial(self) -> bool:
         return self.request.is_a_partial_render(self.component)
@@ -242,42 +239,34 @@ class PropsResolver:
         return (
             self.request.is_inertia()
             and not self._is_partial()
-            and isinstance(prop, CallableProp)
-            and prop.should_resolve_once()
-            and not prop.should_be_fresh()
+            and isinstance(prop, Prop)
+            and prop.once
+            and not prop.fresh
             and prop.once_key(path) in self.request.except_once_prop_keys()
         )
 
     def _collect_metadata(
         self, prop: Any, path: str, *, include_deferred: bool = True
     ) -> None:
-        if not isinstance(prop, CallableProp):
+        if not isinstance(prop, Prop):
             return
-        if (
-            include_deferred
-            and (
-                isinstance(prop, DeferredProp)
-                or isinstance(prop, ScrollProp)
-                and prop.defer
-            )
-            and not self._is_partial()
-        ):
+        if include_deferred and prop.defer and not self._is_partial():
             self.metadata["deferredProps"].setdefault(prop.group, []).append(path)
-        if isinstance(prop, MergeableProp) and prop.should_merge():
+        if prop.merges:
             self._collect_merge_metadata(prop, path)
-        if prop.should_resolve_once():
+        if prop.once:
             self.metadata["onceProps"][prop.once_key(path)] = {
                 "prop": path,
                 "expiresAt": prop.once_expires_at(),
             }
 
-    def _collect_merge_metadata(self, prop: MergeableProp, path: str) -> None:
+    def _collect_merge_metadata(self, prop: Prop, path: str) -> None:
         reset = path in self.request.reset_keys()
-        if isinstance(prop, ScrollProp):
-            self.metadata["scrollProps"][path] = {**prop.metadata, "reset": reset}
+        if prop.scroll is not None:
+            self.metadata["scrollProps"][path] = {**prop.scroll, "reset": reset}
         if reset:
             return
-        if prop.should_deep_merge():
+        if prop.deep_merge:
             self.metadata["deepMergeProps"].append(path)
         else:
             prepend_paths = prop.merge_paths(path, prepend=True)
@@ -292,7 +281,7 @@ class PropsResolver:
             else:
                 self.metadata["mergeProps"].extend(append_paths)
         self.metadata["matchPropsOn"].extend(
-            f"{path}.{match}" for match in prop.match_on()
+            f"{path}.{match}" for match in prop.match_on
         )
 
 

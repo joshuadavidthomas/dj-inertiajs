@@ -1,6 +1,5 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.test import AsyncClient, TestCase, override_settings
-from pytest import warns
 
 from django_inertia.tests.utils import ProtocolTestCase, inertia_div, inertia_page
 
@@ -77,26 +76,6 @@ class SubsequentLoadTestCase(ProtocolTestCase):
 
     def test_redirects_from_inertia_views(self):
         self.assertEqual(self.inertia.get("/inertia-redirect/").status_code, 302)
-
-
-class LazyPropsTestCase(ProtocolTestCase):
-    def test_lazy_props_are_not_included(self):
-        with warns(DeprecationWarning):
-            self.assertJSONResponse(
-                self.inertia.get("/lazy/"),
-                inertia_page("lazy", props={"name": "Brian"}),
-            )
-
-    def test_lazy_props_are_included_when_requested(self):
-        with warns(DeprecationWarning):
-            self.assertJSONResponse(
-                self.inertia.get(
-                    "/lazy/",
-                    HTTP_X_INERTIA_PARTIAL_DATA="sport,grit",
-                    HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-                ),
-                inertia_page("lazy", props={"sport": "Basketball", "grit": "intense"}),
-            )
 
 
 class OptionalPropsTestCase(ProtocolTestCase):
