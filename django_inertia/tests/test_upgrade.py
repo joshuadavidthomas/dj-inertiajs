@@ -195,3 +195,107 @@ class CommandTestCase(SimpleTestCase):
                 main([root])
             self.assertEqual(path.read_text(), written)
             self.assertIn("0 file(s) changed", err.getvalue())
+
+
+class TestAssertionTestCase(SimpleTestCase):
+    def test_assertions_read_the_latest_response(self):
+        code, manual = upgrade(
+            """\
+            from inertia.test import InertiaTestCase
+
+
+            class EventTests(InertiaTestCase):
+                def test_index(self):
+                    self.client.get("/first/")
+                    with self.settings(DEBUG=True):
+                        page = self.inertia.get("/second/")
+                    self.assertComponentUsed("Event/Index", msg_prefix="x")
+                    assert self.props()["name"] == self.inertia.last_response
+                    assert self.deferred_props() == {}
+            """
+        )
+
+        self.assertEqual(
+            code,
+            dedent(
+                """\
+                from django_inertia.test import InertiaTestCase
+
+
+                class EventTests(InertiaTestCase):
+                    def test_index(self):
+                        response = self.client.get("/first/")
+                        with self.settings(DEBUG=True):
+                            page = self.inertia.get("/second/")
+                        self.assertComponentUsed(page, "Event/Index", msg_prefix="x")
+                        assert page.inertia.props["name"] == page
+                        assert page.inertia.data["deferredProps"] == {}
+                """
+            ),
+        )
+        self.assertEqual(manual, [])
+
+    def test_only_inertia_test_cases_and_their_subclasses_are_rewritten(self):
+        code, _ = upgrade(
+            """\
+            from django.test import TestCase
+            from inertia.test import InertiaTestCase as Base
+
+
+            class Shared(Base):
+                pass
+
+
+            class EventTests(Shared):
+                def test_index(self):
+                    self.client.get("/")
+                    self.assertComponentUsed("Event/Index")
+
+
+            class Other(TestCase):
+                def test_view(self):
+                    self.client.get("/")
+                    self.assertEqual(self.props(), {})
+            """
+        )
+
+        self.assertIn('self.assertComponentUsed(response, "Event/Index")', code)
+        self.assertIn("self.assertEqual(self.props(), {})", code)
+        self.assertEqual(code.count("response = "), 1)
+
+    def test_assertion_without_a_request_is_reported(self):
+        code, manual = upgrade(
+            """\
+            from inertia.test import InertiaTestCase
+
+
+            class EventTests(InertiaTestCase):
+                def assertIndex(self):
+                    self.assertComponentUsed("Event/Index")
+            """
+        )
+
+        self.assertIn('self.assertComponentUsed("Event/Index")', code)
+        self.assertEqual(len(manual), 1)
+        self.assertIn("line 6: `self.assertComponentUsed` needs a response", manual[0])
+
+    def test_methods_on_the_new_api_are_left_alone(self):
+        source = dedent(
+            """\
+            from inertia.test import InertiaTestCase
+
+
+            class EventTests(InertiaTestCase):
+                def test_index(self):
+                    self.client.get("/warm-up/")
+                    response = self.inertia.get("/")
+                    self.assertComponentUsed(response, "Event/Index")
+            """
+        )
+
+        code, manual = upgrade_source(source)
+
+        self.assertEqual(
+            code, source.replace("from inertia.test", "from django_inertia.test")
+        )
+        self.assertEqual(manual, [])

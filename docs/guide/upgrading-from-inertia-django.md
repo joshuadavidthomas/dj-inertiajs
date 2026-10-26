@@ -8,7 +8,7 @@ The protocol the client sees is the same as inertia-django 2.0's, which targets 
 
 Work through three steps. Each one shortens the list for the next.
 
-1. **Run the codemod.** It rewrites imports, prop helpers, settings, and the `MIDDLEWARE` and `INSTALLED_APPS` entries:
+1. **Run the codemod.** It rewrites imports, prop helpers, settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and test assertions:
 
    ```shell
    pip install "<package>[upgrade]"
@@ -273,4 +273,6 @@ self.assertEqual(response.inertia.props["name"], "Brandon")
 - The assertions live in `InertiaTestMixin`, which also works with `SimpleTestCase`. In pytest, read `response.inertia` directly.
 - `inertia_page()`, `inertia_div()`, `assertJSONResponse` and `BaseInertiaTestCase` were removed. Compare `response.inertia.data` or `response.json()` instead.
 
-The codemod rewrites the imports in test files but not the assertions; a missing response argument fails with a `TypeError` that names the assertion.
+The codemod rewrites these in classes based on an `inertia.test` test case, including subclasses defined in the same file. In each test method it keeps the response of the latest request in a variable, assigning `response = ...` where the request's result was discarded, and passes it to the assertions and accessors that read it. It reports an assertion with no request before it in the same method, such as one in a helper method; pass the response to those by hand.
+
+Test cases based on a class from another module of your project are not recognized. Their assertions fail with a `TypeError` that names the assertion.

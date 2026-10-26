@@ -6,11 +6,13 @@ every Python file under each path:
 - imports from ``inertia`` and its modules,
 - calls to the prop helpers (``defer``, ``merge``, ...) into ``Prop(...)``,
 - module-level ``INERTIA_*`` settings into one ``INERTIA`` dict,
-- the ``inertia`` entries in ``MIDDLEWARE``, ``INSTALLED_APPS`` and encoder paths.
+- the ``inertia`` entries in ``MIDDLEWARE``, ``INSTALLED_APPS`` and encoder paths,
+- in classes based on ``inertia.test`` test cases, the assertions and
+  accessors that read the last response, to read it from a variable.
 
 Anything it cannot rewrite safely is printed with its file and line. It does
-not edit templates or test assertions; ``manage.py check`` and the guide
-"Upgrading from inertia-django" cover those. Requires the ``upgrade`` extra.
+not edit templates; ``manage.py check`` and the guide "Upgrading from
+inertia-django" cover those. Requires the ``upgrade`` extra.
 """
 
 from __future__ import annotations
@@ -71,6 +73,27 @@ STRINGS = {
     "inertia.middleware.InertiaMiddleware": "django_inertia.middleware.InertiaMiddleware",
     "inertia.utils.InertiaJsonEncoder": "django_inertia.utils.InertiaJsonEncoder",
 }
+# Old InertiaTestCase assertions, which now take the response first.
+ASSERTIONS = {
+    "assertComponentUsed",
+    "assertHasExactProps",
+    "assertIncludesProps",
+    "assertHasExactTemplateData",
+    "assertIncludesTemplateData",
+}
+# Old InertiaTestCase accessors and the expression that replaces each, given
+# the response variable.
+ACCESSORS = {
+    "component": "{}.inertia.component",
+    "props": "{}.inertia.props",
+    "page": "{}.inertia.data",
+    "merge_props": '{}.inertia.data["mergeProps"]',
+    "deferred_props": '{}.inertia.data["deferredProps"]',
+    "once_props": '{}.inertia.data["onceProps"]',
+    "template_data": "{}.template_data",
+    "last_response": "{}",
+}
+CLIENT_METHODS = {"get", "post", "put", "patch", "delete", "head", "options", "trace"}
 SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".tox"}
 
 
@@ -95,6 +118,12 @@ class Upgrade(cst.CSTTransformer):
         self.imported_paths: dict[str, str] = {}  # local name -> dotted path
         self.prop_imported = False
         self.installed_apps_depth = 0
+        self.test_case_classes: set[str] = set()
+        self.in_test_case: list[bool] = []
+        # Per function in a test case: the variable holding the last
+        # response, and whether the function uses the old test API at all.
+        self.responses: list[str | None] = []
+        self.uses_old_api: list[bool] = []
 
     def report(self, node: cst.CSTNode, message: str) -> None:
         line = self.get_metadata(PositionProvider, node).start.line
@@ -177,6 +206,57 @@ class Upgrade(cst.CSTTransformer):
             return cst.RemovalSentinel.REMOVE  # type: ignore[return-value]
         return cst.FlattenSentinel(statements)
 
+    # Test assertions
+
+    def visit_ClassDef(self, node: cst.ClassDef) -> None:
+        is_test_case = any(
+            isinstance(base.value, cst.Name)
+            and (
+                base.value.value in self.test_case_classes
+                or self.imported_paths.get(base.value.value, "").startswith(
+                    "inertia.test."
+                )
+            )
+            for base in node.bases
+        )
+        if is_test_case:
+            self.test_case_classes.add(node.name.value)
+        self.in_test_case.append(is_test_case)
+
+    def leave_ClassDef(
+        self, original_node: cst.ClassDef, updated_node: cst.ClassDef
+    ) -> cst.ClassDef:
+        self.in_test_case.pop()
+        return updated_node
+
+    def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
+        in_test_case = bool(self.in_test_case) and self.in_test_case[-1]
+        finder = OldTestApiFinder()
+        if in_test_case:
+            node.body.visit(finder)
+        self.responses.append(None)
+        self.uses_old_api.append(finder.found)
+        # A nested class or function is not part of this test case's scope.
+        self.in_test_case.append(False)
+
+    def leave_FunctionDef(
+        self, original_node: cst.FunctionDef, updated_node: cst.FunctionDef
+    ) -> cst.FunctionDef:
+        self.in_test_case.pop()
+        self.responses.pop()
+        self.uses_old_api.pop()
+        return updated_node
+
+    def _response(self, node: cst.CSTNode, name: str) -> str | None:
+        response = self.responses[-1] if self.responses else None
+        if response is None:
+            self.report(
+                node,
+                f"`self.{name}` needs a response, but no request comes before it "
+                f"in this method; pass the response by hand; {guide('Tests')}.",
+            )
+        return response
+
     def leave_SimpleStatementLine(
         self,
         original_node: cst.SimpleStatementLine,
@@ -184,6 +264,26 @@ class Upgrade(cst.CSTTransformer):
     ) -> cst.SimpleStatementLine | cst.RemovalSentinel:
         if not updated_node.body:
             return cst.RemovalSentinel.REMOVE
+        if self.uses_old_api and self.uses_old_api[-1] and len(original_node.body) == 1:
+            statement = original_node.body[0]
+            if isinstance(statement, cst.Expr) and _is_client_call(statement.value):
+                # The old API read the last response implicitly; keep it.
+                self.responses[-1] = "response"
+                return updated_node.with_changes(
+                    body=[
+                        cst.Assign(
+                            targets=[cst.AssignTarget(cst.Name("response"))],
+                            value=updated_node.body[0].value,  # type: ignore[attr-defined]
+                        )
+                    ]
+                )
+            if (
+                isinstance(statement, cst.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0].target, cst.Name)
+                and _is_client_call(statement.value)
+            ):
+                self.responses[-1] = statement.targets[0].target.value
         if len(original_node.body) == 1 and len(updated_node.body) > 1:
             # One old import that now comes from several modules.
             lines = [
@@ -202,6 +302,29 @@ class Upgrade(cst.CSTTransformer):
         self, original_node: cst.Call, updated_node: cst.Call
     ) -> cst.BaseExpression:
         func = original_node.func
+        if self.uses_old_api and self.uses_old_api[-1] and _is_self_call(func):
+            assert isinstance(func, cst.Attribute)
+            name = func.attr.value
+            if name in ASSERTIONS and _positional_count(original_node) == 1:
+                response = self._response(original_node, name)
+                if response is None:
+                    return updated_node
+                first = cst.Arg(
+                    cst.Name(response),
+                    comma=cst.Comma(whitespace_after=cst.SimpleWhitespace(" ")),
+                )
+                return updated_node.with_changes(args=[first, *updated_node.args])
+            if name in ACCESSORS and not original_node.args:
+                response = self._response(original_node, f"{name}()")
+                if response is None:
+                    return updated_node
+                return cst.parse_expression(ACCESSORS[name].format(response))
+            if name == "assertJSONResponse":
+                self.report(
+                    original_node,
+                    "`assertJSONResponse` was removed; compare `response.json()` "
+                    f"instead; {guide('Tests')}.",
+                )
         if isinstance(func, cst.Name) and func.value in self.helpers:
             return self._prop_call(
                 original_node, updated_node, self.helpers[func.value]
@@ -343,7 +466,16 @@ class Upgrade(cst.CSTTransformer):
 
     def leave_Attribute(
         self, original_node: cst.Attribute, updated_node: cst.Attribute
-    ) -> cst.Attribute:
+    ) -> cst.BaseExpression:
+        if (
+            self.uses_old_api
+            and self.uses_old_api[-1]
+            and original_node.attr.value == "last_response"
+            and _is_self_client(original_node.value)
+        ):
+            response = self._response(original_node, "last_response")
+            if response is not None:
+                return cst.Name(response)
         if original_node.attr.value in OLD_SETTINGS:
             self.report(
                 original_node,
@@ -421,6 +553,28 @@ class Upgrade(cst.CSTTransformer):
         return text
 
 
+class OldTestApiFinder(cst.CSTVisitor):
+    """Find uses of the old InertiaTestCase API, which reads the last response."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.found = False
+
+    def visit_Call(self, node: cst.Call) -> None:
+        if not _is_self_call(node.func):
+            return
+        assert isinstance(node.func, cst.Attribute)
+        name = node.func.attr.value
+        if (name in ASSERTIONS and _positional_count(node) == 1) or (
+            name in ACCESSORS and not node.args
+        ):
+            self.found = True
+
+    def visit_Attribute(self, node: cst.Attribute) -> None:
+        if node.attr.value == "last_response" and _is_self_client(node.value):
+            self.found = True
+
+
 def upgrade_source(source: str) -> tuple[str, list[str]]:
     transformer = Upgrade()
     module = MetadataWrapper(cst.parse_module(source)).visit(transformer)
@@ -483,6 +637,35 @@ def main(argv: Sequence[str] | None = None) -> int:
         file=sys.stderr,
     )
     return 0
+
+
+def _is_self(node: cst.BaseExpression) -> bool:
+    return isinstance(node, cst.Name) and node.value == "self"
+
+
+def _is_self_call(func: cst.BaseExpression) -> bool:
+    return isinstance(func, cst.Attribute) and _is_self(func.value)
+
+
+def _is_self_client(node: cst.BaseExpression) -> bool:
+    return (
+        isinstance(node, cst.Attribute)
+        and _is_self(node.value)
+        and node.attr.value in ("client", "inertia")
+    )
+
+
+def _is_client_call(node: cst.BaseExpression) -> bool:
+    return (
+        isinstance(node, cst.Call)
+        and isinstance(node.func, cst.Attribute)
+        and node.func.attr.value in CLIENT_METHODS
+        and _is_self_client(node.func.value)
+    )
+
+
+def _positional_count(call: cst.Call) -> int:
+    return sum(1 for arg in call.args if arg.keyword is None and not arg.star)
 
 
 def _dotted(node: cst.BaseExpression) -> str:
