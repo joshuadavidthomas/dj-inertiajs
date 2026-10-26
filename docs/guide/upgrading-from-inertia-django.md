@@ -271,10 +271,11 @@ The codemod rewrites calls to the helpers it can trace to an `inertia` import.
 
 ## Views
 
-`render()` and the `@inertia` decorator keep their shape. Two things change:
+`render()` and the `@inertia` decorator keep their shape. Three things change:
 
 - `@inertia` now works on `async def` views.
-- The extra arguments of `render()` and `InertiaResponse` are keyword-only: `template_name`, `status` and `headers`. `InertiaResponse` no longer takes `HttpResponse`'s positional arguments.
+- The extra arguments of `render()` and `InertiaResponse` are keyword-only: `template_name`, `status`, `headers` and `encrypt_history`. `InertiaResponse` no longer takes `HttpResponse`'s positional arguments.
+- `@inertia` takes the same keyword arguments, such as `@inertia("Event/Index", template_name="events/base.html")`.
 
 Class-based views are new, in `dj_inertiajs.views`:
 
@@ -315,13 +316,13 @@ Code that reads `response.content` on a response it built itself, before returni
 # Before: a custom middleware
 def inertia_share(get_response):
     def middleware(request):
-        share(request, app_name=settings.APP_NAME, user=lambda: request.user)
+        share(request, app_name=settings.APP_NAME, user=lambda: request.user.get_username())
         return get_response(request)
     return middleware
 
 # After: myapp/inertia.py
 def shared(request):
-    return {"app_name": settings.APP_NAME, "user": lambda: request.user}
+    return {"app_name": settings.APP_NAME, "user": lambda: request.user.get_username()}
 
 # settings.py
 INERTIA = {"LAYOUT": "base.html", "SHARED_PROPS": ["myapp.inertia.shared"]}
@@ -396,12 +397,12 @@ Encrypting history is a property of the page a view renders, so it moved from a 
 @inertia("Account/Show")
 def account(request):
     encrypt_history(request)
-    return {"account": request.user.account}
+    return {"email": request.user.email}
 
 # After
 @inertia("Account/Show", encrypt_history=True)
 def account(request):
-    return {"account": request.user.account}
+    return {"email": request.user.email}
 ```
 
 `render(request, "Account/Show", props, encrypt_history=True)` and `encrypt_history = True` on a class-based view do the same. `False` opts a page out of `INERTIA["ENCRYPT_HISTORY"]`. To decide at runtime, pass a variable to `render()`, or set `response.encrypt_history` before the response renders.

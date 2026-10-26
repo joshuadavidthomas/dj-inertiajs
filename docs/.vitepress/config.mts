@@ -6,10 +6,8 @@ import { defineConfig } from "vitepress";
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-const title = "Inertia Django";
-const description = "Build single page apps, without building an API";
-const site = "https://inertia-django.dev";
-const image = `${site}/og_image.png`;
+const title = "dj-inertiajs";
+const description = "A Django-native server-side adapter for Inertia.js";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -21,18 +19,13 @@ export default defineConfig({
 
     head: [
         ["link", { rel: "icon", href: "/favicon.ico", sizes: "32x32" }],
-        ["link", { rel: "icon", href: "/icon.svg", type: "image/svg+xml" }],
+        ["link", { rel: "icon", href: "/logo.svg", type: "image/svg+xml" }],
 
-        ["meta", { name: "twitter:card", content: "summary_large_image" }],
-        ["meta", { name: "twitter:site", content: site }],
-        ["meta", { name: "twitter:description", value: description }],
-        ["meta", { name: "twitter:image", content: image }],
+        ["meta", { name: "twitter:description", content: description }],
 
         ["meta", { property: "og:type", content: "website" }],
         ["meta", { property: "og:locale", content: "en_US" }],
-        ["meta", { property: "og:site", content: site }],
         ["meta", { property: "og:site_name", content: title }],
-        ["meta", { property: "og:image", content: image }],
         ["meta", { property: "og:description", content: description }],
     ],
 
@@ -63,10 +56,6 @@ export default defineConfig({
                     {
                         text: "Official Inertia.js docs",
                         link: "https://inertiajs.com",
-                    },
-                    {
-                        text: "dj-inertiajs on PyPI",
-                        link: "https://pypi.org/project/dj-inertiajs",
                     },
                 ],
             },
@@ -112,7 +101,10 @@ export default defineConfig({
                 },
                 {
                     text: "The basics",
-                    items: [{ text: "Links", link: "/guide/links" }],
+                    items: [
+                        { text: "Links", link: "/guide/links" },
+                        { text: "Partial reloads", link: "/guide/partial-reloads" },
+                    ],
                 },
                 {
                     text: "Advanced",
@@ -133,7 +125,7 @@ export default defineConfig({
         socialLinks: [
             {
                 icon: "github",
-                link: "https://github.com/inertiajs/inertia-django",
+                link: "https://github.com/joshuadavidthomas/inertia-django",
             },
         ],
     },

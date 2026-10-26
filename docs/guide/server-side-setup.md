@@ -74,7 +74,7 @@ Skip this section if you used the [template based setup](#template-based-setup) 
 
 ### Install dependencies
 
-Install the server-side adapter and `django-vite`. The distribution name is not final yet, so install the adapter from Git for now.
+Install the server-side adapter and `django-vite`. The adapter is not on PyPI yet, so install it from Git for now.
 
 ::: code-group
 
@@ -87,7 +87,7 @@ python -m pip install "dj-inertiajs @ git+https://github.com/joshuadavidthomas/i
 ```
 :::
 
-For server-side rendering, also install the `ssr` extra, which adds `requests`.
+For server-side rendering, install the `ssr` extra, which adds `requests`: `"dj-inertiajs[ssr] @ git+https://github.com/joshuadavidthomas/inertia-django"`.
 
 ### Update installed apps
 
@@ -119,22 +119,16 @@ MIDDLEWARE = [
 Configure `django-vite` and Inertia in `settings.py`.
 
 ```python
-# django-vite settings
-# If using HMR (hot module replacement)
+# In development, load assets from the Vite dev server, with hot reloading.
 DJANGO_VITE = {
     "default": {
         "dev_mode": DEBUG,
-        "dev_server_host": env.str("DJANGO_VITE_DEV_SERVER_HOST", default="localhost"),
-        "dev_server_port": env.int("DJANGO_VITE_DEV_SERVER_PORT", default=5173),
     }
 }
 
-# Where ViteJS assets are built.
-DJANGO_VITE_ASSETS_PATH = BASE_DIR / "src" / "dist"
-
-# Include DJANGO_VITE_ASSETS_PATH into STATICFILES_DIRS to be copied inside
-# when run command python manage.py collectstatic
-STATICFILES_DIRS = [DJANGO_VITE_ASSETS_PATH]
+# Where Vite builds the assets, as configured in the client-side setup.
+# collectstatic copies them, with Vite's manifest, into STATIC_ROOT.
+STATICFILES_DIRS = [BASE_DIR / "frontend" / "dist"]
 ```
 
 > For a complete list of available `vite` related settings, see `django-vite` [docs](https://github.com/MrBin99/django-vite?tab=readme-ov-file#django-vite).
@@ -147,7 +141,7 @@ INERTIA = {
 }
 ```
 
-> For the other settings, such as `VERSION`, `SHARED_PROPS` and `SSR`, see the [readme](https://github.com/joshuadavidthomas/inertia-django?tab=readme-ov-file#settings).
+> For the other settings, such as `VERSION`, `SHARED_PROPS` and `SSR`, see the [README](https://github.com/joshuadavidthomas/inertia-django#settings).
 
 ### Update base template
 

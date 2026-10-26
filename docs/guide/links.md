@@ -24,7 +24,7 @@ import { Link } from "@inertiajs/react";
 export default () => <Link href="/">Home</Link>;
 ```
 
-```svelte [Svelte 4 , Svelte 5]
+```svelte [Svelte]
 <script>
   import { inertia, Link } from '@inertiajs/svelte'
 </script>
@@ -71,7 +71,7 @@ export default () => (
 // <button type="button">Logout</button>
 ```
 
-```svelte [Svelte 4 , Svelte 5]
+```svelte [Svelte]
 <script>
   import { Link } from '@inertiajs/svelte'
 </script>
@@ -116,14 +116,14 @@ export default () => (
 );
 ```
 
-```svelte [Svelte 4 , Svelte 5]
+```svelte [Svelte]
 <script>
   import { inertia, Link } from '@inertiajs/svelte'
 </script>
 
 <button use:inertia={{ href: '/logout', method: 'post' }} type="button">Logout</button>
 
-<Link href="/logout" method="post">Logout</button>
+<Link href="/logout" method="post">Logout</Link>
 ```
 
 :::
@@ -156,7 +156,7 @@ export default () => (
 );
 ```
 
-```svelte [Svelte 4 , Svelte 5]
+```svelte [Svelte]
 <script>
   import { inertia, Link } from '@inertiajs/svelte'
 </script>
@@ -199,7 +199,7 @@ export default () => (
 );
 ```
 
-```svelte [Svelte 4 , Svelte 5]
+```svelte [Svelte]
 <script>
   import { inertia, Link } from '@inertiajs/svelte'
 </script>
@@ -237,7 +237,7 @@ export default () => (
 );
 ```
 
-```svelte [Svelte 4 , Svelte 5]
+```svelte [Svelte]
 <script>
   import { inertia, Link } from '@inertiajs/svelte'
 </script>
@@ -281,7 +281,7 @@ export default () => (
 );
 ```
 
-```svelte [Svelte 4 , Svelte 5]
+```svelte [Svelte]
 <script>
   import { inertia, Link } from '@inertiajs/svelte'
 </script>
@@ -323,7 +323,7 @@ export default () => (
 );
 ```
 
-```svelte [Svelte 4 , Svelte 5]
+```svelte [Svelte]
 <script>
   import { inertia, Link } from '@inertiajs/svelte'
 </script>
@@ -363,7 +363,7 @@ export default () => (
 );
 ```
 
-```svelte [Svelte 4 , Svelte 5]
+```svelte [Svelte]
 <script>
   import { inertia, Link } from '@inertiajs/svelte'
 </script>
@@ -375,7 +375,7 @@ export default () => (
 
 :::
 
-For more information on this topic, please consult the complete documentation on [partial reloads](/guide/partial-reloads.md).
+For more information on this topic, please consult the complete documentation on [partial reloads](/guide/partial-reloads).
 
 ## Active states
 
@@ -413,33 +413,32 @@ import { Link } from "@inertiajs/vue3";
 ```
 
 ```jsx [React]
-import { usePage } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 
 export default () => {
     const { url, component } = usePage();
 
     return (
         <>
-            // URL exact match...
+            {/* URL exact match... */}
             <Link href="/users" className={url === "/users" ? "active" : ""}>
                 Users
             </Link>
-            // Component exact match...
+            {/* Component exact match... */}
             <Link
                 href="/users"
                 className={component === "Users/Index" ? "active" : ""}
             >
                 Users
             </Link>
-            // URL starts with (/users, /users/create, /users/1, etc.)...
+            {/* URL starts with (/users, /users/create, /users/1, etc.)... */}
             <Link
                 href="/users"
                 className={url.startsWith("/users") ? "active" : ""}
             >
                 Users
             </Link>
-            // Component starts with (Users/Index, Users/Create, Users/Show,
-            etc.)...
+            {/* Component starts with (Users/Index, Users/Create, Users/Show, etc.)... */}
             <Link
                 href="/users"
                 className={component.startsWith("Users") ? "active" : ""}
@@ -451,33 +450,31 @@ export default () => {
 };
 ```
 
-```svelte [Svelte 4 , Svelte 5]
+```svelte [Svelte]
 <script>
   import { inertia, Link, page } from '@inertiajs/svelte'
 </script>
 
-<template>
-  <!-- URL exact match... -->
-  <a href="/users" use:inertia class:active={$page.url === '/users'}>Users</a>
+<!-- URL exact match... -->
+<a href="/users" use:inertia class:active={page.url === '/users'}>Users</a>
 
-  <!-- Component exact match... -->
-  <a href="/users" use:inertia class:active={$page.component === 'Users/Index'}>
-    Users
-  </a>
+<!-- Component exact match... -->
+<a href="/users" use:inertia class:active={page.component === 'Users/Index'}>
+  Users
+</a>
 
-  <!-- URL starts with (/users, /users/create, /users/1, etc.)... -->
-  <Link href="/users" class={$page.url.startsWith('/users') ? 'active' : ''}>
-    Users
-  </Link>
+<!-- URL starts with (/users, /users/create, /users/1, etc.)... -->
+<Link href="/users" class={page.url.startsWith('/users') ? 'active' : ''}>
+  Users
+</Link>
 
-  <!-- Component starts with (Users/Index, Users/Create, Users/Show, etc.)... -->
-  <Link
-    href="/users"
-    class={$page.component.startsWith('Users') ? 'active' : ''}
-  >
-    Users
-  </Link>
-</template>
+<!-- Component starts with (Users/Index, Users/Create, Users/Show, etc.)... -->
+<Link
+  href="/users"
+  class={page.component.startsWith('Users') ? 'active' : ''}
+>
+  Users
+</Link>
 ```
 
 :::

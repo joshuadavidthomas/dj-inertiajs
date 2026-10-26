@@ -21,7 +21,7 @@ npm install @inertiajs/vue3 vue @vitejs/plugin-vue
 npm install @inertiajs/react react react-dom @vitejs/plugin-react
 ```
 
-```shell [Svelte 4, Svelte 5]
+```shell [Svelte]
 npm install @inertiajs/svelte svelte @sveltejs/vite-plugin-svelte
 ```
 
@@ -29,7 +29,7 @@ npm install @inertiajs/svelte svelte @sveltejs/vite-plugin-svelte
 
 ## Configure Vite
 
-Create a `vite.config.js` file in your root directory and configure it for use with your frontend of choice and  `django-vite`.
+Create a `vite.config.js` file in your root directory and configure it for your frontend framework and `django-vite`. It builds `frontend/js/main.js` into `frontend/dist`.
 
 ::: code-group
 
@@ -40,7 +40,7 @@ import vue from "@vitejs/plugin-vue";
 import { defineConfig, loadEnv } from "vite";
 
 
-export default defineConfig((mode) => {
+export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
   const INPUT_DIR = "./frontend";
@@ -70,7 +70,6 @@ export default defineConfig((mode) => {
       rollupOptions: {
         input: {
           main: join(INPUT_DIR, "/js/main.js"),
-          css: join(INPUT_DIR, "/css/main.css"),
         },
       },
     },
@@ -86,7 +85,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from "vite";
 
 
-export default defineConfig((mode) => {
+export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), "");
 
 	const INPUT_DIR = "./frontend";
@@ -115,7 +114,6 @@ export default defineConfig((mode) => {
 			rollupOptions: {
 				input: {
 					main: join(INPUT_DIR, "/js/main.js"),
-					css: join(INPUT_DIR, "/css/main.css"),
 				},
 			},
 		},
@@ -130,7 +128,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig, loadEnv } from "vite";
 
 
-export default defineConfig((mode) => {
+export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), "");
 
 	const INPUT_DIR = "./frontend";
@@ -159,7 +157,6 @@ export default defineConfig((mode) => {
 			rollupOptions: {
 				input: {
 					main: join(INPUT_DIR, "/js/main.js"),
-					css: join(INPUT_DIR, "/css/main.css"),
 				},
 			},
 		},
@@ -170,8 +167,7 @@ export default defineConfig((mode) => {
 
 ## Initialize the Inertia app
 
-Create a `frontend` directory in your root directory and add a `js` directory inside it.
-Inside the `js` directory, create a `main.js` file.
+Create a `frontend` directory in your root directory with a `js` directory for `main.js` and a `pages` directory for your page components.
 
 Next, update your main JavaScript file (`main.js`) to boot your Inertia app.
 To accomplish this, we'll initialize the client-side framework with the base Inertia component.
@@ -220,32 +216,15 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 ```
 
-```js [Svelte 4]
-// frontend/js/main.js
-import { createInertiaApp } from "@inertiajs/svelte";
-
-document.addEventListener("DOMContentLoaded", () => {
-    createInertiaApp({
-        resolve: (name) => {
-            const pages = import.meta.glob("../pages/**/*.svelte", { eager: true });
-            return pages[`../pages/${name}.svelte`];
-        },
-        setup({ el, App, props }) {
-            new App({ target: el, props });
-        },
-    });
-});
-```
-
-```js [Svelte 5]
+```js [Svelte]
 // frontend/js/main.js
 import { createInertiaApp } from "@inertiajs/svelte";
 import { mount } from "svelte";
 
 createInertiaApp({
     resolve: (name) => {
-        const pages = import.meta.glob("./Pages/**/*.svelte", { eager: true });
-        return pages[`./Pages/${name}.svelte`];
+        const pages = import.meta.glob("../pages/**/*.svelte", { eager: true });
+        return pages[`../pages/${name}.svelte`];
     },
     setup({ el, App, props }) {
         mount(App, { target: el, props });
@@ -257,9 +236,9 @@ createInertiaApp({
 
 The `setup` callback receives everything necessary to initialize the client-side framework, including the root Inertia `App` component.
 
-# Resolving components
+## Resolving components
 
-The `resolve` callback tells Inertia how to load a page component. It receives a page name (string), and returns a page component module. How you implement this callback depends on which bundler (Vite or Webpack) you're using.
+The `resolve` callback tells Inertia how to load a page component. It receives a page name (string), and returns a page component module. With Vite, use `import.meta.glob()`. Page components live in `frontend/pages`, so the page `Event/Index` is `frontend/pages/Event/Index.vue`.
 
 ::: code-group
 
@@ -285,7 +264,7 @@ createInertiaApp({
 });
 ```
 
-```js [Svelte 4, Svelte 5]
+```js [Svelte]
 // frontend/js/main.js
 createInertiaApp({
     resolve: (name) => {

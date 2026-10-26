@@ -34,7 +34,7 @@ Content-Type: text/html; charset=utf-8
 ```
 
 > [!NOTE]
-> While the initial response is HTML, Inertia does not server-side render the JavaScript page components.
+> The page components are not rendered on the server unless you turn on server-side rendering; see `INERTIA["SSR"]`.
 
 ## Inertia responses
 
@@ -75,7 +75,7 @@ X-Inertia: true
 
 ## The page object
 
-Inertia shares data between the server and client via a page object. This object includes the necessary information required to render the page component, update the browser's history state, and track the site's asset version. The page object includes the following four properties:
+Inertia shares data between the server and client via a page object. This object includes the necessary information required to render the page component, update the browser's history state, and track the site's asset version. Every page object has these properties:
 
 1. `component`: The name of the JavaScript page component.
 2. `props`: The page props (data).
@@ -83,6 +83,13 @@ Inertia shares data between the server and client via a page object. This object
 4. `version`: The current asset version.
 5. `encryptHistory`: Whether or not to encrypt the current page's history state.
 6. `clearHistory`: Whether or not to clear any encrypted history state.
+
+It has these when they apply:
+
+- `flash`: Django messages, as `{"messages": [{"level": ..., "message": ...}]}`.
+- `sharedProps`: the keys of the props that came from `INERTIA["SHARED_PROPS"]`.
+- `preserveFragment`: keep the URL fragment after a redirect.
+- `deferredProps`, `mergeProps`, `prependProps`, `deepMergeProps`, `matchPropsOn`, `scrollProps`, `onceProps` and `rescuedProps`: how the client loads, merges and caches the props, from the options of `Prop`.
 
 On standard full page visits, the page object is JSON encoded into a `<script data-page="app" type="application/json">` element. On Inertia visits, the page object is returned as the JSON payload.
 
@@ -144,9 +151,33 @@ Content-Type: application/json
     "categories": [...], // NOT included
     "events": [...]      // included
   },
-  "url": "/events/80",
+  "url": "/events",
   "version": "c32b8e4965f418ad16eaebba1d4e960f"
 }
 ```
+
+## Other request headers
+
+The client sends more headers for partial reloads, merging, once props and prefetching. `InertiaMiddleware` exposes each one on `request.inertia`:
+
+| Header | `request.inertia` |
+|---|---|
+| `X-Inertia` | truthy when present |
+| `X-Inertia-Version` | `version` |
+| `X-Inertia-Partial-Component` | `partial_component` |
+| `X-Inertia-Partial-Data` | `partial_data` |
+| `X-Inertia-Partial-Except` | `partial_except` |
+| `X-Inertia-Reset` | `reset` |
+| `X-Inertia-Except-Once-Props` | `except_once_props` |
+| `X-Inertia-Infinite-Scroll-Merge-Intent` | `merge_intent` |
+| `Purpose: prefetch` | `prefetch` |
+
+## Redirects
+
+For Inertia requests, `InertiaMiddleware` adjusts redirects the way the client needs:
+
+- A `301` or `302` redirect after a `PUT`, `PATCH` or `DELETE` request becomes `303 See Other`, so the browser follows it with a `GET`.
+- A redirect to a URL with a fragment, such as `/articles/1#comments`, becomes `409 Conflict` with the URL in an `X-Inertia-Redirect` header, because a browser drops the fragment when it follows a redirect itself.
+- `InertiaLocation(url)` returns `409 Conflict` with an `X-Inertia-Location` header, which makes the client do a full page visit to `url`.
 
 [page object]: #the-page-object

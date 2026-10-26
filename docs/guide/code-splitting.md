@@ -13,7 +13,7 @@ Vite enables code splitting (or lazy-loading as they call it) by default when us
 ::: code-group
 
 ```js [Vue]
-// frontend/entrypoints/inertia.js
+// frontend/js/main.js
 createInertiaApp({
     resolve: (name) => {
         const pages = import.meta.glob("../pages/**/*.vue", { eager: true }); // [!code --]
@@ -26,7 +26,7 @@ createInertiaApp({
 ```
 
 ```js [React]
-// frontend/entrypoints/inertia.js
+// frontend/js/main.js
 createInertiaApp({
     resolve: (name) => {
         const pages = import.meta.glob("../pages/**/*.jsx", { eager: true }); // [!code --]
@@ -38,8 +38,8 @@ createInertiaApp({
 });
 ```
 
-```js [Svelte 4, Svelte 5]
-// frontend/entrypoints/inertia.js
+```js [Svelte]
+// frontend/js/main.js
 createInertiaApp({
     resolve: (name) => {
         const pages = import.meta.glob("../pages/**/*.svelte", { eager: true }); // [!code --]

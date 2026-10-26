@@ -3,7 +3,7 @@
 layout: home
 
 hero:
-    name: "Inertia.js Django"
+    name: "dj-inertiajs"
     text: "Build single page apps, without building an API"
     tagline: |-
         Create modern, reactive single page React, Vue, and Svelte apps using classic server-side routing.

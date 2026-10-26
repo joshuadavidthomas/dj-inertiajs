@@ -1,6 +1,6 @@
 # Who is Inertia.js for?
 
-Inertia was crafted for development teams and solo hackers who typically build server-side rendered applications using frameworks like Django, Ruby on Rails, or Laravel. You're used to creating controllers, retrieving data from the database (via an ORM), and rendering views.
+Inertia was crafted for development teams and solo hackers who typically build server-side rendered applications using frameworks like Django, Ruby on Rails, or Laravel. You're used to writing views, retrieving data from the database with an ORM, and rendering templates.
 
 But what happens when you want to replace your server-side rendered views with a modern, JavaScript-based single-page application frontend?
 
@@ -10,6 +10,6 @@ This means building a REST or GraphQL API. It means figuring out authentication 
 
 **Inertia empowers you to build a modern, JavaScript-based single-page application without the tiresome complexity.**
 
-Inertia works just like a classic server-side rendered application. You create controllers, you get data from the database (via your ORM), and you render views. But, Inertia views are JavaScript page components written in React, Vue, or Svelte.
+Inertia works just like a classic server-side rendered application. You write views, get data from the database with the ORM, and render a page. But the pages are JavaScript components written in React, Vue, or Svelte, instead of templates.
 
 This means you get all the power of a client-side application and modern SPA experience, but you don't need to build an API. We think it's a breath of fresh air that will supercharge your productivity.

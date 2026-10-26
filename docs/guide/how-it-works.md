@@ -1,6 +1,6 @@
 # How it works
 
-With Inertia you build applications just like you've always done with your server-side web framework of choice. You use your framework's existing functionality for routing, controllers, middleware, authentication, authorization, data fetching, and more.
+With Inertia you build applications just like you've always done with your server-side web framework of choice. You use Django's URL routing, views, middleware, authentication, permissions, ORM, and more.
 
 However, Inertia replaces your application's view layer. Instead of using server-side rendering via Django templates, the views returned by your application are JavaScript page components. This allows you to build your entire frontend using React, Vue, or Svelte, while still enjoying the productivity of Django.
 

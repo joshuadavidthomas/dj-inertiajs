@@ -8,26 +8,26 @@ In addition, Inertia keeps track of the scroll position of each page and automat
 
 ## Scroll preservation
 
-Sometimes it's desirable to prevent the default scroll resetting when making visits. You can disable this behaviour by setting the `preserveScroll` option to `false`.
+Sometimes it's desirable to prevent the default scroll resetting when making visits. You can disable it by setting the `preserveScroll` option to `true`.
 
 ::: code-group
 
 ```js [Vue]
 import { router } from "@inertiajs/vue3";
 
-router.visit(url, { preserveScroll: false });
+router.visit(url, { preserveScroll: true });
 ```
 
 ```js [React]
 import { router } from "@inertiajs/react";
 
-router.visit(url, { preserveScroll: false });
+router.visit(url, { preserveScroll: true });
 ```
 
-```js [Svelte 4, Svelte 5]
+```js [Svelte]
 import { router } from "@inertiajs/svelte";
 
-router.visit(url, { preserveScroll: false });
+router.visit(url, { preserveScroll: true });
 ```
 
 :::
@@ -48,7 +48,7 @@ import { router } from "@inertiajs/react";
 router.visit(url, { preserveScroll: "errors" });
 ```
 
-```js [Svelte 4, Svelte 5]
+```js [Svelte]
 import { router } from "@inertiajs/svelte";
 
 router.visit(url, { preserveScroll: "errors" });
@@ -76,7 +76,7 @@ router.post("/users", data, {
 });
 ```
 
-```js [Svelte 4, Svelte 5]
+```js [Svelte]
 import { router } from "@inertiajs/svelte";
 
 router.post("/users", data, {
@@ -110,7 +110,7 @@ export default () => (
 );
 ```
 
-```svelte [Svelte 4, Svelte 5]
+```svelte [Svelte]
 <script>
   import { inertia, Link } from '@inertiajs/svelte'
 </script>

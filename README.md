@@ -75,7 +75,7 @@ def index(request):
     return render(request, "Event/Index", {"events": Event.objects.values("id", "title")})
 ```
 
-It also takes `template_data` (extra context for the layout), and the keyword-only `template_name` (a layout other than `INERTIA["LAYOUT"]`), `status` and `headers`.
+It also takes `template_data` (extra context for the layout), and the keyword-only `template_name` (a layout other than `INERTIA["LAYOUT"]`), `status`, `headers` and `encrypt_history` (see [History encryption](#history-encryption)).
 
 For views that only return props, use the decorator. It works on sync and `async` views, and passes any `HttpResponse` the view returns, such as a redirect, through unchanged:
 
@@ -146,7 +146,7 @@ props = {
     "reports": Prop(load_reports, optional=True),
     "user": Prop(lambda: request.user.username, always=True),
     "stats": Prop(load_stats, defer=True, group="charts"),
-    "plans": Prop(Plan.objects.all, once=True, expires_at=timedelta(hours=1)),
+    "plans": Prop(lambda: list(Plan.objects.values("id", "name")), once=True, expires_at=timedelta(hours=1)),
     "feed": Prop(load_feed, merge="items", match_on="items.id"),
 }
 ```
@@ -319,7 +319,7 @@ from dj_inertiajs import inertia
 
 @inertia("Account/Show", encrypt_history=True)  # False opts out
 def account(request):
-    return {"account": request.user.account}
+    return {"email": request.user.email}
 ```
 
 `render(..., encrypt_history=True)` and an `encrypt_history = True` attribute on a class-based view do the same. To decide at runtime, set `response.encrypt_history` before the response renders.
@@ -364,7 +364,7 @@ To use your own encoder, set `INERTIA["JSON_ENCODER"]` to its dotted path, or se
 
 Server-side rendering runs in a separate Node server. Django posts the page to it and puts the returned HTML into the layout through `{% inertia_head %}` and `{% inertia_body %}`. If the request fails, the error is logged and the page renders client-side.
 
-1. Install the `ssr` extra, which adds `requests`.
+1. Install the `ssr` extra, which adds `requests`: `pip install "dj-inertiajs[ssr] @ git+https://github.com/joshuadavidthomas/inertia-django"`.
 2. Turn it on:
 
    ```python
@@ -399,7 +399,7 @@ from functools import cache
 
 @cache
 def asset_version():
-    return hashlib.md5((BASE_DIR / "static/dist/manifest.json").read_bytes()).hexdigest()
+    return hashlib.md5((BASE_DIR / "frontend/dist/manifest.json").read_bytes()).hexdigest()
 
 
 INERTIA = {"LAYOUT": "base.html", "VERSION": asset_version}
@@ -417,8 +417,8 @@ INERTIA = {"LAYOUT": "base.html", "VERSION": asset_version}
 | `inertia.E004` | `InertiaMiddleware` is not in `MIDDLEWARE`. |
 | `inertia.E005` | `SessionMiddleware` is not in `MIDDLEWARE`. |
 | `inertia.E006` | An entry in `INERTIA["SHARED_PROPS"]` cannot be imported. |
-| `inertia.E012` | `INERTIA["VERSION"]` is neither a string nor a callable. |
 | `inertia.E011` | `INERTIA["JSON_ENCODER"]` or `INERTIA["FORM_ERRORS"]` cannot be imported. |
+| `inertia.E012` | `INERTIA["VERSION"]` is neither a string nor a callable. |
 | `inertia.E007`–`E010` | Configuration left over from inertia-django. See [Upgrading from inertia-django](docs/guide/upgrading-from-inertia-django.md). |
 
 ## Testing
