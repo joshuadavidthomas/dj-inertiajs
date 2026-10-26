@@ -259,7 +259,7 @@ Its methods change the page this request renders, or with a redirect, the next o
 For type checkers, annotate views with `InertiaHttpRequest`:
 
 ```python
-from dj_inertiajs.http import InertiaHttpRequest
+from dj_inertiajs.request import InertiaHttpRequest
 
 
 def show(request: InertiaHttpRequest, pk: int):
@@ -336,7 +336,7 @@ class LogoutView(auth_views.LogoutView):
 
 ## Serialization
 
-Props are encoded with `INERTIA["JSON_ENCODER"]`, by default `dj_inertiajs.utils.InertiaJsonEncoder`. It extends `DjangoJSONEncoder`, which handles dates, times, decimals and UUIDs, and adds two things:
+Props are encoded with `INERTIA["JSON_ENCODER"]`, by default `dj_inertiajs.encoders.InertiaJsonEncoder`. It extends `DjangoJSONEncoder`, which handles dates, times, decimals and UUIDs, and adds two things:
 
 - Any class with an `InertiaMeta` inner class is encoded as the attributes listed in `InertiaMeta.fields`.
 - A `QuerySet` is encoded as a list of its items, so `Event.objects.values("id", "title")` sends dicts.
@@ -379,7 +379,7 @@ All settings live in one `INERTIA` dict:
 |---|---|---|
 | `LAYOUT` | none, required | The layout template for full page loads. Views can choose another with `template_name`. |
 | `VERSION` | `"1.0"` | The asset version. When the client's version differs, it reloads the page. |
-| `JSON_ENCODER` | `"dj_inertiajs.utils.InertiaJsonEncoder"` | Dotted path to the JSON encoder for props. |
+| `JSON_ENCODER` | `"dj_inertiajs.encoders.InertiaJsonEncoder"` | Dotted path to the JSON encoder for props. |
 | `ENCRYPT_HISTORY` | `False` | Encrypt the browser history state on every page. |
 | `SHARED_PROPS` | `[]` | Dotted paths to functions whose props are added to every page. |
 | `SSR` | `{"ENABLED": False, "URL": "http://localhost:13714"}` | Server-side rendering. Keys you leave out keep their defaults. |

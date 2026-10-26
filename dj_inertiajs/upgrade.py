@@ -47,7 +47,7 @@ POSITIONAL = {"defer": ["group", "merge"], "once": ["fresh"], "scroll": ["scroll
 REQUEST_METHODS = {"share", "clear_history", "preserve_fragment"}
 PUBLIC = {"InertiaResponse", "inertia", "location", "render"}
 MOVED = {
-    "InertiaJsonEncoder": "dj_inertiajs.utils",
+    "InertiaJsonEncoder": "dj_inertiajs.encoders",
     "InertiaMiddleware": "dj_inertiajs.middleware",
     "InertiaTestCase": "dj_inertiajs.test",
 }
@@ -68,7 +68,7 @@ OLD_SETTINGS = {
 }
 STRINGS = {
     "inertia.middleware.InertiaMiddleware": "dj_inertiajs.middleware.InertiaMiddleware",
-    "inertia.utils.InertiaJsonEncoder": "dj_inertiajs.utils.InertiaJsonEncoder",
+    "inertia.utils.InertiaJsonEncoder": "dj_inertiajs.encoders.InertiaJsonEncoder",
 }
 # Old InertiaTestCase assertions, which now take the response first.
 ASSERTIONS = {
@@ -323,11 +323,14 @@ class Upgrade(cst.CSTTransformer):
             elif name in MOVED:
                 new_module = MOVED[name]
             else:
-                new_module = "dj_inertiajs" + module.removeprefix("inertia")
+                # Not public API, and the modules were reorganized: leave the
+                # import as it is, so it fails loudly until it is replaced.
+                new_module = module
                 self.report(
                     original_node,
-                    f"`{name}` is not public API; check that "
-                    f"`from {new_module} import {name}` still works.",
+                    f"`{name}` from `{module}` is not public API and has no "
+                    "replacement here; remove the import or rewrite the code "
+                    "that uses it.",
                 )
             targets.setdefault(new_module, []).append(
                 alias.with_changes(comma=cst.MaybeSentinel.DEFAULT)

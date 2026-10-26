@@ -14,7 +14,7 @@ from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_div, inertia_page
     },
 )
 class SSRTestCase(ProtocolTestCase):
-    @patch("dj_inertiajs.http.requests")
+    @patch("dj_inertiajs.response.requests")
     def test_it_returns_ssr_calls(self, mock_request):
         mock_response = Mock()
         mock_response.json.return_value = {
@@ -37,7 +37,7 @@ class SSRTestCase(ProtocolTestCase):
         self.assertContains(response, "<div>Body Works</div>")
         self.assertContains(response, "head--<title>Head works</title>--head")
 
-    @patch("dj_inertiajs.http.requests")
+    @patch("dj_inertiajs.response.requests")
     def test_it_returns_ssr_calls_with_template_data(self, mock_request):
         mock_response = Mock()
         mock_response.json.return_value = {
@@ -54,7 +54,7 @@ class SSRTestCase(ProtocolTestCase):
         self.assertContains(response, "head--<title>Head works</title>--head")
         self.assertContains(response, "Brian, Basketball")
 
-    @patch("dj_inertiajs.http.requests")
+    @patch("dj_inertiajs.response.requests")
     def test_it_uses_inertia_if_inertia_requests_are_made(self, mock_requests):
         response = self.inertia.get("/props/")
 
@@ -64,7 +64,7 @@ class SSRTestCase(ProtocolTestCase):
             inertia_page("props", props={"name": "Brandon", "sport": "Hockey"}),
         )
 
-    @patch("dj_inertiajs.http.requests")
+    @patch("dj_inertiajs.response.requests")
     def test_it_fallsback_on_failure(self, mock_requests):
         def uh_oh(*args, **kwargs):
             raise ValueError()  # SSR errors are logged and fall back to client-side rendering
@@ -78,8 +78,8 @@ class SSRTestCase(ProtocolTestCase):
             response, inertia_div("props", props={"name": "Brandon", "sport": "Hockey"})
         )
 
-    @patch("dj_inertiajs.http.logger")
-    @patch("dj_inertiajs.http.requests")
+    @patch("dj_inertiajs.response.logger")
+    @patch("dj_inertiajs.response.requests")
     def test_it_logs_exception_on_ssr_failure(self, mock_requests, mock_logger):
         error = ValueError("SSR rendering failed")
 

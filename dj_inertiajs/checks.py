@@ -9,7 +9,7 @@ from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 from django.utils.module_loading import import_string
 
-from .settings import DEFAULTS, settings
+from .conf import DEFAULTS, settings
 
 SESSION_MIDDLEWARE = "django.contrib.sessions.middleware.SessionMiddleware"
 INERTIA_MIDDLEWARE = "dj_inertiajs.middleware.InertiaMiddleware"

@@ -6,8 +6,9 @@ from django.http import HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from django.utils.cache import patch_vary_headers
 
-from .http import InertiaDetails, location
-from .settings import settings
+from .conf import settings
+from .request import InertiaDetails
+from .response import location
 
 
 class InertiaMiddleware:

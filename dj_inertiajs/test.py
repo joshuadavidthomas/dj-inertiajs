@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any
 from django.http import HttpResponse
 from django.test import Client, TestCase
 
-from .http import InertiaPage, InertiaResponse
+from .response import InertiaPage, InertiaResponse
 
 __all__ = ["InertiaClient", "InertiaTestCase", "InertiaTestMixin"]
 

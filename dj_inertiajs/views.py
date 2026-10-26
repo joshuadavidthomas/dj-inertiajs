@@ -6,8 +6,9 @@ from django.forms import BaseForm
 from django.http import HttpRequest
 from django.views.generic import View
 
-from .http import InertiaResponse, error_messages
 from .props import Prop
+from .request import error_messages
+from .response import InertiaResponse
 
 __all__ = ["InertiaResponseMixin", "InertiaView"]
 

@@ -1,6 +1,6 @@
 from json import dumps
 
-from dj_inertiajs.settings import settings
+from dj_inertiajs.conf import settings
 from dj_inertiajs.test import InertiaTestCase
 
 

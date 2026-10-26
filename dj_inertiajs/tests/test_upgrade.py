@@ -98,14 +98,17 @@ class ImportTestCase(SimpleTestCase):
                 from dj_inertiajs import inertia, render
                 from dj_inertiajs import location
                 from dj_inertiajs.test import InertiaTestCase
-                from dj_inertiajs.utils import InertiaJsonEncoder
-                from dj_inertiajs.helpers import deep_transform_callables
+                from dj_inertiajs.encoders import InertiaJsonEncoder
+                from inertia.helpers import deep_transform_callables
                 """
             ),
         )
         self.assertEqual(len(manual), 2)
         self.assertIn("`inertia_page` was removed", manual[0])
-        self.assertIn("`deep_transform_callables` is not public API", manual[1])
+        self.assertIn(
+            "`deep_transform_callables` from `inertia.helpers` is not public API",
+            manual[1],
+        )
 
     def test_module_import_is_reported(self):
         code, manual = upgrade("import inertia\n")

@@ -7,7 +7,7 @@ from django.utils.decorators import decorator_from_middleware
 from django.views.generic import FormView, ListView
 
 from dj_inertiajs import Prop, inertia, location, render
-from dj_inertiajs.http import (
+from dj_inertiajs.request import (
     INERTIA_SESSION_CLEAR_HISTORY,
     INERTIA_SESSION_PRESERVE_FRAGMENT,
 )
