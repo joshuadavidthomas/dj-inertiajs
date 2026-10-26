@@ -59,17 +59,7 @@ See the [client-side setup guide](docs/guide/client-side-setup.md). We recommend
 
 ### CSRF
 
-The middleware sets Django's CSRF cookie on every response, including requests made with Inertia v3's `useHttp`. The v3 HTTP client defaults to Laravel's cookie and header names, so configure Django's (or your project's custom names):
-
-```javascript
-createInertiaApp({
-  // ...
-  http: {
-    xsrfCookieName: 'csrftoken',
-    xsrfHeaderName: 'X-CSRFToken',
-  },
-})
-```
+There is nothing to configure. The Inertia v3 client reads the CSRF token from an `XSRF-TOKEN` cookie and sends it back in an `X-XSRF-TOKEN` header, the names Laravel uses. `InertiaMiddleware` sets that cookie on Inertia responses, next to Django's own, and passes the header to Django's CSRF check. This works for visits and `useHttp` requests alike, and with `CSRF_USE_SESSIONS` or `CSRF_COOKIE_HTTPONLY`.
 
 ## Responses
 
@@ -494,7 +484,7 @@ This package breaks inertia-django's API on purpose, so that it follows Django's
 | [History encryption](docs/guide/upgrading-from-inertia-django.md#history-encryption) | `encrypt_history(request)` inside the view | `encrypt_history=True` on the decorator, `render()` or the class-based view |
 | [Serialization](docs/guide/upgrading-from-inertia-django.md#serialization) | Models encoded with every field except `password` | Models need `InertiaMeta` or explicit fields, like `JsonResponse` |
 | [Tests](docs/guide/upgrading-from-inertia-django.md#tests) | Stateful assertions read the last response; `self.inertia` client | Assertions take the response; `self.client` makes Inertia visits; `response.inertia` in pytest |
-| CSRF | Cookie set on every response | Cookie set only on Inertia responses |
+| [CSRF](docs/guide/upgrading-from-inertia-django.md#csrf) | The client is configured with Django's cookie and header names; cookie set on every response | Works with the client's default `XSRF-TOKEN` names; cookie set only on Inertia responses |
 | Configuration errors | Found at request time | Reported by `manage.py check` |
 
 ### How to upgrade

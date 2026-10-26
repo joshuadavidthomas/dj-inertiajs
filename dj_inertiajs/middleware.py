@@ -1,13 +1,19 @@
 from typing import Any, Callable
 
 from asgiref.sync import iscoroutinefunction, markcoroutinefunction
+from django.conf import settings as django_settings
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.utils.cache import patch_vary_headers
 
 from .conf import settings
 from .request import INERTIA_SESSION_PRESERVE_FRAGMENT, InertiaDetails
-from .response import InertiaLocation
+from .response import InertiaLocation, InertiaResponse
+
+# The Inertia v3 client reads the CSRF token from this cookie and sends it in
+# an X-XSRF-TOKEN header, the names Laravel uses.
+XSRF_COOKIE_NAME = "XSRF-TOKEN"
+XSRF_HEADER = "HTTP_X_XSRF_TOKEN"
 
 
 class InertiaMiddleware:
@@ -17,6 +23,8 @@ class InertiaMiddleware:
     - Convert PUT/PATCH/DELETE redirects to 303 so the subsequent request
       is always treated as a GET by the browser.
     - Detect asset version mismatches and force a full-page refresh.
+    - Give the client the CSRF token under its default names: an
+      ``XSRF-TOKEN`` cookie, read back from an ``X-XSRF-TOKEN`` header.
 
     It also attaches ``request.inertia``, an ``InertiaDetails``, before the
     view runs.
@@ -36,6 +44,12 @@ class InertiaMiddleware:
 
     def __call__(self, request: HttpRequest) -> Any:
         request.inertia = InertiaDetails(request)  # type: ignore[attr-defined]
+        if XSRF_HEADER in request.META:
+            # CsrfViewMiddleware checks the token in its process_view(), which
+            # runs after every middleware's request phase.
+            request.META.setdefault(
+                django_settings.CSRF_HEADER_NAME, request.META[XSRF_HEADER]
+            )
         if iscoroutinefunction(self):
             return self.__acall__(request)
         return self.process_response(request, self.get_response(request))
@@ -47,6 +61,7 @@ class InertiaMiddleware:
         self, request: HttpRequest, response: HttpResponse
     ) -> HttpResponse:
         patch_vary_headers(response, ("X-Inertia",))
+        self.set_xsrf_cookie(request, response)
 
         if getattr(response, "preserve_fragment", False):
             request.session[INERTIA_SESSION_PRESERVE_FRAGMENT] = True
@@ -65,6 +80,27 @@ class InertiaMiddleware:
             response.status_code = 303
 
         return response
+
+    def set_xsrf_cookie(self, request: HttpRequest, response: HttpResponse) -> None:
+        # The cookie holds Django's CSRF secret, as Django's own cookie does.
+        # Inertia pages always send it, to set and renew it; other responses
+        # only replace a stale one, after rotate_token() at login.
+        secret = request.META.get("CSRF_COOKIE")
+        if secret is None:
+            return
+        current = request.COOKIES.get(XSRF_COOKIE_NAME)
+        if not isinstance(response, InertiaResponse) and current in (None, secret):
+            return
+        response.set_cookie(
+            XSRF_COOKIE_NAME,
+            secret,
+            max_age=django_settings.CSRF_COOKIE_AGE,
+            domain=django_settings.CSRF_COOKIE_DOMAIN,
+            path=django_settings.CSRF_COOKIE_PATH,
+            secure=django_settings.CSRF_COOKIE_SECURE,
+            samesite=django_settings.CSRF_COOKIE_SAMESITE,
+        )
+        patch_vary_headers(response, ("Cookie",))
 
     def is_non_post_redirect(
         self, request: HttpRequest, response: HttpResponse

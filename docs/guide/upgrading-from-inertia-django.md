@@ -72,6 +72,7 @@ It does not find these; the system checks find the first, and the rest show up w
 | Models without `InertiaMeta` | [Serialization](#serialization) |
 | Code that reads `request.inertia` | [The request](#the-request) |
 | Code that reads `response.content` before returning a response | [Responses render lazily](#responses-render-lazily) |
+| The `http` CSRF option in your JavaScript, which still works but can go | [CSRF](#csrf) |
 
 ## From inertia-django 1.x
 
@@ -95,19 +96,7 @@ inertia-django 1.x targets the Inertia v2 client. This package needs the v3 clie
 
    :::
 
-2. **Configure Django's CSRF names.** The v3 HTTP client defaults to Laravel's `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header:
-
-   ```js
-   createInertiaApp({
-     // resolve and setup...
-     http: {
-       xsrfCookieName: "csrftoken",
-       xsrfHeaderName: "X-CSRFToken",
-     },
-   })
-   ```
-
-   If you set `CSRF_COOKIE_NAME` or `CSRF_HEADER_NAME`, use those names instead.
+2. **Remove the CSRF configuration** from your client setup, such as `axios.defaults.xsrfHeaderName`. The v3 client reads the `XSRF-TOKEN` cookie, which the middleware sets; see [CSRF](#csrf).
 
 3. **Use Django messages for one-time notices.** Messages from `django.contrib.messages` are sent as the page's top-level `flash.messages`. Replace props you used for notices with `messages.success()` and the like.
 
@@ -194,6 +183,23 @@ MIDDLEWARE = [
 `SessionMiddleware` is now required and checked (`inertia.E005`). inertia-django needed it too, but only failed on the first request.
 
 The codemod rewrites this entry. The `inertia.E008` check reports the old path if it is left.
+
+## CSRF
+
+The middleware now sets an `XSRF-TOKEN` cookie on Inertia responses and accepts an `X-XSRF-TOKEN` header, the names the v3 client uses by default. The `http` option you added to `createInertiaApp` for Django's names still works, because Django still accepts its own header, but you can delete it:
+
+```js
+createInertiaApp({
+  // Before: delete these lines
+  http: {
+    xsrfCookieName: "csrftoken",
+    xsrfHeaderName: "X-CSRFToken",
+  },
+  // resolve and setup...
+})
+```
+
+This also makes the client work with `CSRF_USE_SESSIONS` and `CSRF_COOKIE_HTTPONLY`, where Django's own cookie cannot be read.
 
 ## Layout templates
 

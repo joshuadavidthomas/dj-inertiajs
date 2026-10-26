@@ -176,7 +176,7 @@ Inside the `js` directory, create a `main.js` file.
 Next, update your main JavaScript file (`main.js`) to boot your Inertia app.
 To accomplish this, we'll initialize the client-side framework with the base Inertia component.
 
-Configure the Inertia v3 HTTP client to use Django's default CSRF cookie and header names.
+You do not need to configure CSRF: the v3 client reads the `XSRF-TOKEN` cookie that `InertiaMiddleware` sets, and sends it in a header that Django's CSRF check accepts.
 
 ::: code-group
 
@@ -187,10 +187,6 @@ import { createInertiaApp } from "@inertiajs/vue3";
 
 document.addEventListener("DOMContentLoaded", () => {
     createInertiaApp({
-        http: {
-            xsrfCookieName: "csrftoken",
-            xsrfHeaderName: "X-CSRFToken",
-        },
         resolve: (name) => {
             const pages = import.meta.glob("../pages/**/*.vue", { eager: true });
             return pages[`../pages/${name}.vue`];
@@ -212,10 +208,6 @@ import { createRoot } from "react-dom/client";
 
 document.addEventListener("DOMContentLoaded", () => {
     createInertiaApp({
-        http: {
-            xsrfCookieName: "csrftoken",
-            xsrfHeaderName: "X-CSRFToken",
-        },
         resolve: (name) => {
             const pages = import.meta.glob("../pages/**/*.jsx", { eager: true });
             return pages[`../pages/${name}.jsx`];
@@ -234,10 +226,6 @@ import { createInertiaApp } from "@inertiajs/svelte";
 
 document.addEventListener("DOMContentLoaded", () => {
     createInertiaApp({
-        http: {
-            xsrfCookieName: "csrftoken",
-            xsrfHeaderName: "X-CSRFToken",
-        },
         resolve: (name) => {
             const pages = import.meta.glob("../pages/**/*.svelte", { eager: true });
             return pages[`../pages/${name}.svelte`];
@@ -255,10 +243,6 @@ import { createInertiaApp } from "@inertiajs/svelte";
 import { mount } from "svelte";
 
 createInertiaApp({
-    http: {
-        xsrfCookieName: "csrftoken",
-        xsrfHeaderName: "X-CSRFToken",
-    },
     resolve: (name) => {
         const pages = import.meta.glob("./Pages/**/*.svelte", { eager: true });
         return pages[`./Pages/${name}.svelte`];

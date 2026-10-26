@@ -7,8 +7,4 @@ createInertiaApp({
   setup({ el, App, props, plugin }) {
     createApp({ render: () => h(App, props) }).use(plugin).mount(el)
   },
-  http: {
-    xsrfCookieName: 'csrftoken',
-    xsrfHeaderName: 'X-CSRFToken',
-  },
 })

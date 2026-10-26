@@ -50,6 +50,8 @@ urlpatterns = [
     path("infinite-scroll/", views.infinite_scroll_test),
     path("v3/nested/", views.v3_nested_props_test),
     path("v3/merge/", views.v3_merge_props_test),
+    path("v3/post/", views.v3_post_test),
+    path("csrf-rotate/", views.csrf_rotate_test),
     path("v3/scroll/", views.v3_scroll_test),
     path("v3/deferred-scroll/", views.v3_deferred_scroll_test),
     path("v3/deferred-once/", views.v3_deferred_once_test),

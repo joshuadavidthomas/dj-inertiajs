@@ -1,7 +1,9 @@
 import json
 
+from django.conf import settings
 from django.test import override_settings
 
+from dj_inertiajs.test import InertiaClient
 from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_page
 
 # ---------------------------------------------------------------------------
@@ -232,6 +234,7 @@ class UseHttpCsrfTestCase(ProtocolTestCase):
         so they stay cacheable."""
         response = self.client.get("/test/", inertia=False)
         self.assertIsNone(response.cookies.get("csrftoken"))
+        self.assertIsNone(response.cookies.get("XSRF-TOKEN"))
         self.assertNotIn("Cookie", response.get("Vary", ""))
 
     def test_non_inertia_response_is_not_modified_by_middleware(self):
@@ -294,3 +297,70 @@ class UseHttpCsrfTestCase(ProtocolTestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/login/")
+
+
+class XsrfTokenTestCase(ProtocolTestCase):
+    """The v3 client's default CSRF names, XSRF-TOKEN and X-XSRF-TOKEN, work
+    without client configuration."""
+
+    def setUp(self):
+        self.csrf_client = InertiaClient(enforce_csrf_checks=True)
+
+    def post(self, token):
+        headers = {} if token is None else {"X-XSRF-TOKEN": token}
+        return self.csrf_client.post("/v3/post/", headers=headers)
+
+    def xsrf_token(self, response):
+        return response.cookies["XSRF-TOKEN"].value
+
+    def test_inertia_page_sets_a_cookie_javascript_can_read(self):
+        cookie = self.csrf_client.get("/v3/nested/").cookies["XSRF-TOKEN"]
+
+        self.assertEqual(cookie["httponly"], "")
+        self.assertEqual(cookie["samesite"], "Lax")
+        self.assertEqual(cookie["max-age"], 31449600)
+
+    def test_plain_django_pages_stay_free_of_the_cookie(self):
+        self.csrf_client.get("/v3/nested/")
+        response = self.csrf_client.get("/test/", inertia=False)
+
+        self.assertNotIn("XSRF-TOKEN", response.cookies)
+        self.assertNotIn("Cookie", response.get("Vary", ""))
+
+    def test_post_with_the_xsrf_header_passes_the_csrf_check(self):
+        token = self.xsrf_token(self.csrf_client.get("/v3/nested/"))
+
+        self.assertEqual(self.post(token).status_code, 302)
+
+    def test_post_without_a_valid_token_is_rejected(self):
+        self.csrf_client.get("/v3/nested/")
+
+        self.assertEqual(self.post(None).status_code, 403)
+        self.assertEqual(self.post("x" * 64).status_code, 403)
+
+    @override_settings(CSRF_USE_SESSIONS=True, CSRF_COOKIE_HTTPONLY=True)
+    def test_works_when_django_keeps_its_token_out_of_cookies(self):
+        response = self.csrf_client.get("/v3/nested/")
+
+        self.assertIsNone(response.cookies.get("csrftoken"))
+        self.assertEqual(self.post(self.xsrf_token(response)).status_code, 302)
+
+    def test_rotated_token_reaches_the_cookie_in_either_middleware_order(self):
+        csrf = "django.middleware.csrf.CsrfViewMiddleware"
+        inertia = "dj_inertiajs.middleware.InertiaMiddleware"
+        others = [m for m in settings.MIDDLEWARE if m not in (csrf, inertia)]
+        for use_sessions in (False, True):
+            for order in ([csrf, inertia], [inertia, csrf]):
+                with (
+                    self.subTest(use_sessions=use_sessions, order=order),
+                    override_settings(
+                        MIDDLEWARE=others + order, CSRF_USE_SESSIONS=use_sessions
+                    ),
+                ):
+                    self.csrf_client = InertiaClient(enforce_csrf_checks=True)
+                    old = self.xsrf_token(self.csrf_client.get("/v3/nested/"))
+                    response = self.csrf_client.get("/csrf-rotate/", inertia=False)
+                    new = self.xsrf_token(response)
+
+                    self.assertEqual(self.post(old).status_code, 403)
+                    self.assertEqual(self.post(new).status_code, 302)

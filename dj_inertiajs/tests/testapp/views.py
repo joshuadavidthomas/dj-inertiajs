@@ -2,7 +2,8 @@ import asyncio
 
 from django import forms
 from django.contrib import messages
-from django.http.response import HttpResponse
+from django.http.response import HttpResponse, JsonResponse
+from django.middleware.csrf import rotate_token
 from django.shortcuts import redirect
 from django.shortcuts import render as django_render
 from django.utils.decorators import decorator_from_middleware
@@ -246,6 +247,18 @@ def v3_nested_props_test(request):
         },
         "user": {"name": "Brandon", "token": "secret-token"},
     }
+
+
+def csrf_rotate_test(request):
+    rotate_token(request)
+    return JsonResponse({"rotated": True})
+
+
+def v3_post_test(request):
+    # A visit redirects back to a page; a useHttp request gets JSON.
+    if request.inertia:
+        return redirect("/v3/nested/")
+    return JsonResponse({"saved": True})
 
 
 @inertia("TestComponent")

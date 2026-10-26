@@ -31,6 +31,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Add upgrade checks that report inertia-django configuration still in use: `INERTIA_*` settings, the old middleware path, the `inertia` app, and layouts that use `{% block inertia %}`. Each hint names the section of the upgrade guide that explains the fix.
 * Accept a callable for `INERTIA["VERSION"]`, so the version can follow a build manifest. Check `inertia.E012` reports a value that is neither a string nor a callable.
 * Add system checks for unknown `INERTIA` keys, unimportable `SHARED_PROPS` entries, a missing layout, SSR without `requests`, and missing Inertia or session middleware.
+* Work with the Inertia v3 client's default CSRF names, so the client needs no `http` configuration. `InertiaMiddleware` sets an `XSRF-TOKEN` cookie on Inertia responses, and replaces a stale one after `rotate_token()`, and passes an `X-XSRF-TOKEN` header to Django's CSRF check. This also works with `CSRF_USE_SESSIONS` and `CSRF_COOKIE_HTTPONLY`.
 * Set the CSRF cookie only on Inertia responses. The middleware set it on every response, which added `Vary: Cookie` to pages that are not Inertia pages.
 * Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
 * Support `async def` views under `@inertia`, and `async def` prop callables, which are awaited in sync and async views alike.
