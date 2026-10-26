@@ -8,6 +8,8 @@ from django.views.generic import FormView, ListView
 
 from django_inertia import (
     Prop,
+    clear_history,
+    encrypt_history,
     inertia,
     location,
     preserve_fragment,
@@ -18,8 +20,6 @@ from django_inertia import (
 from django_inertia.http import (
     INERTIA_SESSION_CLEAR_HISTORY,
     INERTIA_SESSION_PRESERVE_FRAGMENT,
-    clear_history,
-    encrypt_history,
 )
 from django_inertia.views import InertiaResponseMixin, InertiaView
 

@@ -1,5 +1,7 @@
 from .http import (
     InertiaResponse,
+    clear_history,
+    encrypt_history,
     inertia,
     location,
     preserve_fragment,
@@ -12,6 +14,8 @@ from .share import share
 __all__ = [
     "InertiaResponse",
     "Prop",
+    "clear_history",
+    "encrypt_history",
     "inertia",
     "location",
     "preserve_fragment",

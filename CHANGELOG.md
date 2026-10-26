@@ -19,6 +19,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 
 ### Added
 
+* Export `encrypt_history` and `clear_history` from the top-level package. They were only importable from `inertia.http`, although the README imported them from `inertia`.
 * Add system checks for unknown `INERTIA` keys, unimportable `SHARED_PROPS` entries, a missing layout, SSR without `requests`, and missing Inertia or session middleware.
 * Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
 * Support `async def` views under `@inertia`.
