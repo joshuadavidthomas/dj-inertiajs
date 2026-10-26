@@ -518,3 +518,7 @@ These projects use inertia-django. They show the overall setup; their Python cod
 ## Thank you
 
 This package builds on [inertia-django](https://github.com/inertiajs/inertia-django) by Brandon Shar and its contributors. Parts of that project were inspired by [Andres Vargas](https://github.com/zodman) and [Samuel Girardin](https://github.com/girardinsamuel).
+
+## License
+
+dj-inertiajs is licensed under the MIT license. See the [`LICENSE`](LICENSE) file for more information.
