@@ -30,10 +30,14 @@ Repository = "https://github.com/inertiajs/inertia-django"
 [project.optional-dependencies]
 # Requests is requires for server-side rendering.
 ssr = ["requests>=2"]
+upgrade = [
+    "libcst>=1.4",
+]
 
 [dependency-groups]
 dev = [
     "django-stubs[compatible-mypy]>=5.2.2,<6.0.0",
+    "libcst>=1.4",
     "mypy>=1.17.0,<2.0.0",
     "pytest>=8.3.5,<9.0.0",
     "pytest-cov>=6.0.0,<7.0.0",

@@ -20,6 +20,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 ### Added
 
 * Export `encrypt_history` and `clear_history` from the top-level package. They were only importable from `inertia.http`, although the README imported them from `inertia`.
+* Add an upgrade codemod, `python -m django_inertia.upgrade [--diff] PATH ...`, with the `upgrade` extra. It rewrites imports, prop helper calls, `INERTIA_*` settings and the `MIDDLEWARE` and `INSTALLED_APPS` entries, preserving formatting, and lists what it could not rewrite.
 * Add upgrade checks that report inertia-django configuration still in use: `INERTIA_*` settings, the old middleware path, the `inertia` app, and layouts that use `{% block inertia %}`. Each hint names the section of the upgrade guide that explains the fix.
 * Add system checks for unknown `INERTIA` keys, unimportable `SHARED_PROPS` entries, a missing layout, SSR without `requests`, and missing Inertia or session middleware.
 * Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
