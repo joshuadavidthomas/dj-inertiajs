@@ -20,12 +20,12 @@ class AsyncMiddlewareTestCase(TestCase):
 
 class MiddlewareTestCase(ProtocolTestCase):
     def test_anything(self):
-        response = self.client.get("/test/")
+        response = self.client.get("/test/", inertia=False)
 
         self.assertEqual(response.status_code, 200)
 
     def test_stale_versions_are_refreshed(self):
-        response = self.inertia.get(
+        response = self.client.get(
             "/empty/",
             HTTP_X_INERTIA_VERSION="some-nonsense",
         )
@@ -36,24 +36,23 @@ class MiddlewareTestCase(ProtocolTestCase):
         )
 
     def test_redirect_status(self):
-        response = self.inertia.post("/redirect/")
+        response = self.client.post("/redirect/")
         self.assertEqual(response.status_code, 302)
 
         for http_method in ["put", "patch", "delete"]:
-            response = getattr(self.inertia, http_method)("/redirect/")
+            response = getattr(self.client, http_method)("/redirect/")
 
             self.assertEqual(response.status_code, 303)
 
     def test_a_request_not_from_inertia_is_ignored(self):
         response = self.client.get(
-            "/empty/",
-            HTTP_X_INERTIA_VERSION="some-nonsense",
+            "/empty/", HTTP_X_INERTIA_VERSION="some-nonsense", inertia=False
         )
 
         self.assertEqual(response.status_code, 200)
 
     def test_external_redirect_status(self):
-        response = self.inertia.post("/external-redirect/")
+        response = self.client.post("/external-redirect/")
         self.assertEqual(response.status_code, 409)
         self.assertIn("X-Inertia-Location", response.headers)
         self.assertEqual("http://foobar.com/", response.headers["X-Inertia-Location"])
@@ -61,13 +60,13 @@ class MiddlewareTestCase(ProtocolTestCase):
 
 class RequestDetailsTestCase(ProtocolTestCase):
     def test_request_inertia_describes_the_request(self):
-        response = self.client.get("/request-details/")
+        response = self.client.get("/request-details/", inertia=False)
         self.assertEqual(
             response.inertia.props,
             {"inertia": False, "partial_data": None, "is_partial": False},
         )
 
-        response = self.inertia.get(
+        response = self.client.get(
             "/request-details/",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="OtherComponent",
             HTTP_X_INERTIA_PARTIAL_DATA="stats, plans",

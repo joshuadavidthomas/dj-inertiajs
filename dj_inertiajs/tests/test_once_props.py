@@ -12,7 +12,7 @@ class OncePropsTestCase(ProtocolTestCase):
     def test_once_props_are_included_on_first_load(self):
         """Without X-Inertia-Except-Once-Props the prop is resolved normally."""
         self.assertJSONResponse(
-            self.inertia.get("/once/"),
+            self.client.get("/once/"),
             inertia_page(
                 "once",
                 props={"name": "Brandon", "plans": ["basic", "pro"]},
@@ -22,7 +22,7 @@ class OncePropsTestCase(ProtocolTestCase):
 
     def test_once_props_metadata_is_included_on_first_load(self):
         """The onceProps key is present in the full page response."""
-        response = self.inertia.get("/once/")
+        response = self.client.get("/once/")
         page = response.json()
 
         self.assertIn("onceProps", page)
@@ -35,7 +35,7 @@ class OncePropsTestCase(ProtocolTestCase):
         """When the client sends the key in X-Inertia-Except-Once-Props the
         prop is excluded from the response props but the onceProps metadata
         is still included so the client can continue to track the key."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/once/",
             HTTP_X_INERTIA_EXCEPT_ONCE_PROPS="plans",
         )
@@ -49,7 +49,7 @@ class OncePropsTestCase(ProtocolTestCase):
     def test_once_props_are_skipped_for_multiple_keys(self):
         """Multiple comma-separated keys in X-Inertia-Except-Once-Props are
         all respected."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/once/",
             HTTP_X_INERTIA_EXCEPT_ONCE_PROPS="plans,other",
         )
@@ -60,7 +60,7 @@ class OncePropsTestCase(ProtocolTestCase):
     def test_once_props_metadata_is_included_for_selected_partial_props(self):
         """Selected once props retain metadata on partial responses so the
         client can continue to track its cache entry."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/once/",
             HTTP_X_INERTIA_PARTIAL_DATA="plans",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -75,7 +75,7 @@ class OncePropsTestCase(ProtocolTestCase):
     def test_once_props_are_resolved_on_explicit_partial_reload(self):
         """Even when listed in X-Inertia-Except-Once-Props a once prop is
         resolved when it is explicitly requested via partial reload."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/once/",
             HTTP_X_INERTIA_EXCEPT_ONCE_PROPS="plans",
             HTTP_X_INERTIA_PARTIAL_DATA="plans",
@@ -90,7 +90,7 @@ class OncePropsTestCase(ProtocolTestCase):
         """A once prop created with fresh=True is always resolved even when
         the client reports having it via X-Inertia-Except-Once-Props."""
         self.assertJSONResponse(
-            self.inertia.get(
+            self.client.get(
                 "/once-fresh/",
                 HTTP_X_INERTIA_EXCEPT_ONCE_PROPS="plans",
             ),
@@ -104,14 +104,14 @@ class OncePropsTestCase(ProtocolTestCase):
     def test_once_props_full_page_initial_load_includes_value(self):
         """A full (non-Inertia) page request also includes the once prop value
         in the serialised page data embedded in the HTML."""
-        response = self.client.get("/once/")
+        response = self.client.get("/once/", inertia=False)
         self.assertContains(response, "basic")
         self.assertContains(response, "pro")
 
     def test_empty_except_once_props_header_is_handled_gracefully(self):
         """An empty X-Inertia-Except-Once-Props header does not raise an
         exception and behaves as if the header were absent."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/once/",
             HTTP_X_INERTIA_EXCEPT_ONCE_PROPS="",
         )
@@ -130,7 +130,7 @@ class SharedOncePropsTestCase(ProtocolTestCase):
 
     def test_shared_once_props_metadata_is_included(self):
         """A once prop set via share() appears in onceProps on the first load."""
-        response = self.inertia.get("/once-shared/")
+        response = self.client.get("/once-shared/")
         page = response.json()
 
         self.assertIn("onceProps", page)
@@ -138,7 +138,7 @@ class SharedOncePropsTestCase(ProtocolTestCase):
 
     def test_shared_once_props_value_is_resolved_on_first_load(self):
         """The value of a shared once prop is present in props on first load."""
-        response = self.inertia.get("/once-shared/")
+        response = self.client.get("/once-shared/")
         page = response.json()
 
         self.assertIn("plans", page["props"])
@@ -147,7 +147,7 @@ class SharedOncePropsTestCase(ProtocolTestCase):
     def test_shared_once_props_are_skipped_when_client_has_them(self):
         """A shared once prop is excluded from props when the client reports
         holding it via X-Inertia-Except-Once-Props."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/once-shared/",
             HTTP_X_INERTIA_EXCEPT_ONCE_PROPS="plans",
         )

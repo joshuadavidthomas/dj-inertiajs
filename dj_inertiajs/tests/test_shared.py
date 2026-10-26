@@ -13,9 +13,9 @@ SHARED = {
 @override_settings(INERTIA=SHARED)
 class SharedPropsSettingTestCase(InertiaTestCase):
     def test_listed_functions_add_props_to_every_page(self):
-        response = self.inertia.get("/props/")
+        response = self.client.get("/props/")
 
-        self.assertHasExactProps(
+        self.assertPropsEqual(
             response,
             {
                 "app_name": "Scoreboard",
@@ -27,12 +27,12 @@ class SharedPropsSettingTestCase(InertiaTestCase):
         self.assertEqual(response.inertia.data["sharedProps"], ["app_name", "user"])
 
     def test_view_props_win_over_shared_props(self):
-        response = self.inertia.get("/overrides-shared/")
+        response = self.client.get("/overrides-shared/")
 
-        self.assertIncludesProps(response, {"app_name": "From the view"})
+        self.assertPropsContain(response, {"app_name": "From the view"})
 
     def test_shared_props_follow_partial_reload_rules(self):
-        response = self.inertia.get(
+        response = self.client.get(
             "/props/",
             headers={
                 "X-Inertia-Partial-Component": "TestComponent",
@@ -40,10 +40,10 @@ class SharedPropsSettingTestCase(InertiaTestCase):
             },
         )
 
-        self.assertHasExactProps(response, {"user": "Brandon", "name": "Brandon"})
+        self.assertPropsEqual(response, {"user": "Brandon", "name": "Brandon"})
 
     def test_share_adds_to_the_listed_functions(self):
-        response = self.inertia.get("/share/")
+        response = self.client.get("/share/")
 
         self.assertEqual(
             response.inertia.data["sharedProps"],
@@ -53,19 +53,17 @@ class SharedPropsSettingTestCase(InertiaTestCase):
 
 class SetErrorsTestCase(InertiaTestCase):
     def test_errors_are_sent_once_after_the_redirect(self):
-        response = self.inertia.post("/set-errors/", {}, follow=True)
+        response = self.client.post("/set-errors/", {}, follow=True)
 
-        self.assertHasExactProps(
-            response, {"errors": {"name": "This field is required."}}
-        )
+        self.assertPropsEqual(response, {"errors": {"name": "This field is required."}})
 
-        response = self.inertia.get("/empty/")
-        self.assertHasExactProps(response, {})
+        response = self.client.get("/empty/")
+        self.assertPropsEqual(response, {})
 
     def test_errors_survive_a_partial_reload_for_other_props(self):
-        self.inertia.post("/set-errors/", {})
+        self.client.post("/set-errors/", {})
 
-        response = self.inertia.get(
+        response = self.client.get(
             "/props/",
             headers={
                 "X-Inertia-Partial-Component": "TestComponent",
@@ -73,14 +71,14 @@ class SetErrorsTestCase(InertiaTestCase):
             },
         )
 
-        self.assertHasExactProps(
+        self.assertPropsEqual(
             response, {"errors": {"name": "This field is required."}, "name": "Brandon"}
         )
 
     def test_valid_form_sets_no_errors(self):
-        response = self.inertia.post("/set-errors/", {"name": "Hockey"}, follow=True)
+        response = self.client.post("/set-errors/", {"name": "Hockey"}, follow=True)
 
-        self.assertHasExactProps(response, {})
+        self.assertPropsEqual(response, {})
 
 
 class ErrorMessagesTestCase(SimpleTestCase):

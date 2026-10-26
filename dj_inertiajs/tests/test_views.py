@@ -8,10 +8,10 @@ from dj_inertiajs.views import InertiaView
 
 class InertiaViewTestCase(InertiaTestCase):
     def test_declared_props_and_url_kwargs(self):
-        response = self.inertia.get("/dashboard/penguins/")
+        response = self.client.get("/dashboard/penguins/")
 
         self.assertComponentUsed(response, "Dashboard")
-        self.assertHasExactProps(
+        self.assertPropsEqual(
             response,
             {"plans": ["basic", "pro"], "motto": "get_stats", "team": "penguins"},
         )
@@ -22,7 +22,7 @@ class InertiaViewTestCase(InertiaTestCase):
         )
 
     def test_declared_prop_method_runs_when_requested(self):
-        response = self.inertia.get(
+        response = self.client.get(
             "/dashboard/penguins/",
             headers={
                 "X-Inertia-Partial-Component": "Dashboard",
@@ -30,14 +30,14 @@ class InertiaViewTestCase(InertiaTestCase):
             },
         )
 
-        self.assertHasExactProps(response, {"stats": {"wins": 3}})
+        self.assertPropsEqual(response, {"stats": {"wins": 3}})
 
     def test_missing_component(self):
         with self.assertRaisesMessage(
             ImproperlyConfigured,
             "MissingComponentView requires either a definition of 'component'",
         ):
-            self.inertia.get("/missing-component/")
+            self.client.get("/missing-component/")
 
     def test_prop_decorator_validates_its_options(self):
         with self.assertRaisesMessage(ValueError, "group requires defer=True."):
@@ -53,18 +53,16 @@ class GenericViewTestCase(InertiaTestCase):
         Sport.objects.create(name="Hockey", season="Winter")
         Sport.objects.create(name="Baseball", season="Summer")
 
-        response = self.inertia.get("/sports/")
+        response = self.client.get("/sports/")
 
         self.assertComponentUsed(response, "Sports/Index")
-        self.assertHasExactProps(response, {"sports": ["Hockey", "Baseball"]})
+        self.assertPropsEqual(response, {"sports": ["Hockey", "Baseball"]})
 
     def test_form_view_renders_errors_and_redirects_on_success(self):
-        response = self.inertia.post("/sports/create/", {})
+        response = self.client.post("/sports/create/", {})
 
         self.assertComponentUsed(response, "Sports/Create")
-        self.assertHasExactProps(
-            response, {"errors": {"name": "This field is required."}}
-        )
+        self.assertPropsEqual(response, {"errors": {"name": "This field is required."}})
 
-        response = self.inertia.post("/sports/create/", {"name": "Hockey"})
+        response = self.client.post("/sports/create/", {"name": "Hockey"})
         self.assertRedirects(response, "/empty/", fetch_redirect_response=False)

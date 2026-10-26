@@ -17,13 +17,13 @@ class PreserveFragmentTestCase(ProtocolTestCase):
 
     def test_preserve_fragment_is_included_after_the_redirect(self):
         self.assertJSONResponse(
-            self.inertia.get("/preserve-fragment-redirect/", follow=True),
+            self.client.get("/preserve-fragment-redirect/", follow=True),
             inertia_page("empty", preserve_fragment=True),
         )
 
     def test_preserve_fragment_is_absent_by_default(self):
         """preserveFragment is not in the page object when not requested."""
-        response = self.inertia.get("/empty/")
+        response = self.client.get("/empty/")
         page = response.json()
 
         self.assertNotIn("preserveFragment", page)
@@ -31,15 +31,17 @@ class PreserveFragmentTestCase(ProtocolTestCase):
     def test_preserve_fragment_persists_across_a_redirect(self):
         """The flag survives in the session for the page that follows the
         redirect, including for a plain (non-Inertia) request."""
-        response = self.client.get("/preserve-fragment-redirect/", follow=True)
+        response = self.client.get(
+            "/preserve-fragment-redirect/", follow=True, inertia=False
+        )
 
         self.assertTrue(response.inertia.data.get("preserveFragment"))
 
     def test_preserve_fragment_is_consumed_after_one_response(self):
         """The session flag is cleared after the first response that reads it,
         so a second request does not see preserveFragment: true."""
-        self.inertia.get("/preserve-fragment-redirect/", follow=True)
-        response = self.inertia.get("/empty/")
+        self.client.get("/preserve-fragment-redirect/", follow=True)
+        response = self.client.get("/empty/")
         page = response.json()
 
         self.assertNotIn("preserveFragment", page)
@@ -48,7 +50,7 @@ class PreserveFragmentTestCase(ProtocolTestCase):
         """A non-bool session value raises TypeError, matching the contract of
         the other session-based flags."""
         with self.assertRaises(TypeError):
-            self.inertia.get("/preserve-fragment-type-error/")
+            self.client.get("/preserve-fragment-type-error/")
 
 
 # ---------------------------------------------------------------------------
@@ -69,7 +71,7 @@ class PreserveErrorsTestCase(ProtocolTestCase):
 
     def test_shared_errors_are_included_on_full_render(self):
         """Shared errors are present on a full (non-partial) Inertia render."""
-        response = self.inertia.get("/preserve-errors/")
+        response = self.client.get("/preserve-errors/")
         page = response.json()
 
         self.assertIn("errors", page["props"])
@@ -79,7 +81,7 @@ class PreserveErrorsTestCase(ProtocolTestCase):
         """When errors is not in X-Inertia-Partial-Data the shared errors
         prop is omitted from the partial reload response, ensuring the client's
         preserveErrors option can retain its existing errors."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/preserve-errors/",
             HTTP_X_INERTIA_PARTIAL_DATA="name",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -92,7 +94,7 @@ class PreserveErrorsTestCase(ProtocolTestCase):
     def test_shared_errors_are_included_when_explicitly_requested(self):
         """A partial reload that includes errors in X-Inertia-Partial-Data
         does receive the errors prop."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/preserve-errors/",
             HTTP_X_INERTIA_PARTIAL_DATA="errors",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -119,7 +121,7 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
         """Without X-Inertia-Infinite-Scroll-Merge-Intent the merge-able
         prop is listed in mergeProps as normal."""
         self.assertJSONResponse(
-            self.inertia.get("/infinite-scroll/"),
+            self.client.get("/infinite-scroll/"),
             inertia_page(
                 "infinite-scroll",
                 props={"name": "Brandon", "items": ["item1", "item2"]},
@@ -129,7 +131,7 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
 
     def test_append_intent_does_not_produce_prepend_props(self):
         """An explicit append intent header does not produce prependProps."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/infinite-scroll/",
             HTTP_X_INERTIA_PARTIAL_DATA="items",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -142,7 +144,7 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
     def test_prepend_intent_produces_prepend_props(self):
         """When the merge intent is prepend, prependProps is included in the
         partial reload response with the requested merge-able prop keys."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/infinite-scroll/",
             HTTP_X_INERTIA_PARTIAL_DATA="items",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -157,7 +159,7 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
         """prependProps is never produced on a full (non-partial) render even
         when the intent header is present, because there is no meaningful
         merge operation on a first load."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/infinite-scroll/",
             HTTP_X_INERTIA_INFINITE_SCROLL_MERGE_INTENT="prepend",
         )
@@ -168,7 +170,7 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
     def test_prepend_intent_excludes_non_merge_props_from_prepend_props(self):
         """Only merge-able props requested in the partial data are included
         in prependProps; regular props are not listed there."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/infinite-scroll/",
             HTTP_X_INERTIA_PARTIAL_DATA="name,items",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -182,7 +184,7 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
 
     def test_prepend_props_respects_reset_keys(self):
         """A key listed in X-Inertia-Reset is excluded from prependProps."""
-        response = self.inertia.get(
+        response = self.client.get(
             "/infinite-scroll/",
             HTTP_X_INERTIA_PARTIAL_DATA="items",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -209,25 +211,25 @@ class UseHttpCsrfTestCase(ProtocolTestCase):
     def test_csrf_token_is_set_for_non_inertia_requests(self):
         """A plain (non-Inertia) request receives a CSRF cookie, enabling
         useHttp requests to include the token."""
-        response = self.client.get("/props/")
+        response = self.client.get("/props/", inertia=False)
         self.assertIsNotNone(response.cookies.get("csrftoken"))
 
     def test_csrf_token_is_set_for_inertia_requests(self):
         """Inertia-flagged requests also receive the CSRF cookie."""
-        response = self.inertia.get("/props/")
+        response = self.client.get("/props/")
         self.assertIsNotNone(response.cookies.get("csrftoken"))
 
     def test_plain_django_responses_get_no_csrf_cookie(self):
         """Pages that are not Inertia pages keep Django's own CSRF behavior,
         so they stay cacheable."""
-        response = self.client.get("/test/")
+        response = self.client.get("/test/", inertia=False)
         self.assertIsNone(response.cookies.get("csrftoken"))
         self.assertNotIn("Cookie", response.get("Vary", ""))
 
     def test_non_inertia_response_is_not_modified_by_middleware(self):
         """The middleware does not alter the status or content of a response
         to a plain HTTP request, which is the path taken by useHttp."""
-        response = self.client.get("/test/")
+        response = self.client.get("/test/", inertia=False)
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("X-Inertia", response.headers)
 

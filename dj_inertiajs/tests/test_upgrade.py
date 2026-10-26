@@ -339,9 +339,9 @@ class TestAssertionTestCase(SimpleTestCase):
 
                 class EventTests(InertiaTestCase):
                     def test_index(self):
-                        response = self.client.get("/first/")
+                        response = self.client.get("/first/", inertia=False)
                         with self.settings(DEBUG=True):
-                            page = self.inertia.get("/second/")
+                            page = self.client.get("/second/")
                         self.assertComponentUsed(page, "Event/Index", msg_prefix="x")
                         assert page.inertia.props["name"] == page
                         assert page.inertia.data["deferredProps"] == {}
@@ -377,6 +377,7 @@ class TestAssertionTestCase(SimpleTestCase):
         self.assertIn('self.assertComponentUsed(response, "Event/Index")', code)
         self.assertIn("self.assertEqual(self.props(), {})", code)
         self.assertEqual(code.count("response = "), 1)
+        self.assertEqual(code.count("inertia=False"), 1)
 
     def test_assertion_without_a_request_is_reported(self):
         code, manual = upgrade(
@@ -394,26 +395,46 @@ class TestAssertionTestCase(SimpleTestCase):
         self.assertEqual(len(manual), 1)
         self.assertIn("line 6: `self.assertComponentUsed` needs a response", manual[0])
 
-    def test_methods_on_the_new_api_are_left_alone(self):
-        source = dedent(
+    def test_clients_and_assertion_names_change_and_a_second_run_does_not(self):
+        code, manual = upgrade(
             """\
             from inertia.test import InertiaTestCase
 
 
             class EventTests(InertiaTestCase):
                 def test_index(self):
-                    self.client.get("/warm-up/")
+                    self.client.get(
+                        "/warm-up/",
+                        follow=True,
+                    )
                     response = self.inertia.get("/")
                     self.assertComponentUsed(response, "Event/Index")
+                    self.assertHasExactProps({})
             """
         )
 
-        code, manual = upgrade_source(source)
-
         self.assertEqual(
-            code, source.replace("from inertia.test", "from dj_inertiajs.test")
+            code,
+            dedent(
+                """\
+                from dj_inertiajs.test import InertiaTestCase
+
+
+                class EventTests(InertiaTestCase):
+                    def test_index(self):
+                        response = self.client.get(
+                            "/warm-up/",
+                            follow=True,
+                            inertia=False,
+                        )
+                        response = self.client.get("/")
+                        self.assertComponentUsed(response, "Event/Index")
+                        self.assertPropsEqual(response, {})
+                """
+            ),
         )
         self.assertEqual(manual, [])
+        self.assertEqual(upgrade_source(code), (code, []))
 
 
 class CrossFileTestCaseTestCase(SimpleTestCase):

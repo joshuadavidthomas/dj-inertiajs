@@ -72,11 +72,11 @@ STRINGS = {
 }
 # Old InertiaTestCase assertions, which now take the response first.
 ASSERTIONS = {
-    "assertComponentUsed",
-    "assertHasExactProps",
-    "assertIncludesProps",
-    "assertHasExactTemplateData",
-    "assertIncludesTemplateData",
+    "assertComponentUsed": "assertComponentUsed",
+    "assertHasExactProps": "assertPropsEqual",
+    "assertIncludesProps": "assertPropsContain",
+    "assertHasExactTemplateData": "assertTemplateDataEqual",
+    "assertIncludesTemplateData": "assertTemplateDataContain",
 }
 # Old InertiaTestCase accessors and the expression that replaces each, given
 # the response variable.
@@ -256,6 +256,8 @@ class Upgrade(cst.CSTTransformer):
         # response, and whether the function uses the old test API at all.
         self.responses: list[str | None] = []
         self.uses_old_api: list[bool] = []
+        # Per function: whether it is a test case method, or nested in one.
+        self.test_methods: list[bool] = []
 
     def report(self, node: cst.CSTNode, message: str) -> None:
         line = self.get_metadata(PositionProvider, node).start.line
@@ -384,6 +386,9 @@ class Upgrade(cst.CSTTransformer):
             node.body.visit(finder)
         self.responses.append(None)
         self.uses_old_api.append(finder.found)
+        self.test_methods.append(
+            in_test_case or (bool(self.test_methods) and self.test_methods[-1])
+        )
         self.inertia_views.append(
             any(self._is_inertia_decorator(d) for d in node.decorators)
         )
@@ -397,6 +402,7 @@ class Upgrade(cst.CSTTransformer):
         self.in_test_case.pop()
         self.responses.pop()
         self.uses_old_api.pop()
+        self.test_methods.pop()
         self.inertia_views.pop()
         value = self.encrypt_values.pop()
         if value is None:
@@ -507,7 +513,10 @@ class Upgrade(cst.CSTTransformer):
                     cst.Name(response),
                     comma=cst.Comma(whitespace_after=cst.SimpleWhitespace(" ")),
                 )
-                return updated_node.with_changes(args=[first, *updated_node.args])
+                func = updated_node.func.with_changes(attr=cst.Name(ASSERTIONS[name]))
+                return updated_node.with_changes(
+                    func=func, args=[first, *updated_node.args]
+                )
             if name in ACCESSORS and not original_node.args:
                 response = self._response(original_node, f"{name}()")
                 if response is None:
@@ -533,6 +542,18 @@ class Upgrade(cst.CSTTransformer):
                 f"class-based view; {guide('History encryption')}.",
             )
             return updated_node
+        if (
+            self.test_methods
+            and self.test_methods[-1]
+            and isinstance(func, cst.Attribute)
+            and func.attr.value in CLIENT_METHODS
+            and isinstance(func.value, cst.Attribute)
+            and func.value.attr.value == "client"
+            and _is_self(func.value.value)
+        ):
+            # The old self.client made full page loads; self.client now makes
+            # Inertia visits.
+            return _add_arg(updated_node, "inertia", cst.Name("False"))
         if isinstance(func, cst.Name) and func.value in self.location_names:
             return updated_node.with_changes(func=cst.Name("InertiaLocation"))
         if isinstance(func, cst.Name) and func.value in self.helpers:
@@ -704,6 +725,14 @@ class Upgrade(cst.CSTTransformer):
     def leave_Attribute(
         self, original_node: cst.Attribute, updated_node: cst.Attribute
     ) -> cst.BaseExpression:
+        if (
+            self.test_methods
+            and self.test_methods[-1]
+            and original_node.attr.value == "inertia"
+            and _is_self(original_node.value)
+        ):
+            # The old test case's Inertia client is now self.client.
+            return updated_node.with_changes(attr=cst.Name("client"))
         if (
             self.uses_old_api
             and self.uses_old_api[-1]
@@ -964,11 +993,20 @@ def _assigned_name(statement: cst.BaseStatement) -> str | None:
 
 def _add_arg(call: cst.Call, name: str, value: cst.BaseExpression) -> cst.Call:
     args = list(call.args)
-    if args and not isinstance(args[-1].comma, cst.Comma):
+    new = _keyword(name, value)
+    if args and isinstance(args[-1].comma, cst.Comma):
+        # A trailing comma means one argument per line: the new argument
+        # goes on its own line, indented like the first, and keeps the
+        # trailing comma.
+        new = new.with_changes(comma=args[-1].comma)
+        args[-1] = args[-1].with_changes(
+            comma=cst.Comma(whitespace_after=call.whitespace_before_args)
+        )
+    elif args:
         args[-1] = args[-1].with_changes(
             comma=cst.Comma(whitespace_after=cst.SimpleWhitespace(" "))
         )
-    return call.with_changes(args=[*args, _keyword(name, value)])
+    return call.with_changes(args=[*args, new])
 
 
 def _keyword(name: str, value: cst.BaseExpression) -> cst.Arg:

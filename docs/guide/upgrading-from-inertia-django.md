@@ -310,27 +310,38 @@ The setting that selects the encoder changed too; see [Settings](#settings).
 
 ## Tests
 
-The test helpers no longer remember the last response. Assertions take the response first, like `assertTemplateUsed`:
+The test helpers no longer remember the last response. Assertions take the response first, like `assertTemplateUsed`, and have Django-style names. `self.client` is now the Inertia client, so the old `self.client`, which made full page loads, becomes `self.client.get(..., inertia=False)`:
 
 ```python
 # Before
 self.client.get("/events/")
+self.inertia.get("/events/")
 self.assertComponentUsed("Event/Index")
 self.assertIncludesProps({"sport": "hockey"})
 self.assertEqual(self.props()["name"], "Brandon")
 
 # After
+response = self.client.get("/events/", inertia=False)
 response = self.client.get("/events/")
 self.assertComponentUsed(response, "Event/Index")
-self.assertIncludesProps(response, {"sport": "hockey"})
+self.assertPropsContain(response, {"sport": "hockey"})
 self.assertEqual(response.inertia.props["name"], "Brandon")
 ```
 
+| Before | After |
+|---|---|
+| `self.inertia.get(...)` | `self.client.get(...)` |
+| `self.client.get(...)` | `self.client.get(..., inertia=False)` |
+| `assertHasExactProps` | `assertPropsEqual` |
+| `assertIncludesProps` | `assertPropsContain` |
+| `assertHasExactTemplateData` | `assertTemplateDataEqual` |
+| `assertIncludesTemplateData` | `assertTemplateDataContain` |
+
 - `response.inertia` holds the page the response sent: `component`, `props`, `url`, `version`, and the whole page object as `data`. It replaces `page()`, `props()`, `component()`, `merge_props()`, `deferred_props()` and `once_props()`; for example, `self.deferred_props()` becomes `response.inertia.data["deferredProps"]`.
-- `self.inertia` is still a client that sends `X-Inertia`, now an `InertiaClient`. `last_response` is gone.
+- `InertiaTestCase` sets Django's `client_class` to `InertiaClient` and `async_client_class` to `AsyncInertiaClient`. `self.inertia` and `last_response` are gone.
 - The assertions live in `InertiaTestMixin`, which also works with `SimpleTestCase`. In pytest, read `response.inertia` directly.
 - `inertia_page()`, `inertia_div()`, `assertJSONResponse` and `BaseInertiaTestCase` were removed. Compare `response.inertia.data` or `response.json()` instead.
 
-The codemod rewrites these in every class that descends from an `inertia.test` test case, including through your own base classes in other files. In each test method it keeps the response of the latest request in a variable, assigning `response = ...` where the request's result was discarded, and passes it to the assertions and accessors that read it. It reports an assertion with no request before it in the same method, such as one in a helper method; pass the response to those by hand.
+The codemod makes all of these rewrites in every class that descends from an `inertia.test` test case, including through your own base classes in other files. In each test method it keeps the response of the latest request in a variable, assigning `response = ...` where the request's result was discarded, and passes it to the assertions and accessors that read it. It reports an assertion with no request before it in the same method, such as one in a helper method; pass the response to those by hand.
 
 To find base classes in other files, the codemod must see them: run it on the whole project, or include the files that define your base test cases. A test case whose base it cannot find is left as it is, and its assertions fail with a `TypeError` that names the assertion.

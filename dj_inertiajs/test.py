@@ -1,11 +1,16 @@
 from typing import TYPE_CHECKING, Any
 
 from django.http import HttpResponse
-from django.test import Client, TestCase
+from django.test import AsyncClient, Client, TestCase
 
 from .response import InertiaPage, InertiaResponse
 
-__all__ = ["InertiaClient", "InertiaTestCase", "InertiaTestMixin"]
+__all__ = [
+    "AsyncInertiaClient",
+    "InertiaClient",
+    "InertiaTestCase",
+    "InertiaTestMixin",
+]
 
 if TYPE_CHECKING:
     from django.test import SimpleTestCase as _TestCaseBase
@@ -13,28 +18,44 @@ else:
     _TestCaseBase = object
 
 
-class InertiaClient(Client):
-    """A test client whose requests are Inertia visits."""
+class _InertiaVisits:
+    def generic(
+        self,
+        method: str,
+        path: str,
+        *args: Any,
+        inertia: bool = True,
+        headers: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        if inertia:
+            headers = {"X-Inertia": "true", **(headers or {})}
+        return super().generic(method, path, *args, headers=headers, **kwargs)  # type: ignore[misc]
 
-    def __init__(
-        self, *args: Any, headers: dict[str, str] | None = None, **kwargs: Any
-    ):
-        super().__init__(
-            *args, headers={"X-Inertia": "true", **(headers or {})}, **kwargs
-        )
+
+class InertiaClient(_InertiaVisits, Client):  # type: ignore[misc]
+    """A test client whose requests are Inertia visits.
+
+    Pass ``inertia=False`` to a request for a full page load, as a browser
+    makes on the first visit: ``client.get("/events/", inertia=False)``.
+    """
+
+
+class AsyncInertiaClient(_InertiaVisits, AsyncClient):  # type: ignore[misc]
+    """The async counterpart of ``InertiaClient``."""
 
 
 class InertiaTestMixin(_TestCaseBase):
     """Inertia assertions for ``SimpleTestCase`` and its subclasses.
 
     Each assertion takes the response under test, like ``assertTemplateUsed``.
-    ``self.inertia`` is an ``InertiaClient``. Outside unittest, read
-    ``response.inertia`` directly.
+    ``self.client`` is an ``InertiaClient`` and ``self.async_client`` an
+    ``AsyncInertiaClient``. Outside unittest, read ``response.inertia``
+    directly.
     """
 
-    def setUp(self) -> None:
-        super().setUp()
-        self.inertia = InertiaClient()
+    client_class = InertiaClient
+    async_client_class = AsyncInertiaClient
 
     def _inertia_response(
         self, response: HttpResponse, msg_prefix: str
@@ -58,20 +79,20 @@ class InertiaTestMixin(_TestCaseBase):
             f"{msg_prefix}Component {used!r} was used, not {component!r}.",
         )
 
-    def assertHasExactProps(
+    def assertPropsEqual(
         self, response: HttpResponse, props: dict[str, Any], msg_prefix: str = ""
     ) -> None:
         self.assertDictEqual(
             self._page(response, msg_prefix).props, props, msg_prefix or None
         )
 
-    def assertIncludesProps(
+    def assertPropsContain(
         self, response: HttpResponse, props: dict[str, Any], msg_prefix: str = ""
     ) -> None:
         actual = self._page(response, msg_prefix).props
         self.assertDictEqual(actual, {**actual, **props}, msg_prefix or None)
 
-    def assertHasExactTemplateData(
+    def assertTemplateDataEqual(
         self,
         response: HttpResponse,
         template_data: dict[str, Any],
@@ -80,7 +101,7 @@ class InertiaTestMixin(_TestCaseBase):
         actual = self._inertia_response(response, msg_prefix).template_data
         self.assertDictEqual(actual, template_data, msg_prefix or None)
 
-    def assertIncludesTemplateData(
+    def assertTemplateDataContain(
         self,
         response: HttpResponse,
         template_data: dict[str, Any],

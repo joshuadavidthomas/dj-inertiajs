@@ -440,9 +440,9 @@ def test_events(client):
     assert response.inertia.props["events"] == []
 ```
 
-`response.inertia` works for full page loads too.
+`response.inertia` works for full page loads too. `dj_inertiajs.test.InertiaClient` is a Django test client whose requests are Inertia visits; pass `inertia=False` to a request for a full page load.
 
-With Django's test cases, `InertiaTestCase` adds assertions that take the response first, like `assertTemplateUsed`. `self.inertia` is a client whose requests are Inertia visits:
+With Django's test cases, `InertiaTestCase` sets `client_class` to `InertiaClient` (and `async_client_class` to `AsyncInertiaClient`), and adds assertions that take the response first, like `assertTemplateUsed`:
 
 ```python
 from dj_inertiajs.test import InertiaTestCase
@@ -450,13 +450,17 @@ from dj_inertiajs.test import InertiaTestCase
 
 class EventTests(InertiaTestCase):
     def test_index(self):
-        response = self.inertia.get("/events/")
+        response = self.client.get("/events/")
 
         self.assertComponentUsed(response, "Event/Index")
-        self.assertIncludesProps(response, {"sport": "hockey"})
-        self.assertHasExactProps(response, {"sport": "hockey", "events": []})
-        self.assertIncludesTemplateData(response, {"title": "Events"})
-        self.assertHasExactTemplateData(response, {"title": "Events"})
+        self.assertPropsContain(response, {"sport": "hockey"})
+        self.assertPropsEqual(response, {"sport": "hockey", "events": []})
+
+    def test_first_load(self):
+        response = self.client.get("/events/", inertia=False)
+
+        self.assertTemplateDataContain(response, {"title": "Events"})
+        self.assertTemplateDataEqual(response, {"title": "Events"})
 ```
 
 `InertiaTestCase` is `InertiaTestMixin` plus `django.test.TestCase`. Combine the mixin with `SimpleTestCase` or another test case when you need to.

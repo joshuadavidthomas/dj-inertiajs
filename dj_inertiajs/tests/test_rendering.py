@@ -7,7 +7,7 @@ from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_div, inertia_page
 class FirstLoadTestCase(ProtocolTestCase):
     def test_with_props(self):
         self.assertContains(
-            self.client.get("/props/"),
+            self.client.get("/props/", inertia=False),
             inertia_div(
                 "props",
                 props={
@@ -18,7 +18,7 @@ class FirstLoadTestCase(ProtocolTestCase):
         )
 
     def test_with_template_data(self):
-        response = self.client.get("/template_data/")
+        response = self.client.get("/template_data/", inertia=False)
 
         self.assertContains(
             response,
@@ -34,19 +34,23 @@ class FirstLoadTestCase(ProtocolTestCase):
         self.assertContains(response, "template data:Brian, Basketball")
 
     def test_with_no_data(self):
-        self.assertContains(self.client.get("/empty/"), inertia_div("empty"))
+        self.assertContains(
+            self.client.get("/empty/", inertia=False), inertia_div("empty")
+        )
 
     def test_proper_status_code(self):
-        self.assertEqual(self.client.get("/empty/").status_code, 200)
+        self.assertEqual(self.client.get("/empty/", inertia=False).status_code, 200)
 
     def test_template_rendered(self):
-        self.assertTemplateUsed(self.client.get("/empty/"), "layout.html")
+        self.assertTemplateUsed(
+            self.client.get("/empty/", inertia=False), "layout.html"
+        )
 
 
 class SubsequentLoadTestCase(ProtocolTestCase):
     def test_with_props(self):
         self.assertJSONResponse(
-            self.inertia.get("/props/"),
+            self.client.get("/props/"),
             inertia_page(
                 "props",
                 props={
@@ -58,7 +62,7 @@ class SubsequentLoadTestCase(ProtocolTestCase):
 
     def test_with_template_data(self):
         self.assertJSONResponse(
-            self.inertia.get("/template_data/"),
+            self.client.get("/template_data/"),
             inertia_page(
                 "template_data",
                 template_data={
@@ -69,25 +73,25 @@ class SubsequentLoadTestCase(ProtocolTestCase):
         )
 
     def test_with_no_data(self):
-        self.assertJSONResponse(self.inertia.get("/empty/"), inertia_page("empty"))
+        self.assertJSONResponse(self.client.get("/empty/"), inertia_page("empty"))
 
     def test_proper_status_code(self):
-        self.assertEqual(self.inertia.get("/empty/").status_code, 200)
+        self.assertEqual(self.client.get("/empty/").status_code, 200)
 
     def test_redirects_from_inertia_views(self):
-        self.assertEqual(self.inertia.get("/inertia-redirect/").status_code, 302)
+        self.assertEqual(self.client.get("/inertia-redirect/").status_code, 302)
 
 
 class OptionalPropsTestCase(ProtocolTestCase):
     def test_optional_props_are_not_included(self):
         self.assertJSONResponse(
-            self.inertia.get("/optional/"),
+            self.client.get("/optional/"),
             inertia_page("optional", props={"name": "Brian"}),
         )
 
     def test_optional_props_are_included_when_requested(self):
         self.assertJSONResponse(
-            self.inertia.get(
+            self.client.get(
                 "/optional/",
                 HTTP_X_INERTIA_PARTIAL_DATA="sport,grit",
                 HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -99,7 +103,7 @@ class OptionalPropsTestCase(ProtocolTestCase):
 class ComplexPropsTestCase(ProtocolTestCase):
     def test_nested_callable_props_work(self):
         self.assertJSONResponse(
-            self.inertia.get("/complex-props/"),
+            self.client.get("/complex-props/"),
             inertia_page("complex-props", props={"person": {"name": "Brandon"}}),
         )
 
@@ -107,7 +111,7 @@ class ComplexPropsTestCase(ProtocolTestCase):
 class ShareTestCase(ProtocolTestCase):
     def test_that_shared_props_are_merged(self):
         self.assertJSONResponse(
-            self.inertia.get("/share/"),
+            self.client.get("/share/"),
             inertia_page(
                 "share",
                 props={"name": "Brandon", "position": "goalie", "number": 29},
@@ -118,12 +122,12 @@ class ShareTestCase(ProtocolTestCase):
 
 class CSRFTestCase(ProtocolTestCase):
     def test_that_csrf_inclusion_is_automatic(self):
-        response = self.inertia.get("/props/")
+        response = self.client.get("/props/")
 
         self.assertIsNotNone(response.cookies.get("csrftoken"))
 
     def test_that_csrf_is_included_even_on_initial_page_load(self):
-        response = self.client.get("/props/")
+        response = self.client.get("/props/", inertia=False)
 
         self.assertIsNotNone(response.cookies.get("csrftoken"))
 
@@ -131,7 +135,7 @@ class CSRFTestCase(ProtocolTestCase):
 class DeferredPropsTestCase(ProtocolTestCase):
     def test_deferred_props_are_set(self):
         self.assertJSONResponse(
-            self.inertia.get("/defer/"),
+            self.client.get("/defer/"),
             inertia_page(
                 "defer", props={"name": "Brian"}, deferred_props={"default": ["sport"]}
             ),
@@ -139,7 +143,7 @@ class DeferredPropsTestCase(ProtocolTestCase):
 
     def test_deferred_props_are_grouped(self):
         self.assertJSONResponse(
-            self.inertia.get("/defer-group/"),
+            self.client.get("/defer-group/"),
             inertia_page(
                 "defer-group",
                 props={"name": "Brian"},
@@ -149,7 +153,7 @@ class DeferredPropsTestCase(ProtocolTestCase):
 
     def test_deferred_props_are_included_when_requested(self):
         self.assertJSONResponse(
-            self.inertia.get(
+            self.client.get(
                 "/defer/",
                 HTTP_X_INERTIA_PARTIAL_DATA="sport",
                 HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -159,7 +163,7 @@ class DeferredPropsTestCase(ProtocolTestCase):
 
     def test_only_deferred_props_in_group_are_included_when_requested(self):
         self.assertJSONResponse(
-            self.inertia.get(
+            self.client.get(
                 "/defer-group/",
                 HTTP_X_INERTIA_PARTIAL_DATA="sport,team",
                 HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -168,7 +172,7 @@ class DeferredPropsTestCase(ProtocolTestCase):
         )
 
         self.assertJSONResponse(
-            self.inertia.get(
+            self.client.get(
                 "/defer-group/",
                 HTTP_X_INERTIA_PARTIAL_DATA="grit",
                 HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -180,7 +184,7 @@ class DeferredPropsTestCase(ProtocolTestCase):
 class MergePropsTestCase(ProtocolTestCase):
     def test_merge_props_are_included_on_initial_load(self):
         self.assertJSONResponse(
-            self.inertia.get("/merge/"),
+            self.client.get("/merge/"),
             inertia_page(
                 "merge",
                 props={
@@ -194,7 +198,7 @@ class MergePropsTestCase(ProtocolTestCase):
 
     def test_deferred_merge_props_are_included_on_subsequent_load(self):
         self.assertJSONResponse(
-            self.inertia.get(
+            self.client.get(
                 "/merge/",
                 HTTP_X_INERTIA_PARTIAL_DATA="team",
                 HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -210,7 +214,7 @@ class MergePropsTestCase(ProtocolTestCase):
 
     def test_merge_props_are_not_included_when_reset(self):
         self.assertJSONResponse(
-            self.inertia.get(
+            self.client.get(
                 "/merge/",
                 HTTP_X_INERTIA_PARTIAL_DATA="sport,team",
                 HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
@@ -235,12 +239,12 @@ class MisconfiguredLayoutTestCase(ProtocolTestCase):
                 'Set INERTIA["LAYOUT"] in your Django settings',
             ),
         ):
-            self.client.get("/props/")
+            self.client.get("/props/", inertia=False)
 
 
 class LazyResponseTestCase(ProtocolTestCase):
     def test_template_response_middleware_can_add_props(self):
-        response = self.inertia.get("/template-response-middleware/")
+        response = self.client.get("/template-response-middleware/")
 
         self.assertJSONResponse(
             response,
@@ -251,7 +255,7 @@ class LazyResponseTestCase(ProtocolTestCase):
         )
 
     def test_render_passes_status(self):
-        response = self.inertia.get("/status/")
+        response = self.client.get("/status/")
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json()["props"], {"name": "Brandon"})
@@ -269,10 +273,10 @@ class AsyncViewTestCase(TestCase):
 
 class AsyncPropsTestCase(ProtocolTestCase):
     def test_async_callables_are_awaited_in_sync_views(self):
-        response = self.inertia.get("/async-props/")
+        response = self.client.get("/async-props/")
         self.assertEqual(response.inertia.props, {"score": 3})
 
-        response = self.inertia.get(
+        response = self.client.get(
             "/async-props/",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
             HTTP_X_INERTIA_PARTIAL_DATA="deferred",
@@ -293,27 +297,27 @@ class LayoutTestCase(ProtocolTestCase):
     )
 
     def test_render_takes_a_layout_per_view(self):
-        response = self.client.get("/other-layout/")
+        response = self.client.get("/other-layout/", inertia=False)
 
         self.assertTemplateUsed(response, "other_layout.html")
         self.assertContains(response, self.root)
         self.assertContains(response, '</script>\n  <div id="root"></div></main>')
 
     def test_decorator_takes_the_render_options(self):
-        response = self.client.get("/decorated-options/")
+        response = self.client.get("/decorated-options/", inertia=False)
 
         self.assertTemplateUsed(response, "other_layout.html")
         self.assertContains(response, self.root, status_code=202)
         self.assertEqual(response["X-Team"], "Penguins")
 
     def test_class_based_view_takes_a_layout(self):
-        response = self.client.get("/other-layout-view/")
+        response = self.client.get("/other-layout-view/", inertia=False)
 
         self.assertTemplateUsed(response, "other_layout.html")
         self.assertContains(response, self.root)
 
     def test_tags_render_nothing_outside_an_inertia_response(self):
-        response = self.client.get("/plain-layout/")
+        response = self.client.get("/plain-layout/", inertia=False)
 
         self.assertEqual(
             response.content.decode(), "head----head\n\ntemplate data:Brian, \n"

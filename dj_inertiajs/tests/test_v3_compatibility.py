@@ -10,7 +10,7 @@ from dj_inertiajs.tests.utils import ProtocolTestCase
 
 class V3PropsCompatibilityTestCase(ProtocolTestCase):
     def test_partial_except_supports_nested_paths(self):
-        page = self.inertia.get(
+        page = self.client.get(
             "/v3/nested/",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
             HTTP_X_INERTIA_PARTIAL_EXCEPT="user.token",
@@ -20,7 +20,7 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
         self.assertEqual(page["props"]["config"]["timezone"], "UTC")
 
     def test_partial_only_supports_nested_once_props(self):
-        page = self.inertia.get(
+        page = self.client.get(
             "/v3/nested/",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
             HTTP_X_INERTIA_PARTIAL_DATA="config.locale",
@@ -40,14 +40,14 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
         self.assertEqual(root.merge_paths("feed", prepend=True), ["feed"])
 
     def test_merge_metadata_supports_nested_paths_and_matching(self):
-        page = self.inertia.get("/v3/merge/").json()
+        page = self.client.get("/v3/merge/").json()
 
         self.assertEqual(page["mergeProps"], ["feed.items"])
         self.assertEqual(page["deepMergeProps"], ["chat"])
         self.assertEqual(page["matchPropsOn"], ["feed.items.id", "chat.messages.id"])
 
     def test_scroll_metadata_is_emitted(self):
-        page = self.inertia.get("/v3/scroll/").json()
+        page = self.client.get("/v3/scroll/").json()
 
         self.assertEqual(page["mergeProps"], ["players"])
         self.assertEqual(
@@ -62,14 +62,14 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
         )
 
     def test_deferred_scroll_is_loaded_as_a_deferred_prop(self):
-        page = self.inertia.get("/v3/deferred-scroll/").json()
+        page = self.client.get("/v3/deferred-scroll/").json()
 
         self.assertEqual(page["props"], {"score": "Brandon"})
         self.assertEqual(page["deferredProps"], {"default": ["players"]})
         self.assertEqual(page["mergeProps"], ["players"])
         self.assertEqual(page["scrollProps"]["players"]["nextPage"], 2)
 
-        partial_page = self.inertia.get(
+        partial_page = self.client.get(
             "/v3/deferred-scroll/",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
             HTTP_X_INERTIA_PARTIAL_DATA="players",
@@ -82,7 +82,7 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
         self.assertEqual(partial_page["scrollProps"]["players"]["nextPage"], 2)
 
     def test_cached_deferred_once_prop_is_not_advertised_as_deferred(self):
-        initial_page = self.inertia.get("/v3/deferred-once/").json()
+        initial_page = self.client.get("/v3/deferred-once/").json()
 
         self.assertEqual(initial_page["props"], {})
         self.assertEqual(initial_page["deferredProps"], {"default": ["report"]})
@@ -91,7 +91,7 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
             {"cached-report": {"prop": "report", "expiresAt": None}},
         )
 
-        cached_page = self.inertia.get(
+        cached_page = self.client.get(
             "/v3/deferred-once/",
             HTTP_X_INERTIA_EXCEPT_ONCE_PROPS="cached-report",
         ).json()
@@ -104,7 +104,7 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
         )
 
     def test_always_prop_is_included_in_partial_reloads(self):
-        page = self.inertia.get(
+        page = self.client.get(
             "/v3/deferred-scroll/",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
             HTTP_X_INERTIA_PARTIAL_DATA="players",
@@ -113,7 +113,7 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
         self.assertEqual(page["props"]["score"], "Brandon")
 
     def test_django_messages_are_added_to_the_page_not_props(self):
-        page = self.inertia.get("/messages/").json()
+        page = self.client.get("/messages/").json()
 
         self.assertEqual(
             page["flash"],

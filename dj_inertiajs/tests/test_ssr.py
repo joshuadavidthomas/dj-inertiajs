@@ -24,7 +24,7 @@ class SSRTestCase(ProtocolTestCase):
 
         mock_request.post.return_value = mock_response
 
-        response = self.client.get("/props/")
+        response = self.client.get("/props/", inertia=False)
 
         mock_request.post.assert_called_once_with(
             "ssr-url/render",
@@ -47,7 +47,7 @@ class SSRTestCase(ProtocolTestCase):
 
         mock_request.post.return_value = mock_response
 
-        response = self.client.get("/template_data/")
+        response = self.client.get("/template_data/", inertia=False)
 
         self.assertTemplateUsed(response, "layout.html")
         self.assertContains(response, "<div>Body Works</div>")
@@ -56,7 +56,7 @@ class SSRTestCase(ProtocolTestCase):
 
     @patch("dj_inertiajs.response.requests")
     def test_it_uses_inertia_if_inertia_requests_are_made(self, mock_requests):
-        response = self.inertia.get("/props/")
+        response = self.client.get("/props/")
 
         mock_requests.post.assert_not_called()
         self.assertJSONResponse(
@@ -73,7 +73,7 @@ class SSRTestCase(ProtocolTestCase):
         mock_response.raise_for_status.side_effect = uh_oh
         mock_requests.post.return_value = mock_response
 
-        response = self.client.get("/props/")
+        response = self.client.get("/props/", inertia=False)
         self.assertContains(
             response, inertia_div("props", props={"name": "Brandon", "sport": "Hockey"})
         )
@@ -87,6 +87,6 @@ class SSRTestCase(ProtocolTestCase):
         mock_response.raise_for_status.side_effect = error
         mock_requests.post.return_value = mock_response
 
-        self.client.get("/props/")
+        self.client.get("/props/", inertia=False)
 
         mock_logger.exception.assert_called_once_with("SSR render request failed")
