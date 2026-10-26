@@ -24,6 +24,10 @@ class HistoryTestCase(ProtocolTestCase):
             response = self.client.get("/no-encrypt-history/")
             assert response.inertia.data["encryptHistory"] is False
 
+    def test_class_based_view_encrypts_history(self):
+        response = self.client.get("/encrypted-view/")
+        assert response.inertia.data["encryptHistory"] is True
+
     def test_clear_history(self):
         response = self.client.get("/clear-history/")
         assert response.inertia.data["clearHistory"] is True

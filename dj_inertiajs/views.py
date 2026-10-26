@@ -37,6 +37,7 @@ class InertiaResponseMixin:
     request: HttpRequest
     component: str | None = None
     template_name: str | None = None
+    encrypt_history: bool | None = None
     response_class: type[InertiaResponse] = InertiaResponse
 
     def get_component(self) -> str:
@@ -69,6 +70,7 @@ class InertiaResponseMixin:
     def render_to_response(
         self, context: dict[str, Any], **response_kwargs: Any
     ) -> InertiaResponse:
+        response_kwargs.setdefault("encrypt_history", self.encrypt_history)
         return self.response_class(
             self.request,
             self.get_component(),

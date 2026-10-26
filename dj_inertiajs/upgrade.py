@@ -6,6 +6,8 @@ every Python file under each path:
 - imports from ``inertia`` and its modules,
 - calls to the prop helpers (``defer``, ``merge``, ...) into ``Prop(...)``,
 - calls to ``share`` and the history helpers into ``request.inertia`` methods,
+- ``encrypt_history(request)`` in an ``@inertia`` view into the decorator's
+  ``encrypt_history=`` option,
 - module-level ``INERTIA_*`` settings into one ``INERTIA`` dict,
 - the ``inertia`` entries in ``MIDDLEWARE``, ``INSTALLED_APPS`` and encoder paths,
 - in classes that descend from an ``inertia.test`` test case, also through
@@ -42,7 +44,7 @@ HELPERS = {
 # Positional parameters after the prop value, by helper.
 POSITIONAL = {"defer": ["group", "merge"], "once": ["fresh"], "scroll": ["scroll"]}
 # Functions that took the request first and are now request.inertia methods.
-REQUEST_METHODS = {"share", "encrypt_history", "clear_history", "preserve_fragment"}
+REQUEST_METHODS = {"share", "clear_history", "preserve_fragment"}
 PUBLIC = {"InertiaResponse", "inertia", "location", "render"}
 MOVED = {
     "InertiaJsonEncoder": "dj_inertiajs.utils",
@@ -232,6 +234,14 @@ class Upgrade(cst.CSTTransformer):
         self.helpers: dict[str, str] = {}  # local name -> helper
         self.request_methods: dict[str, str] = {}  # local name -> method
         self.rewritten_calls: set[int] = set()  # ids of the Names they call
+        self.encrypt_names: set[str] = set()  # local names of encrypt_history
+        self.decorator_names: set[str] = set()  # local names of @inertia
+        # Per function: whether it is an @inertia view, and the
+        # encrypt_history value moved out of its body.
+        self.inertia_views: list[bool] = []
+        self.encrypt_values: list[cst.BaseExpression | None] = []
+        self.moved_statements: set[int] = set()
+        self.called_encrypt: set[int] = set()
         self.imports = Imports(module, is_package)
         # Dotted paths of test case classes, from other modules and this one.
         self.test_case_paths = set(test_cases or ())
@@ -297,6 +307,11 @@ class Upgrade(cst.CSTTransformer):
             if name in REQUEST_METHODS:
                 self.request_methods[_alias_name(alias)] = name
                 continue
+            if name == "encrypt_history":
+                self.encrypt_names.add(_alias_name(alias))
+                continue
+            if name == "inertia":
+                self.decorator_names.add(_alias_name(alias))
             if name in REMOVED:
                 self.report(
                     original_node,
@@ -355,6 +370,10 @@ class Upgrade(cst.CSTTransformer):
             node.body.visit(finder)
         self.responses.append(None)
         self.uses_old_api.append(finder.found)
+        self.inertia_views.append(
+            any(self._is_inertia_decorator(d) for d in node.decorators)
+        )
+        self.encrypt_values.append(None)
         # A nested class or function is not part of this test case's scope.
         self.in_test_case.append(False)
 
@@ -364,7 +383,47 @@ class Upgrade(cst.CSTTransformer):
         self.in_test_case.pop()
         self.responses.pop()
         self.uses_old_api.pop()
-        return updated_node
+        self.inertia_views.pop()
+        value = self.encrypt_values.pop()
+        if value is None:
+            return updated_node
+        decorators = [
+            d.with_changes(decorator=_add_arg(d.decorator, "encrypt_history", value))  # type: ignore[arg-type]
+            if self._is_inertia_decorator(d)
+            else d
+            for d in updated_node.decorators
+        ]
+        return updated_node.with_changes(decorators=decorators)
+
+    def _is_inertia_decorator(self, decorator: cst.Decorator) -> bool:
+        node = decorator.decorator
+        return (
+            isinstance(node, cst.Call)
+            and isinstance(node.func, cst.Name)
+            and node.func.value in self.decorator_names
+        )
+
+    def visit_SimpleStatementLine(self, node: cst.SimpleStatementLine) -> None:
+        # A bare encrypt_history(request[, value]) in an @inertia view moves
+        # to the decorator.
+        if not (self.inertia_views and self.inertia_views[-1]):
+            return
+        if len(node.body) != 1 or not isinstance(node.body[0], cst.Expr):
+            return
+        call = node.body[0].value
+        if not (
+            isinstance(call, cst.Call)
+            and isinstance(call.func, cst.Name)
+            and call.func.value in self.encrypt_names
+            and 1 <= len(call.args) <= 2
+            and all(a.keyword is None and not a.star for a in call.args)
+        ):
+            return
+        self.encrypt_values[-1] = (
+            call.args[1].value if len(call.args) == 2 else cst.Name("True")
+        )
+        self.moved_statements.add(id(node))
+        self.rewritten_calls.add(id(call.func))
 
     def _response(self, node: cst.CSTNode, name: str) -> str | None:
         response = self.responses[-1] if self.responses else None
@@ -381,6 +440,8 @@ class Upgrade(cst.CSTTransformer):
         original_node: cst.SimpleStatementLine,
         updated_node: cst.SimpleStatementLine,
     ) -> cst.SimpleStatementLine | cst.RemovalSentinel:
+        if id(original_node) in self.moved_statements:
+            return cst.RemovalSentinel.REMOVE
         if not updated_node.body:
             return cst.RemovalSentinel.REMOVE
         if self.uses_old_api and self.uses_old_api[-1] and len(original_node.body) == 1:
@@ -444,6 +505,20 @@ class Upgrade(cst.CSTTransformer):
                     "`assertJSONResponse` was removed; compare `response.json()` "
                     f"instead; {guide('Tests')}.",
                 )
+        if (
+            isinstance(func, cst.Name)
+            and func.value in self.encrypt_names
+            and id(func) not in self.rewritten_calls
+        ):
+            self.rewritten_calls.add(id(func))
+            self.report(
+                original_node,
+                "`encrypt_history(...)` is now an option: "
+                '`@inertia("...", encrypt_history=True)`, `render(..., '
+                "encrypt_history=True)` or `encrypt_history = True` on a "
+                f"class-based view; {guide('History encryption')}.",
+            )
+            return updated_node
         if isinstance(func, cst.Name) and func.value in self.request_methods:
             return self._request_call(
                 original_node, updated_node, self.request_methods[func.value]
@@ -469,8 +544,16 @@ class Upgrade(cst.CSTTransformer):
     def visit_Call(self, node: cst.Call) -> None:
         if isinstance(node.func, cst.Name) and node.func.value in self.request_methods:
             self.rewritten_calls.add(id(node.func))
+        if isinstance(node.func, cst.Name) and node.func.value in self.encrypt_names:
+            self.called_encrypt.add(id(node.func))
 
     def visit_Name(self, node: cst.Name) -> None:
+        if node.value in self.encrypt_names and id(node) not in self.called_encrypt:
+            self.report(
+                node,
+                "`encrypt_history` is used without being called; it is now an "
+                f"option of @inertia, render() and the views; {guide('History encryption')}.",
+            )
         if node.value in self.request_methods and id(node) not in self.rewritten_calls:
             self.report(
                 node,
@@ -883,6 +966,15 @@ def _assigned_name(statement: cst.BaseStatement) -> str | None:
         target = assign.targets[0].target
         return target.value if isinstance(target, cst.Name) else None
     return None
+
+
+def _add_arg(call: cst.Call, name: str, value: cst.BaseExpression) -> cst.Call:
+    args = list(call.args)
+    if args and not isinstance(args[-1].comma, cst.Comma):
+        args[-1] = args[-1].with_changes(
+            comma=cst.Comma(whitespace_after=cst.SimpleWhitespace(" "))
+        )
+    return call.with_changes(args=[*args, _keyword(name, value)])
 
 
 def _keyword(name: str, value: cst.BaseExpression) -> cst.Arg:

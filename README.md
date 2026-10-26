@@ -254,7 +254,7 @@ if request.inertia:                 # an Inertia visit, not a full page load
     request.inertia.is_partial("Event/Index")
 ```
 
-Its methods change the page this request renders, or with a redirect, the next one: `share()`, `set_errors()`, `encrypt_history()`, `clear_history()` and `preserve_fragment()`, each described in its section.
+Its methods change the page this request renders, or with a redirect, the next one: `share()`, `set_errors()`, `clear_history()` and `preserve_fragment()`, each described in its section.
 
 For type checkers, annotate views with `InertiaHttpRequest`:
 
@@ -314,11 +314,12 @@ Turn it on for every page with `INERTIA["ENCRYPT_HISTORY"] = True`, or per view:
 from dj_inertiajs import inertia
 
 
-@inertia("Account/Show")
+@inertia("Account/Show", encrypt_history=True)  # False opts out
 def account(request):
-    request.inertia.encrypt_history()  # encrypt_history(False) opts out
     return {"account": request.user.account}
 ```
+
+`render(..., encrypt_history=True)` and an `encrypt_history = True` attribute on a class-based view do the same. To decide at runtime, set `response.encrypt_history` before the response renders.
 
 Call `request.inertia.clear_history()` to discard the encrypted history on the next page, for example on logout:
 

@@ -34,6 +34,7 @@ urlpatterns = [
     path("encrypt-history/", views.encrypt_history_test),
     path("no-encrypt-history/", views.encrypt_history_false_test),
     path("encrypt-history-type-error/", views.encrypt_history_type_error_test),
+    path("encrypted-view/", views.EncryptedHistoryView.as_view()),
     path("clear-history/", views.clear_history_test),
     path("clear-history-redirect/", views.clear_history_redirect_test),
     path("clear-history-type-error/", views.clear_history_type_error_test),

@@ -119,14 +119,13 @@ class RequestMethodTestCase(SimpleTestCase):
         code, manual = upgrade(
             """\
             from inertia import render, share
-            from inertia.http import clear_history, encrypt_history as encrypt
+            from inertia.http import clear_history
 
             def view(request):
                 share(
                     request,
                     user=lambda: request.user,
                 )
-                encrypt(request, False)
                 clear_history(self.request)
                 return render(request, "Page")
             """
@@ -142,7 +141,6 @@ class RequestMethodTestCase(SimpleTestCase):
                     request.inertia.share(
                         user=lambda: request.user,
                     )
-                    request.inertia.encrypt_history(False)
                     self.request.inertia.clear_history()
                     return render(request, "Page")
                 """
@@ -164,6 +162,51 @@ class RequestMethodTestCase(SimpleTestCase):
         self.assertEqual(len(manual), 2)
         self.assertIn("line 3: `share` is used without being called", manual[0])
         self.assertIn("line 4: `share(...)` has no plain request argument", manual[1])
+
+
+class EncryptHistoryTestCase(SimpleTestCase):
+    def test_calls_in_inertia_views_move_to_the_decorator(self):
+        code, manual = upgrade(
+            """\
+            from inertia import inertia as page
+            from inertia.http import encrypt_history
+
+            @page("Account/Show")
+            def account(request):
+                encrypt_history(request)
+                return {}
+
+            @page("Billing")
+            def billing(request):
+                encrypt_history(request, False)
+                return {}
+
+            def plain(request):
+                encrypt_history(request)
+            """
+        )
+
+        self.assertEqual(
+            code,
+            dedent(
+                """\
+                from dj_inertiajs import inertia as page
+
+                @page("Account/Show", encrypt_history=True)
+                def account(request):
+                    return {}
+
+                @page("Billing", encrypt_history=False)
+                def billing(request):
+                    return {}
+
+                def plain(request):
+                    encrypt_history(request)
+                """
+            ),
+        )
+        self.assertEqual(len(manual), 1)
+        self.assertIn("line 15: `encrypt_history(...)` is now an option", manual[0])
 
 
 class SettingsTestCase(SimpleTestCase):

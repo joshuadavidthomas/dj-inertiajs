@@ -8,7 +8,7 @@ The protocol the client sees is the same as inertia-django 2.0's, which targets 
 
 Work through three steps. Each one shortens the list for the next.
 
-1. **Run the codemod.** It rewrites imports, prop helpers, request helpers such as `share()`, settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and test assertions:
+1. **Run the codemod.** It rewrites imports, prop helpers, request helpers such as `share()`, `encrypt_history()` in `@inertia` views, settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and test assertions:
 
    ```shell
    pip install "dj-inertiajs[upgrade] @ git+https://github.com/joshuadavidthomas/inertia-django"
@@ -245,16 +245,14 @@ The functions that took the request first are now methods of `request.inertia`, 
 ```python
 # Before
 from inertia import share
-from inertia.http import clear_history, encrypt_history, preserve_fragment
+from inertia.http import clear_history, preserve_fragment
 
 share(request, team=team)
-encrypt_history(request)
 clear_history(request)
 preserve_fragment(request)
 
 # After
 request.inertia.share(team=team)
-request.inertia.encrypt_history()
 request.inertia.clear_history()
 request.inertia.preserve_fragment()
 ```
@@ -264,6 +262,27 @@ The codemod makes these rewrites. It reports a helper that is passed around inst
 `request.inertia` also describes the request: it is truthy for Inertia visits, and has `version`, `partial_component`, `partial_data`, `partial_except` and `is_partial()`. In inertia-django, `request.inertia` held only the shared props; code that read it, such as `request.inertia.all()`, must read `request.inertia.shared` instead.
 
 `location(url)` is unchanged: it builds a response and does not take the request.
+
+## History encryption
+
+Encrypting history is a property of the page a view renders, so it moved from a call inside the view to the place the view declares its page:
+
+```python
+# Before
+@inertia("Account/Show")
+def account(request):
+    encrypt_history(request)
+    return {"account": request.user.account}
+
+# After
+@inertia("Account/Show", encrypt_history=True)
+def account(request):
+    return {"account": request.user.account}
+```
+
+`render(request, "Account/Show", props, encrypt_history=True)` and `encrypt_history = True` on a class-based view do the same. `False` opts a page out of `INERTIA["ENCRYPT_HISTORY"]`. To decide at runtime, pass a variable to `render()`, or set `response.encrypt_history` before the response renders.
+
+The codemod moves `encrypt_history(request)` and `encrypt_history(request, value)` from the body of an `@inertia` view to its decorator, and reports every other call.
 
 ## Serialization
 

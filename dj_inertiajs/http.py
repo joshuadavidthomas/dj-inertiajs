@@ -46,7 +46,6 @@ class InertiaDetails:
     def __init__(self, request: HttpRequest) -> None:
         self._request = request
         self.shared: dict[str, Any] = {}
-        self.encrypt_history_override: bool | None = None
 
     def __bool__(self) -> bool:
         return "X-Inertia" in self._request.headers
@@ -99,15 +98,6 @@ class InertiaDetails:
     def share(self, **props: Any) -> None:
         """Add props to the page this request renders, as shared props."""
         self.shared.update(props)
-
-    def encrypt_history(self, value: bool = True) -> None:
-        """Encrypt this page in the browser's history, overriding
-        ``INERTIA["ENCRYPT_HISTORY"]``."""
-        if not isinstance(value, bool):
-            raise TypeError(
-                f"Expected bool for encrypt_history, got {type(value).__name__}"
-            )
-        self.encrypt_history_override = value
 
     def clear_history(self) -> None:
         """Clear the client's encrypted history on the next page."""
@@ -359,6 +349,7 @@ class InertiaResponse(SimpleTemplateResponse):
         "component",
         "props",
         "template_data",
+        "encrypt_history",
     ]
 
     def __init__(
@@ -371,11 +362,19 @@ class InertiaResponse(SimpleTemplateResponse):
         template_name: str | None = None,
         status: int | None = None,
         headers: dict[str, Any] | None = None,
+        encrypt_history: bool | None = None,
     ) -> None:
         """``template_name`` is the layout for full page loads, by default
         ``INERTIA["LAYOUT"]``. It renders the page with the ``inertia_head``
         and ``inertia_body`` tags from ``{% load inertia %}``.
+
+        ``encrypt_history`` encrypts the page in the browser's history;
+        ``None`` uses ``INERTIA["ENCRYPT_HISTORY"]``.
         """
+        if encrypt_history is not None and not isinstance(encrypt_history, bool):
+            raise TypeError(
+                f"Expected bool for encrypt_history, got {type(encrypt_history).__name__}"
+            )
         self._inertia = get_details(request)
         content_type = None
         if self._inertia:
@@ -391,6 +390,7 @@ class InertiaResponse(SimpleTemplateResponse):
         self.component = component
         self.props = props or {}
         self.template_data = template_data or {}
+        self.encrypt_history = encrypt_history
         patch_vary_headers(self, ("X-Inertia",))
 
     @property
@@ -460,8 +460,8 @@ class InertiaResponse(SimpleTemplateResponse):
             "version": settings.VERSION,
             "encryptHistory": (
                 settings.ENCRYPT_HISTORY
-                if details.encrypt_history_override is None
-                else details.encrypt_history_override
+                if self.encrypt_history is None
+                else self.encrypt_history
             ),
             "clearHistory": clear_history,
         }
@@ -516,6 +516,7 @@ def render(
     template_name: str | None = None,
     status: int | None = None,
     headers: dict[str, Any] | None = None,
+    encrypt_history: bool | None = None,
 ) -> InertiaResponse:
     return InertiaResponse(
         request,
@@ -525,6 +526,7 @@ def render(
         template_name=template_name,
         status=status,
         headers=headers,
+        encrypt_history=encrypt_history,
     )
 
 
@@ -549,9 +551,12 @@ def error_messages(errors: BaseForm | dict[str, Any]) -> dict[str, str]:
 
 
 def inertia(
-    component: str,
+    component: str, *, encrypt_history: bool | None = None
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Render the props dict a view returns as ``component``.
+
+    ``encrypt_history=True`` encrypts the page in the browser's history, and
+    ``False`` opts out of ``INERTIA["ENCRYPT_HISTORY"]``.
 
     Works with sync and async views. A view that returns an ``HttpResponse``,
     such as a redirect, passes it through unchanged.
@@ -560,7 +565,9 @@ def inertia(
     def to_response(request: HttpRequest, props: Any) -> HttpResponse:
         if isinstance(props, HttpResponse):
             return props
-        return InertiaResponse(request, component, props)
+        return InertiaResponse(
+            request, component, props, encrypt_history=encrypt_history
+        )
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         if iscoroutinefunction(func):

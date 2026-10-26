@@ -118,22 +118,23 @@ def share_test(request):
     }
 
 
-@inertia("TestComponent")
+@inertia("TestComponent", encrypt_history=True)
 def encrypt_history_test(request):
-    request.inertia.encrypt_history()
     return {}
 
 
-@inertia("TestComponent")
+@inertia("TestComponent", encrypt_history=False)
 def encrypt_history_false_test(request):
-    request.inertia.encrypt_history(False)
     return {}
 
 
-@inertia("TestComponent")
 def encrypt_history_type_error_test(request):
-    request.inertia.encrypt_history("foo")
-    return {}
+    return render(request, "TestComponent", encrypt_history="foo")
+
+
+class EncryptedHistoryView(InertiaView):
+    component = "TestComponent"
+    encrypt_history = True
 
 
 @inertia("TestComponent")
