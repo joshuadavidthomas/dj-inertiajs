@@ -209,7 +209,7 @@ Code that reads `response.content` on a response it built itself, before returni
 
 ## Shared data
 
-`share(request, **props)` works as before. For props on every page, list functions in a setting instead of writing a middleware, like template context processors:
+`share(request, **props)` was removed. Shared props come from functions listed in `INERTIA["SHARED_PROPS"]`, the way template context comes from context processors. Each takes the request and returns a dict, and runs when the page renders:
 
 ```python
 # Before: a custom middleware
@@ -227,7 +227,16 @@ def shared(request):
 INERTIA = {"LAYOUT": "base.html", "SHARED_PROPS": ["myapp.inertia.shared"]}
 ```
 
-A middleware calling `share()` keeps working, so this change is optional.
+Every other use of `share()` has a replacement:
+
+| `share()` was called from | Replace it with |
+|---|---|
+| Middleware, with values every page needs | A `SHARED_PROPS` function, as above |
+| Middleware, with a value it worked out, such as the current tenant | The middleware sets `request.tenant`; a `SHARED_PROPS` function reads it, the way context processors read `request.user` |
+| A decorator or mixin, for some views | Change `response.props` on the returned response, which renders lazily, or override `get_props()` on a class-based view |
+| A view, for its own page | Pass the values as props |
+
+Later functions in `SHARED_PROPS` override earlier ones; with `share()`, its props overrode the functions'. The codemod removes the `share` import and reports each use, since the replacement depends on where the call is.
 
 ## Validation errors
 
@@ -240,7 +249,7 @@ Each field keeps its first message, the shape Inertia's `useForm` expects. If yo
 
 ## Request helpers
 
-`share()` and `clear_history()` are unchanged; only their imports move, which the codemod does. Like `messages.error(request, ...)`, they take the request first.
+`clear_history()` is unchanged; only its import moves, which the codemod does. Like `messages.error(request, ...)`, it takes the request first. `share()` was removed; see [Shared data](#shared-data).
 
 `preserve_fragment(request)` is gone. Keeping the fragment is a property of the redirect, so it is now an option of it:
 

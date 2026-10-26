@@ -1,3 +1,5 @@
+from django.test import override_settings
+
 from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_page
 
 
@@ -120,8 +122,14 @@ class OncePropsTestCase(ProtocolTestCase):
         self.assertIn("plans", page["props"])
 
 
+@override_settings(
+    INERTIA={
+        "LAYOUT": "layout.html",
+        "SHARED_PROPS": ["dj_inertiajs.tests.testapp.views.once_plans"],
+    }
+)
 class SharedOncePropsTestCase(ProtocolTestCase):
-    """Tests that once props set via share() are handled correctly.
+    """Tests that once props from SHARED_PROPS are handled correctly.
 
     Once props in shared data must appear in the onceProps metadata so the
     client knows to cache them, and must be skipped on subsequent requests
@@ -129,7 +137,7 @@ class SharedOncePropsTestCase(ProtocolTestCase):
     """
 
     def test_shared_once_props_metadata_is_included(self):
-        """A once prop set via share() appears in onceProps on the first load."""
+        """A shared once prop appears in onceProps on the first load."""
         response = self.client.get("/once-shared/")
         page = response.json()
 

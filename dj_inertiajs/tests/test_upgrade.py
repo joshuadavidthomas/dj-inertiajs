@@ -118,7 +118,7 @@ class ImportTestCase(SimpleTestCase):
 
 
 class RequestHelperTestCase(SimpleTestCase):
-    def test_helpers_keep_their_calls_and_preserve_fragment_is_reported(self):
+    def test_clear_history_is_kept_and_share_and_preserve_fragment_are_reported(self):
         code, manual = upgrade(
             """\
             from inertia import share
@@ -129,6 +129,8 @@ class RequestHelperTestCase(SimpleTestCase):
                 clear_history(request)
                 preserve_fragment(request)
                 return redirect("home")
+
+            hooks = [share]
             """
         )
 
@@ -136,7 +138,6 @@ class RequestHelperTestCase(SimpleTestCase):
             code,
             dedent(
                 """\
-                from dj_inertiajs import share
                 from dj_inertiajs import clear_history
 
                 def view(request):
@@ -144,11 +145,15 @@ class RequestHelperTestCase(SimpleTestCase):
                     clear_history(request)
                     preserve_fragment(request)
                     return redirect("home")
+
+                hooks = [share]
                 """
             ),
         )
-        self.assertEqual(len(manual), 1)
-        self.assertIn("line 7: `preserve_fragment(request)` is replaced", manual[0])
+        self.assertEqual(len(manual), 3)
+        self.assertIn("line 5: `share()` was removed", manual[0])
+        self.assertIn("line 7: `preserve_fragment(request)` is replaced", manual[1])
+        self.assertIn("line 10: `share()` was removed", manual[2])
 
 
 class LocationTestCase(SimpleTestCase):

@@ -45,7 +45,7 @@ HELPERS = {
 POSITIONAL = {"defer": ["group", "merge"], "once": ["fresh"], "scroll": ["scroll"]}
 # Functions that took the request first and are now request.inertia methods.
 
-PUBLIC = {"InertiaResponse", "clear_history", "inertia", "render", "share"}
+PUBLIC = {"InertiaResponse", "clear_history", "inertia", "render"}
 MOVED = {
     "InertiaJsonEncoder": "dj_inertiajs.encoders",
     "InertiaMiddleware": "dj_inertiajs.middleware",
@@ -233,6 +233,7 @@ class Upgrade(cst.CSTTransformer):
         self.manual: list[str] = []
         self.helpers: dict[str, str] = {}  # local name -> helper
         self.preserve_names: set[str] = set()  # local names of preserve_fragment
+        self.share_names: set[str] = set()  # local names of share
         self.location_names: set[str] = set()  # local names of location
         self.called_location: set[int] = set()
         self.location_imported = False
@@ -316,6 +317,9 @@ class Upgrade(cst.CSTTransformer):
                     targets.setdefault("dj_inertiajs", []).append(
                         cst.ImportAlias(cst.Name("InertiaLocation"))
                     )
+                continue
+            if name == "share":
+                self.share_names.add(_alias_name(alias))
                 continue
             if name == "preserve_fragment":
                 self.preserve_names.add(_alias_name(alias))
@@ -592,6 +596,14 @@ class Upgrade(cst.CSTTransformer):
                 node,
                 "`encrypt_history` is used without being called; it is now an "
                 f"option of @inertia, render() and the views; {guide('History encryption')}.",
+            )
+        if node.value in self.share_names:
+            self.report(
+                node,
+                "`share()` was removed; return the props from a function listed "
+                'in INERTIA["SHARED_PROPS"], reading anything middleware worked '
+                "out from the request, or set `response.props` in a decorator; "
+                f"{guide('Shared data')}.",
             )
         if node.value in self.preserve_names:
             self.report(

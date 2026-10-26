@@ -338,7 +338,6 @@ class InertiaResponse(SimpleTemplateResponse):
         shared: dict[str, Any] = {}
         for provider in settings.SHARED_PROPS:
             shared.update(provider(request))
-        shared.update(getattr(request, "_inertia_shared", {}))
         errors = request.session.pop(INERTIA_SESSION_ERRORS, None)
         if errors:
             shared["errors"] = Prop(errors, always=True)

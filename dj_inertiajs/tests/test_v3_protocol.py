@@ -1,5 +1,7 @@
 import json
 
+from django.test import override_settings
+
 from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_page
 
 # ---------------------------------------------------------------------------
@@ -58,6 +60,12 @@ class PreserveFragmentTestCase(ProtocolTestCase):
 # ---------------------------------------------------------------------------
 
 
+@override_settings(
+    INERTIA={
+        "LAYOUT": "layout.html",
+        "SHARED_PROPS": ["dj_inertiajs.tests.testapp.views.shared_errors"],
+    }
+)
 class PreserveErrorsTestCase(ProtocolTestCase):
     """Tests that verify preserveErrors behaviour for partial reloads.
 

@@ -215,15 +215,18 @@ INERTIA = {
 }
 ```
 
-To add shared props for one request, for example from a middleware, call `share()`:
+When a middleware works out a value, such as the current team, it puts it on the request, the way `AuthenticationMiddleware` sets `request.user`, and a shared-props function sends it:
 
 ```python
-from dj_inertiajs import share
+# middleware
+request.team = Team.objects.get(slug=...)
 
-share(request, team=lambda: request.user.team.name)
+# myapp/inertia.py, also listed in SHARED_PROPS
+def team(request):
+    return {"team": request.team.name} if hasattr(request, "team") else {}
 ```
 
-The view's own props override shared props with the same name. The page reports shared keys in `sharedProps`.
+Later functions in the list override earlier ones, and the view's own props override them all. The page reports shared keys in `sharedProps`. To add props to particular views from a decorator or middleware, change `response.props` before the response renders, as described in [Responses](#responses).
 
 ## Forms and validation errors
 

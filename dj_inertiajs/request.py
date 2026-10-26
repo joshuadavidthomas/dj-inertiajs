@@ -12,7 +12,6 @@ __all__ = [
     "InertiaHttpRequest",
     "clear_history",
     "set_errors",
-    "share",
 ]
 
 INERTIA_SESSION_CLEAR_HISTORY = "_inertia_clear_history"
@@ -132,16 +131,6 @@ def error_messages(
         field: str(messages[0]) if isinstance(messages, list) else str(messages)
         for field, messages in errors.items()
     }
-
-
-def share(request: HttpRequest, **props: Any) -> None:
-    """Add props to the page this request renders, as shared props.
-
-    For props on every page, list a function in ``INERTIA["SHARED_PROPS"]``
-    instead.
-    """
-    shared: dict[str, Any] = request.__dict__.setdefault("_inertia_shared", {})
-    shared.update(props)
 
 
 def set_errors(

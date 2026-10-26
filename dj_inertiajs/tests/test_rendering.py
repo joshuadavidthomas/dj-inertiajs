@@ -108,6 +108,12 @@ class ComplexPropsTestCase(ProtocolTestCase):
         )
 
 
+@override_settings(
+    INERTIA={
+        "LAYOUT": "layout.html",
+        "SHARED_PROPS": ["dj_inertiajs.tests.testapp.views.player_props"],
+    }
+)
 class ShareTestCase(ProtocolTestCase):
     def test_that_shared_props_are_merged(self):
         self.assertJSONResponse(

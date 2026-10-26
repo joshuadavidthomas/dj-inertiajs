@@ -16,7 +16,6 @@ from dj_inertiajs import (
     prop,
     render,
     set_errors,
-    share,
 )
 from dj_inertiajs import redirect as inertia_redirect
 from dj_inertiajs.request import (
@@ -28,13 +27,15 @@ from dj_inertiajs.views import InertiaResponseMixin, InertiaView
 from .models import Sport
 
 
-class ShareMiddleware:
+class PlayerMiddleware:
+    """Works something out for the request, like AuthenticationMiddleware;
+    a SHARED_PROPS function sends it."""
+
     def __init__(self, get_response):
         self.get_response = get_response
 
     def process_request(self, request):
-        share(
-            request,
+        request.player = dict(
             position=lambda: "goalie",
             number=29,
         )
@@ -123,7 +124,7 @@ def complex_props_test(request):
     }
 
 
-@decorator_from_middleware(ShareMiddleware)
+@decorator_from_middleware(PlayerMiddleware)
 @inertia("TestComponent")
 def share_test(request):
     return {
@@ -183,9 +184,8 @@ def once_test(request):
 
 @inertia("TestComponent")
 def once_shared_test(request):
-    """Exercises once props set via share() to verify they appear in onceProps
-    metadata and are correctly skipped when the client already holds them."""
-    share(request, plans=Prop(lambda: ["basic", "pro"], once=True))
+    """Rendered with once_plans in SHARED_PROPS, to verify shared once props
+    appear in onceProps and are skipped when the client already holds them."""
     return {"name": "Brandon"}
 
 
@@ -219,19 +219,6 @@ def preserve_fragment_type_error_test(request):
 # ---------------------------------------------------------------------------
 
 
-class ShareErrorsMiddleware:
-    """Shares an errors prop to simulate form validation errors in shared
-    data.  Used to verify that partial reloads correctly exclude shared
-    errors when they are not in X-Inertia-Partial-Data."""
-
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def process_request(self, request):
-        share(request, errors={"email": "required"})
-
-
-@decorator_from_middleware(ShareErrorsMiddleware)
 @inertia("TestComponent")
 def preserve_errors_test(request):
     return {"name": "Brandon"}
@@ -459,3 +446,17 @@ def all_error_messages(errors):
     return {
         field: [str(m) for m in messages] for field, messages in errors.errors.items()
     }
+
+
+def player_props(request):
+    return getattr(request, "player", {})
+
+
+def once_plans(request):
+    return {"plans": Prop(lambda: ["basic", "pro"], once=True)}
+
+
+def shared_errors(request):
+    """Shared validation errors, to verify that partial reloads exclude them
+    unless X-Inertia-Partial-Data asks for them."""
+    return {"errors": {"email": "required"}}

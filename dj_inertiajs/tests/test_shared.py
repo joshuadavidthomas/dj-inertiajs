@@ -42,7 +42,16 @@ class SharedPropsSettingTestCase(InertiaTestCase):
 
         self.assertPropsEqual(response, {"user": "Brandon", "name": "Brandon"})
 
-    def test_share_adds_to_the_listed_functions(self):
+    @override_settings(
+        INERTIA={
+            **SHARED,
+            "SHARED_PROPS": [
+                *SHARED["SHARED_PROPS"],
+                "dj_inertiajs.tests.testapp.views.player_props",
+            ],
+        }
+    )
+    def test_functions_read_what_middleware_put_on_the_request(self):
         response = self.client.get("/share/")
 
         self.assertEqual(
