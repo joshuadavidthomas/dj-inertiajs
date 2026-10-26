@@ -7,7 +7,8 @@ every Python file under each path:
 - calls to the prop helpers (``defer``, ``merge``, ...) into ``Prop(...)``,
 - module-level ``INERTIA_*`` settings into one ``INERTIA`` dict,
 - the ``inertia`` entries in ``MIDDLEWARE``, ``INSTALLED_APPS`` and encoder paths,
-- in classes based on ``inertia.test`` test cases, the assertions and
+- in classes that descend from an ``inertia.test`` test case, also through
+  base classes in other files among the given paths, the assertions and
   accessors that read the last response, to read it from a variable.
 
 Anything it cannot rewrite safely is printed with its file and line. It does
@@ -108,17 +109,139 @@ def guide(section: str) -> str:
     return f'see "{section}" in the upgrade guide'
 
 
+class Imports:
+    """The dotted path each imported name in one module refers to."""
+
+    def __init__(self, module: str = "", is_package: bool = False) -> None:
+        self.paths: dict[str, str] = {}
+        self.package = module if is_package else module.rpartition(".")[0]
+
+    def record_from(self, node: cst.ImportFrom) -> None:
+        if isinstance(node.names, cst.ImportStar):
+            return
+        if node.relative:
+            parts = self.package.split(".") if self.package else []
+            up = len(node.relative) - 1
+            if up > len(parts) or not parts:
+                return
+            parts = parts[: len(parts) - up]
+            if node.module is not None:
+                parts.append(_dotted(node.module))
+            module = ".".join(parts)
+        elif node.module is not None:
+            module = _dotted(node.module)
+        else:
+            return
+        for alias in node.names:
+            self.paths[_alias_name(alias)] = f"{module}.{_dotted(alias.name)}"
+
+    def record_import(self, node: cst.Import) -> None:
+        for alias in node.names:
+            name = _dotted(alias.name)
+            if alias.asname is not None:
+                self.paths[_alias_name(alias)] = name
+            else:
+                head = name.split(".")[0]
+                self.paths[head] = head
+
+    def resolve(self, node: cst.BaseExpression) -> str | None:
+        if not isinstance(node, (cst.Name, cst.Attribute)):
+            return None
+        head, _, rest = _dotted(node).partition(".")
+        path = self.paths.get(head)
+        if path is None:
+            return None
+        return f"{path}.{rest}" if rest else path
+
+
+def _is_test_case_base(path: str | None, test_cases: set[str]) -> bool:
+    return path is not None and (path.startswith("inertia.test.") or path in test_cases)
+
+
+class ClassCollector(cst.CSTVisitor):
+    """Record the resolved bases of each top-level class in one module."""
+
+    def __init__(self, module: str, is_package: bool) -> None:
+        super().__init__()
+        self.module = module
+        self.imports = Imports(module, is_package)
+        self.classes: dict[str, list[str]] = {}
+        self.depth = 0
+
+    def visit_ImportFrom(self, node: cst.ImportFrom) -> None:
+        self.imports.record_from(node)
+
+    def visit_Import(self, node: cst.Import) -> None:
+        self.imports.record_import(node)
+
+    def visit_ClassDef(self, node: cst.ClassDef) -> None:
+        if self.depth == 0:
+            bases = [self.imports.resolve(base.value) for base in node.bases]
+            path = _qualify(self.module, node.name.value)
+            self.classes[path] = [b for b in bases if b is not None]
+            self.imports.paths[node.name.value] = path
+        self.depth += 1
+
+    def leave_ClassDef(self, original_node: cst.ClassDef) -> None:
+        self.depth -= 1
+
+    def visit_FunctionDef(self, node: cst.FunctionDef) -> bool:
+        return False
+
+
+def find_test_cases(modules: dict[str, tuple[cst.Module, bool]]) -> set[str]:
+    """Return the dotted paths of every class that descends from an
+    ``inertia.test`` test case, following bases across the given modules."""
+    classes: dict[str, list[str]] = {}
+    for module, (tree, is_package) in modules.items():
+        collector = ClassCollector(module, is_package)
+        tree.visit(collector)
+        classes.update(collector.classes)
+    test_cases: set[str] = set()
+    while True:
+        found = {
+            path
+            for path, bases in classes.items()
+            if path not in test_cases
+            and any(_is_test_case_base(base, test_cases) for base in bases)
+        }
+        if not found:
+            return test_cases
+        test_cases |= found
+
+
+def module_name(path: Path) -> tuple[str, bool]:
+    """The dotted module name of a file and whether it is a package, found by
+    walking up through directories that contain ``__init__.py``."""
+    path = path.resolve()
+    is_package = path.stem == "__init__"
+    parts = [] if is_package else [path.stem]
+    directory = path.parent
+    while (directory / "__init__.py").exists():
+        parts.insert(0, directory.name)
+        directory = directory.parent
+    return ".".join(parts), is_package
+
+
 class Upgrade(cst.CSTTransformer):
     METADATA_DEPENDENCIES = (PositionProvider,)
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        module: str = "",
+        is_package: bool = False,
+        test_cases: set[str] | None = None,
+    ) -> None:
         super().__init__()
+        self.module = module
         self.manual: list[str] = []
         self.helpers: dict[str, str] = {}  # local name -> helper
-        self.imported_paths: dict[str, str] = {}  # local name -> dotted path
+        self.imports = Imports(module, is_package)
+        # Dotted paths of test case classes, from other modules and this one.
+        self.test_case_paths = set(test_cases or ())
+        self.class_depth = 0
         self.prop_imported = False
         self.installed_apps_depth = 0
-        self.test_case_classes: set[str] = set()
         self.in_test_case: list[bool] = []
         # Per function in a test case: the variable holding the last
         # response, and whether the function uses the old test API at all.
@@ -132,12 +255,10 @@ class Upgrade(cst.CSTTransformer):
     # Imports
 
     def visit_ImportFrom(self, node: cst.ImportFrom) -> None:
-        if node.module is None or isinstance(node.names, cst.ImportStar):
-            return
-        module = _dotted(node.module)
-        for alias in node.names:
-            local = _alias_name(alias)
-            self.imported_paths[local] = f"{module}.{_dotted(alias.name)}"
+        self.imports.record_from(node)
+
+    def visit_Import(self, node: cst.Import) -> None:
+        self.imports.record_import(node)
 
     def leave_Import(
         self, original_node: cst.Import, updated_node: cst.Import
@@ -210,22 +331,21 @@ class Upgrade(cst.CSTTransformer):
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
         is_test_case = any(
-            isinstance(base.value, cst.Name)
-            and (
-                base.value.value in self.test_case_classes
-                or self.imported_paths.get(base.value.value, "").startswith(
-                    "inertia.test."
-                )
-            )
+            _is_test_case_base(self.imports.resolve(base.value), self.test_case_paths)
             for base in node.bases
         )
-        if is_test_case:
-            self.test_case_classes.add(node.name.value)
+        if self.class_depth == 0:
+            path = _qualify(self.module, node.name.value)
+            self.imports.paths[node.name.value] = path
+            if is_test_case:
+                self.test_case_paths.add(path)
+        self.class_depth += 1
         self.in_test_case.append(is_test_case)
 
     def leave_ClassDef(
         self, original_node: cst.ClassDef, updated_node: cst.ClassDef
     ) -> cst.ClassDef:
+        self.class_depth -= 1
         self.in_test_case.pop()
         return updated_node
 
@@ -539,13 +659,11 @@ class Upgrade(cst.CSTTransformer):
     def _encoder_path(self, value: cst.BaseExpression, text: str) -> str:
         if isinstance(value, cst.SimpleString):
             return text
-        dotted = _dotted(value) if isinstance(value, (cst.Name, cst.Attribute)) else ""
-        head, _, rest = dotted.partition(".")
-        path = self.imported_paths.get(head)
-        if path:
-            return f'"{path}.{rest}"' if rest else f'"{path}"'
-        if "." in dotted:
-            return f'"{dotted}"'
+        path = self.imports.resolve(value)
+        if path is None and isinstance(value, cst.Attribute):
+            path = _dotted(value)
+        if path is not None:
+            return f'"{path}"'
         self.manual.append(
             f'INERTIA["JSON_ENCODER"] must be a dotted path, not {text}; '
             f"{guide('Settings')}."
@@ -575,10 +693,15 @@ class OldTestApiFinder(cst.CSTVisitor):
             self.found = True
 
 
-def upgrade_source(source: str) -> tuple[str, list[str]]:
-    transformer = Upgrade()
-    module = MetadataWrapper(cst.parse_module(source)).visit(transformer)
-    return module.code, transformer.manual
+def upgrade_source(
+    source: str | cst.Module,
+    module: str = "",
+    is_package: bool = False,
+    test_cases: set[str] | None = None,
+) -> tuple[str, list[str]]:
+    tree = cst.parse_module(source) if isinstance(source, str) else source
+    transformer = Upgrade(module, is_package, test_cases)
+    return MetadataWrapper(tree).visit(transformer).code, transformer.manual
 
 
 def python_files(paths: Sequence[Path]) -> Iterator[Path]:
@@ -603,13 +726,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     reports: list[Report] = []
+    parsed: dict[Path, tuple[str, cst.Module, str, bool]] = {}
     for path in python_files(args.paths):
         source = path.read_text()
         try:
-            new_source, manual = upgrade_source(source)
+            tree = cst.parse_module(source)
         except cst.ParserSyntaxError as e:
             reports.append(Report(path, manual=[f"not parsed: {e.message}"]))
             continue
+        parsed[path] = (source, tree, *module_name(path))
+    # Test cases may inherit from a base class in another file, so find them
+    # all before rewriting any file.
+    test_cases = find_test_cases(
+        {module: (tree, is_package) for _, tree, module, is_package in parsed.values()}
+    )
+
+    for path, (source, tree, module, is_package) in parsed.items():
+        new_source, manual = upgrade_source(tree, module, is_package, test_cases)
         report = Report(path, changed=new_source != source, manual=manual)
         reports.append(report)
         if not report.changed:
@@ -637,6 +770,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         file=sys.stderr,
     )
     return 0
+
+
+def _qualify(module: str, name: str) -> str:
+    return f"{module}.{name}" if module else name
 
 
 def _is_self(node: cst.BaseExpression) -> bool:

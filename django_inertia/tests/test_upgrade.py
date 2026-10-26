@@ -299,3 +299,89 @@ class TestAssertionTestCase(SimpleTestCase):
             code, source.replace("from inertia.test", "from django_inertia.test")
         )
         self.assertEqual(manual, [])
+
+
+class CrossFileTestCaseTestCase(SimpleTestCase):
+    FILES = {
+        "myproject/__init__.py": "",
+        "myproject/testing.py": """\
+            from inertia.test import InertiaTestCase
+
+
+            class AppTestCase(InertiaTestCase):
+                pass
+            """,
+        "events/__init__.py": "",
+        "events/tests/__init__.py": "",
+        "events/tests/base.py": """\
+            from myproject.testing import AppTestCase
+
+
+            class EventTestCase(AppTestCase):
+                pass
+            """,
+        "events/tests/test_views.py": """\
+            from django.test import TestCase
+
+            from .base import EventTestCase
+
+
+            class IndexTests(EventTestCase):
+                def test_index(self):
+                    self.client.get("/")
+                    self.assertComponentUsed("Event/Index")
+
+
+            class PlainTests(TestCase):
+                def test_view(self):
+                    self.client.get("/")
+                    self.assertEqual(self.props(), {})
+            """,
+        "events/tests/test_api.py": """\
+            import myproject.testing
+
+
+            class ApiTests(myproject.testing.AppTestCase):
+                def test_index(self):
+                    self.inertia.get("/")
+                    assert self.props() == {}
+            """,
+    }
+
+    def run_upgrade(self, root, *paths):
+        from contextlib import redirect_stderr
+        from io import StringIO
+        from pathlib import Path
+
+        for name, source in self.FILES.items():
+            path = Path(root, name)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(dedent(source))
+        with redirect_stderr(StringIO()):
+            main([str(Path(root, p)) for p in paths])
+        return {name: Path(root, name).read_text() for name in self.FILES}
+
+    def test_bases_are_followed_through_imports_in_other_files(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as root:
+            files = self.run_upgrade(root, ".")
+
+        views = files["events/tests/test_views.py"]
+        self.assertIn('self.assertComponentUsed(response, "Event/Index")', views)
+        self.assertIn("self.assertEqual(self.props(), {})", views)
+        self.assertEqual(views.count("response = "), 1)
+        self.assertIn(
+            "assert response.inertia.props == {}", files["events/tests/test_api.py"]
+        )
+
+    def test_module_names_do_not_depend_on_the_path_given(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as root:
+            files = self.run_upgrade(root, "myproject", "events/tests")
+
+        self.assertIn(
+            'self.assertComponentUsed(response, "Event/Index")',
+            files["events/tests/test_views.py"],
+        )

@@ -273,6 +273,6 @@ self.assertEqual(response.inertia.props["name"], "Brandon")
 - The assertions live in `InertiaTestMixin`, which also works with `SimpleTestCase`. In pytest, read `response.inertia` directly.
 - `inertia_page()`, `inertia_div()`, `assertJSONResponse` and `BaseInertiaTestCase` were removed. Compare `response.inertia.data` or `response.json()` instead.
 
-The codemod rewrites these in classes based on an `inertia.test` test case, including subclasses defined in the same file. In each test method it keeps the response of the latest request in a variable, assigning `response = ...` where the request's result was discarded, and passes it to the assertions and accessors that read it. It reports an assertion with no request before it in the same method, such as one in a helper method; pass the response to those by hand.
+The codemod rewrites these in every class that descends from an `inertia.test` test case, including through your own base classes in other files. In each test method it keeps the response of the latest request in a variable, assigning `response = ...` where the request's result was discarded, and passes it to the assertions and accessors that read it. It reports an assertion with no request before it in the same method, such as one in a helper method; pass the response to those by hand.
 
-Test cases based on a class from another module of your project are not recognized. Their assertions fail with a `TypeError` that names the assertion.
+To find base classes in other files, the codemod must see them: run it on the whole project, or include the files that define your base test cases. A test case whose base it cannot find is left as it is, and its assertions fail with a `TypeError` that names the assertion.
