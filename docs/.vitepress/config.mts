@@ -65,8 +65,8 @@ export default defineConfig({
                         link: "https://inertiajs.com",
                     },
                     {
-                        text: "inertia-django on PyPI",
-                        link: "https://pypi.org/project/inertia-django",
+                        text: "dj-inertiajs on PyPI",
+                        link: "https://pypi.org/project/dj-inertiajs",
                     },
                 ],
             },

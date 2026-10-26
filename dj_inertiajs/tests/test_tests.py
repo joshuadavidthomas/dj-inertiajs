@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from django_inertia.test import InertiaTestCase, InertiaTestMixin
+from dj_inertiajs.test import InertiaTestCase, InertiaTestMixin
 
 
 class AssertionsTestCase(InertiaTestCase):

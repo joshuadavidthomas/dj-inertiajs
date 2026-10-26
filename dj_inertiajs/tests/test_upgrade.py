@@ -2,7 +2,7 @@ from textwrap import dedent
 
 from django.test import SimpleTestCase
 
-from django_inertia.upgrade import main, upgrade_source
+from dj_inertiajs.upgrade import main, upgrade_source
 
 
 def upgrade(source):
@@ -33,7 +33,7 @@ class PropHelperTestCase(SimpleTestCase):
             code,
             dedent(
                 """\
-                from django_inertia import Prop
+                from dj_inertiajs import Prop
 
                 props = {
                     "a": Prop(load, defer=True, group="charts", merge=True),
@@ -87,6 +87,7 @@ class ImportTestCase(SimpleTestCase):
             from inertia.http import location
             from inertia.test import InertiaTestCase, inertia_page
             from inertia.utils import InertiaJsonEncoder
+            from inertia.helpers import deep_transform_callables
             """
         )
 
@@ -94,15 +95,17 @@ class ImportTestCase(SimpleTestCase):
             code,
             dedent(
                 """\
-                from django_inertia import inertia, render
-                from django_inertia import location
-                from django_inertia.test import InertiaTestCase
-                from django_inertia.utils import InertiaJsonEncoder
+                from dj_inertiajs import inertia, render
+                from dj_inertiajs import location
+                from dj_inertiajs.test import InertiaTestCase
+                from dj_inertiajs.utils import InertiaJsonEncoder
+                from dj_inertiajs.helpers import deep_transform_callables
                 """
             ),
         )
-        self.assertEqual(len(manual), 1)
+        self.assertEqual(len(manual), 2)
         self.assertIn("`inertia_page` was removed", manual[0])
+        self.assertIn("`deep_transform_callables` is not public API", manual[1])
 
     def test_module_import_is_reported(self):
         code, manual = upgrade("import inertia\n")
@@ -133,7 +136,7 @@ class RequestMethodTestCase(SimpleTestCase):
             code,
             dedent(
                 """\
-                from django_inertia import render
+                from dj_inertiajs import render
 
                 def view(request):
                     request.inertia.share(
@@ -187,8 +190,8 @@ class SettingsTestCase(SimpleTestCase):
                 """\
                 from myapp.encoders import Encoder
 
-                INSTALLED_APPS = ["django.contrib.sessions", "django_inertia"]
-                MIDDLEWARE = ['django_inertia.middleware.InertiaMiddleware']
+                INSTALLED_APPS = ["django.contrib.sessions", "dj_inertiajs"]
+                MIDDLEWARE = ['dj_inertiajs.middleware.InertiaMiddleware']
                 OTHER = ["inertia"]
 
                 # Inertia
@@ -239,7 +242,7 @@ class CommandTestCase(SimpleTestCase):
                 main([root])
             written = path.read_text()
             self.assertEqual(
-                written, "from django_inertia import Prop\nx = Prop(load, defer=True)\n"
+                written, "from dj_inertiajs import Prop\nx = Prop(load, defer=True)\n"
             )
 
             err = StringIO()
@@ -271,7 +274,7 @@ class TestAssertionTestCase(SimpleTestCase):
             code,
             dedent(
                 """\
-                from django_inertia.test import InertiaTestCase
+                from dj_inertiajs.test import InertiaTestCase
 
 
                 class EventTests(InertiaTestCase):
@@ -348,7 +351,7 @@ class TestAssertionTestCase(SimpleTestCase):
         code, manual = upgrade_source(source)
 
         self.assertEqual(
-            code, source.replace("from inertia.test", "from django_inertia.test")
+            code, source.replace("from inertia.test", "from dj_inertiajs.test")
         )
         self.assertEqual(manual, [])
 

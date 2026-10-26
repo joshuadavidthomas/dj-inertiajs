@@ -10,7 +10,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 
 ### Breaking changes
 
-* Rename the import package from `inertia` to `django_inertia` (placeholder until the final name is chosen).
+* Rename the distribution from `inertia-django` to `dj-inertiajs`, and the import package from `inertia` to `dj_inertiajs`. The `{% load inertia %}` tag library, the `INERTIA` setting and the `inertia.E0xx` check IDs keep their names.
 * Replace the `INERTIA_*` settings with one `INERTIA` dict: `LAYOUT`, `VERSION`, `JSON_ENCODER`, `ENCRYPT_HISTORY`, and `SSR` with `ENABLED` and `URL`. `JSON_ENCODER` is now a dotted import path.
 * `InertiaResponse` now subclasses `SimpleTemplateResponse` and renders lazily, when Django's handler calls `render()`. Reading `response.content` before that raises `ContentNotRenderedError`. Its extra arguments are now keyword-only `status` and `headers`.
 * Replace the block-based layout with template tags. The package no longer ships `inertia.html` or `inertia_ssr.html`, and layouts no longer define `{% block inertia %}` or `{% block inertia_head %}`. Instead a layout does `{% load inertia %}` and calls `{% inertia_head %}` in `<head>` and `{% inertia_body %}` where the app mounts. `{% inertia_body id="root" %}` sets the root element's id, which was hard-coded to `app`.
@@ -21,8 +21,8 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 
 ### Added
 
-* Make `request.inertia` describe the request: it is truthy for Inertia visits, and has `version`, `partial_component`, `partial_data`, `partial_except`, `reset`, `except_once_props`, `merge_intent`, `prefetch` and `is_partial()`. Annotate views with `django_inertia.http.InertiaHttpRequest` for type checkers. A request built with `RequestFactory` gets it when the response renders.
-* Add an upgrade codemod, `python -m django_inertia.upgrade [--diff] PATH ...`, with the `upgrade` extra. It rewrites imports, prop helper calls, calls to `share()` and the history helpers into `request.inertia` methods, `INERTIA_*` settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and `InertiaTestCase` assertions and accessors to take the response, including in test cases that inherit from it through base classes in other files, preserving formatting, and lists what it could not rewrite.
+* Make `request.inertia` describe the request: it is truthy for Inertia visits, and has `version`, `partial_component`, `partial_data`, `partial_except`, `reset`, `except_once_props`, `merge_intent`, `prefetch` and `is_partial()`. Annotate views with `dj_inertiajs.http.InertiaHttpRequest` for type checkers. A request built with `RequestFactory` gets it when the response renders.
+* Add an upgrade codemod, `python -m dj_inertiajs.upgrade [--diff] PATH ...`, with the `upgrade` extra. It rewrites imports, prop helper calls, calls to `share()` and the history helpers into `request.inertia` methods, `INERTIA_*` settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and `InertiaTestCase` assertions and accessors to take the response, including in test cases that inherit from it through base classes in other files, preserving formatting, and lists what it could not rewrite.
 * Add upgrade checks that report inertia-django configuration still in use: `INERTIA_*` settings, the old middleware path, the `inertia` app, and layouts that use `{% block inertia %}`. Each hint names the section of the upgrade guide that explains the fix.
 * Add system checks for unknown `INERTIA` keys, unimportable `SHARED_PROPS` entries, a missing layout, SSR without `requests`, and missing Inertia or session middleware.
 * Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
@@ -32,7 +32,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Add a per-view layout: `render(..., template_name=...)`, `InertiaResponse(..., template_name=...)` and a `template_name` attribute on class-based views. `INERTIA["LAYOUT"]` is the default.
 * Add `INERTIA["SHARED_PROPS"]`: dotted paths to `(request) -> dict` functions whose props are added to every page, like template context processors. View props override them, and `request.inertia.share()` still adds per-request values.
 * Add `request.inertia.set_errors(form_or_dict)`, which sends validation errors as the `errors` prop on the next page, once, the way `contrib.messages` works. Each field keeps its first message, and the prop is included in partial reloads.
-* Add class-based views in `django_inertia.views`: `InertiaResponseMixin`, which works with Django's generic views such as `ListView` and `FormView`, and `InertiaView`. Props come from `get_props()`. `Prop` attributes declared on the class are collected automatically, and a declared `Prop` whose value is a string names a view method. A bound, invalid `form` in the context is sent as the `errors` prop, so `FormView` needs no extra code.
+* Add class-based views in `dj_inertiajs.views`: `InertiaResponseMixin`, which works with Django's generic views such as `ListView` and `FormView`, and `InertiaView`. Props come from `get_props()`. `Prop` attributes declared on the class are collected automatically, and a declared `Prop` whose value is a string names a view method. A bound, invalid `form` in the context is sent as the `errors` prop, so `FormView` needs no extra code.
 * Expose the page a rendered response sent as `response.inertia` (`component`, `props`, `url`, `version`, and the whole page object as `data`), so pytest tests can read it without helpers.
 
 ## [2.0.0] - 2026-08-16

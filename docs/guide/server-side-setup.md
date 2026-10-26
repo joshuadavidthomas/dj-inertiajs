@@ -1,6 +1,6 @@
 # Server-side setup
 
-To get started with Inertia in Django, the first step is to configure Django to use the `django_inertia` server-side adapter.
+To get started with Inertia in Django, the first step is to configure Django to use the `dj_inertiajs` server-side adapter.
 
 ::: tip
 For new projects, we recommend following the [template based setup](#template-based-setup) guide.
@@ -79,11 +79,11 @@ Install the server-side adapter and `django-vite`. The distribution name is not 
 ::: code-group
 
 ```shell [uv]
-uv add "inertia-django @ git+https://github.com/joshuadavidthomas/inertia-django" django-vite
+uv add "dj-inertiajs @ git+https://github.com/joshuadavidthomas/inertia-django" django-vite
 ```
 
 ```shell [pip]
-python -m pip install "git+https://github.com/joshuadavidthomas/inertia-django" django-vite
+python -m pip install "dj-inertiajs @ git+https://github.com/joshuadavidthomas/inertia-django" django-vite
 ```
 :::
 
@@ -91,26 +91,26 @@ For server-side rendering, also install the `ssr` extra, which adds `requests`.
 
 ### Update installed apps
 
-Add `django_vite` and `django_inertia` to your `INSTALLED_APPS` in `settings.py`.
+Add `django_vite` and `dj_inertiajs` to your `INSTALLED_APPS` in `settings.py`.
 
 ```python
 INSTALLED_APPS = [
     # ...
     "django_vite",
-    "django_inertia",
+    "dj_inertiajs",
 ]
 ```
 
 ### Update middleware
 
-Next, add `django_inertia.middleware.InertiaMiddleware` to your `MIDDLEWARE` in `settings.py`. Inertia stores some state in the session, so `SessionMiddleware` must be there too; new Django projects include it.
+Next, add `dj_inertiajs.middleware.InertiaMiddleware` to your `MIDDLEWARE` in `settings.py`. Inertia stores some state in the session, so `SessionMiddleware` must be there too; new Django projects include it.
 
 ```python
 MIDDLEWARE = [
     # ...
     "django.contrib.sessions.middleware.SessionMiddleware",
     # ...
-    "django_inertia.middleware.InertiaMiddleware",
+    "dj_inertiajs.middleware.InertiaMiddleware",
 ]
 ```
 

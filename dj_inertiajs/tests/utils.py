@@ -1,7 +1,7 @@
 from json import dumps
 
-from django_inertia.settings import settings
-from django_inertia.test import InertiaTestCase
+from dj_inertiajs.settings import settings
+from dj_inertiajs.test import InertiaTestCase
 
 
 class ProtocolTestCase(InertiaTestCase):

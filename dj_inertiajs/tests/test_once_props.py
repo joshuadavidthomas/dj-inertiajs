@@ -1,4 +1,4 @@
-from django_inertia.tests.utils import ProtocolTestCase, inertia_page
+from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_page
 
 
 class OncePropsTestCase(ProtocolTestCase):

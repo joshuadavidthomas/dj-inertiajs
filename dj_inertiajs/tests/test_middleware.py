@@ -1,8 +1,8 @@
 from django.contrib.sessions.backends.signed_cookies import SessionStore
 from django.test import AsyncClient, RequestFactory, TestCase
 
-from django_inertia import InertiaResponse
-from django_inertia.tests.utils import ProtocolTestCase
+from dj_inertiajs import InertiaResponse
+from dj_inertiajs.tests.utils import ProtocolTestCase
 
 
 class AsyncMiddlewareTestCase(TestCase):

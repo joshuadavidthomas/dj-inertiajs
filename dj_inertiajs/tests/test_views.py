@@ -1,7 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured
 
-from django_inertia.test import InertiaTestCase
-from django_inertia.tests.testapp.models import Sport
+from dj_inertiajs.test import InertiaTestCase
+from dj_inertiajs.tests.testapp.models import Sport
 
 
 class InertiaViewTestCase(InertiaTestCase):

@@ -15,7 +15,7 @@ step() {
 }
 
 playwright_install() {
-  local dir=django_inertia/tests/v3_frontend
+  local dir=dj_inertiajs/tests/v3_frontend
   # Playwright 1.50's browser extraction hangs under the orb's Node 26, so run
   # its CLI under Node 20 (the version CI uses).
   playwright() {
@@ -29,6 +29,6 @@ playwright_install() {
 }
 
 step "uv sync" uv sync --locked --extra ssr
-step "npm ci (v3 frontend)" npm ci --prefix django_inertia/tests/v3_frontend --no-audit --no-fund
+step "npm ci (v3 frontend)" npm ci --prefix dj_inertiajs/tests/v3_frontend --no-audit --no-fund
 step "playwright chromium" playwright_install
 step "npm ci (docs)" npm ci --prefix docs --no-audit --no-fund

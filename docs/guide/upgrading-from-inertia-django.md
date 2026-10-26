@@ -11,9 +11,9 @@ Work through three steps. Each one shortens the list for the next.
 1. **Run the codemod.** It rewrites imports, prop helpers, request helpers such as `share()`, settings, the `MIDDLEWARE` and `INSTALLED_APPS` entries, and test assertions:
 
    ```shell
-   pip install "<package>[upgrade]"
-   python -m django_inertia.upgrade --diff path/to/project   # review the changes
-   python -m django_inertia.upgrade path/to/project          # write them
+   pip install "dj-inertiajs[upgrade] @ git+https://github.com/joshuadavidthomas/inertia-django"
+   python -m dj_inertiajs.upgrade --diff path/to/project   # review the changes
+   python -m dj_inertiajs.upgrade path/to/project          # write them
    ```
 
    It prints every change it could not make on its own.
@@ -68,12 +68,12 @@ Then check that a full page visit mounts the v3 client, a form submission sends 
 
 ## Install and app name
 
-The import package is `django_inertia`. Both packages can be installed at the same time while you migrate, but only one may be in `INSTALLED_APPS` and `MIDDLEWARE`.
+The import package is `dj_inertiajs`. Both packages can be installed at the same time while you migrate, but only one may be in `INSTALLED_APPS` and `MIDDLEWARE`.
 
 ```python
 INSTALLED_APPS = [
     # ...
-    "django_inertia",   # was "inertia"
+    "dj_inertiajs",   # was "inertia"
 ]
 ```
 
@@ -83,7 +83,7 @@ The codemod rewrites this entry. The `inertia.E009` check reports it if it is le
 
 The `INERTIA_*` settings are replaced by one `INERTIA` dict. `JSON_ENCODER` is now a dotted import path instead of a class, so `settings.py` does not import application code.
 
-| inertia-django | django_inertia |
+| inertia-django | dj_inertiajs |
 |---|---|
 | `INERTIA_LAYOUT` | `INERTIA["LAYOUT"]` |
 | `INERTIA_VERSION` | `INERTIA["VERSION"]` |
@@ -111,7 +111,7 @@ The codemod rewrites module-level `INERTIA_*` assignments. The `inertia.E007` ch
 ```python
 MIDDLEWARE = [
     # ...
-    "django_inertia.middleware.InertiaMiddleware",   # was "inertia.middleware.InertiaMiddleware"
+    "dj_inertiajs.middleware.InertiaMiddleware",   # was "inertia.middleware.InertiaMiddleware"
 ]
 ```
 
@@ -146,7 +146,7 @@ The codemod does not edit templates. The `inertia.E010` check names the layout t
 
 The prop helper functions are replaced by one `Prop` class. Each helper becomes a keyword option:
 
-| inertia-django | django_inertia |
+| inertia-django | dj_inertiajs |
 |---|---|
 | `optional(f)` | `Prop(f, optional=True)` |
 | `lazy(f)` | `Prop(f, optional=True)` |
@@ -176,13 +176,13 @@ The codemod rewrites calls to the helpers it can trace to an `inertia` import.
 - `@inertia` now works on `async def` views.
 - The extra arguments of `render()` and `InertiaResponse` are keyword-only: `template_name`, `status` and `headers`. `InertiaResponse` no longer takes `HttpResponse`'s positional arguments.
 
-Class-based views are new, in `django_inertia.views`:
+Class-based views are new, in `dj_inertiajs.views`:
 
 ```python
 from django.views.generic import ListView
 
-from django_inertia import Prop
-from django_inertia.views import InertiaResponseMixin, InertiaView
+from dj_inertiajs import Prop
+from dj_inertiajs.views import InertiaResponseMixin, InertiaView
 
 
 class Dashboard(InertiaView):

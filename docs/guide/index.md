@@ -7,7 +7,7 @@ next:
 
 # Introduction
 
-Welcome to the documentation for [inertia-django](https://github.com/inertiajs/inertia-django) adapter for [Django](https://www.djangoproject.com/) and [Inertia.js](https://inertiajs.com/).
+Welcome to the documentation for dj-inertiajs, a Django-native adapter forked from [inertia-django](https://github.com/inertiajs/inertia-django), for [Django](https://www.djangoproject.com/) and [Inertia.js](https://inertiajs.com/).
 
 ## Why adapter-specific documentation?
 

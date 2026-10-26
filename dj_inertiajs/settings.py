@@ -10,7 +10,7 @@ __all__ = ["DEFAULTS", "settings"]
 DEFAULTS: dict[str, Any] = {
     "LAYOUT": None,
     "VERSION": "1.0",
-    "JSON_ENCODER": "django_inertia.utils.InertiaJsonEncoder",
+    "JSON_ENCODER": "dj_inertiajs.utils.InertiaJsonEncoder",
     "ENCRYPT_HISTORY": False,
     "SHARED_PROPS": [],
     "SSR": {

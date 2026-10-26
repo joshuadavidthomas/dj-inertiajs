@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from django_inertia import Prop
+from dj_inertiajs import Prop
 
 SCROLL = {"pageName": "page", "previousPage": None, "nextPage": 2, "currentPage": 1}
 

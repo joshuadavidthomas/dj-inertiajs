@@ -12,7 +12,7 @@ from django.utils.module_loading import import_string
 from .settings import DEFAULTS, settings
 
 SESSION_MIDDLEWARE = "django.contrib.sessions.middleware.SessionMiddleware"
-INERTIA_MIDDLEWARE = "django_inertia.middleware.InertiaMiddleware"
+INERTIA_MIDDLEWARE = "dj_inertiajs.middleware.InertiaMiddleware"
 OLD_MIDDLEWARE = "inertia.middleware.InertiaMiddleware"
 OLD_SETTINGS = {
     "INERTIA_LAYOUT": 'INERTIA["LAYOUT"]',
@@ -125,7 +125,7 @@ def check_upgrade(**kwargs: Any) -> list[CheckMessage]:
         errors.append(
             Error(
                 "inertia-django's 'inertia' app is in INSTALLED_APPS.",
-                hint=f"Replace it with 'django_inertia'. {guide('Install and app name')}",
+                hint=f"Replace it with 'dj_inertiajs'. {guide('Install and app name')}",
                 id="inertia.E009",
             )
         )

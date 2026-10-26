@@ -6,12 +6,12 @@ from django.shortcuts import render as django_render
 from django.utils.decorators import decorator_from_middleware
 from django.views.generic import FormView, ListView
 
-from django_inertia import Prop, inertia, location, render
-from django_inertia.http import (
+from dj_inertiajs import Prop, inertia, location, render
+from dj_inertiajs.http import (
     INERTIA_SESSION_CLEAR_HISTORY,
     INERTIA_SESSION_PRESERVE_FRAGMENT,
 )
-from django_inertia.views import InertiaResponseMixin, InertiaView
+from dj_inertiajs.views import InertiaResponseMixin, InertiaView
 
 from .models import Sport
 

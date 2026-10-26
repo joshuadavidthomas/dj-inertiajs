@@ -1,10 +1,10 @@
 from django.test import override_settings
 
-from django_inertia.test import InertiaTestCase
+from dj_inertiajs.test import InertiaTestCase
 
 SHARED = {
     "LAYOUT": "layout.html",
-    "SHARED_PROPS": ["django_inertia.tests.testapp.views.shared_props"],
+    "SHARED_PROPS": ["dj_inertiajs.tests.testapp.views.shared_props"],
 }
 
 

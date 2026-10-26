@@ -3,8 +3,8 @@ from json import dumps
 
 from django.test import TestCase
 
-from django_inertia.tests.testapp.models import Sport, User
-from django_inertia.utils import InertiaJsonEncoder
+from dj_inertiajs.tests.testapp.models import Sport, User
+from dj_inertiajs.utils import InertiaJsonEncoder
 
 
 def make_brandon() -> User:

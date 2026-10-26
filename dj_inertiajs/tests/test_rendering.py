@@ -1,7 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.test import AsyncClient, TestCase, override_settings
 
-from django_inertia.tests.utils import ProtocolTestCase, inertia_div, inertia_page
+from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_div, inertia_page
 
 
 class FirstLoadTestCase(ProtocolTestCase):

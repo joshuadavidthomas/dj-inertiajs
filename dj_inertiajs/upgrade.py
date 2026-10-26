@@ -1,6 +1,6 @@
 """Rewrite a project from inertia-django to this package.
 
-Run ``python -m django_inertia.upgrade [--diff] PATH ...``. It rewrites, in
+Run ``python -m dj_inertiajs.upgrade [--diff] PATH ...``. It rewrites, in
 every Python file under each path:
 
 - imports from ``inertia`` and its modules,
@@ -45,9 +45,9 @@ POSITIONAL = {"defer": ["group", "merge"], "once": ["fresh"], "scroll": ["scroll
 REQUEST_METHODS = {"share", "encrypt_history", "clear_history", "preserve_fragment"}
 PUBLIC = {"InertiaResponse", "inertia", "location", "render"}
 MOVED = {
-    "InertiaJsonEncoder": "django_inertia.utils",
-    "InertiaMiddleware": "django_inertia.middleware",
-    "InertiaTestCase": "django_inertia.test",
+    "InertiaJsonEncoder": "dj_inertiajs.utils",
+    "InertiaMiddleware": "dj_inertiajs.middleware",
+    "InertiaTestCase": "dj_inertiajs.test",
 }
 REMOVED = {
     "BaseInertiaTestCase": "Tests",
@@ -65,8 +65,8 @@ OLD_SETTINGS = {
     "INERTIA_SSR_URL": ("SSR", "URL"),
 }
 STRINGS = {
-    "inertia.middleware.InertiaMiddleware": "django_inertia.middleware.InertiaMiddleware",
-    "inertia.utils.InertiaJsonEncoder": "django_inertia.utils.InertiaJsonEncoder",
+    "inertia.middleware.InertiaMiddleware": "dj_inertiajs.middleware.InertiaMiddleware",
+    "inertia.utils.InertiaJsonEncoder": "dj_inertiajs.utils.InertiaJsonEncoder",
 }
 # Old InertiaTestCase assertions, which now take the response first.
 ASSERTIONS = {
@@ -264,7 +264,7 @@ class Upgrade(cst.CSTTransformer):
                 self.report(
                     original_node,
                     f"`import {_dotted(alias.name)}` is not rewritten; import names "
-                    "from django_inertia instead.",
+                    "from dj_inertiajs instead.",
                 )
         return updated_node
 
@@ -290,7 +290,7 @@ class Upgrade(cst.CSTTransformer):
                 self.helpers[_alias_name(alias)] = name
                 if not self.prop_imported:
                     self.prop_imported = True
-                    targets.setdefault("django_inertia", []).append(
+                    targets.setdefault("dj_inertiajs", []).append(
                         cst.ImportAlias(cst.Name("Prop"))
                     )
                 continue
@@ -304,11 +304,11 @@ class Upgrade(cst.CSTTransformer):
                 )
                 continue
             if name in PUBLIC:
-                new_module = "django_inertia"
+                new_module = "dj_inertiajs"
             elif name in MOVED:
                 new_module = MOVED[name]
             else:
-                new_module = "django_" + module
+                new_module = "dj_inertiajs" + module.removeprefix("inertia")
                 self.report(
                     original_node,
                     f"`{name}` is not public API; check that "
@@ -616,7 +616,7 @@ class Upgrade(cst.CSTTransformer):
             return updated_node
         new = STRINGS.get(value)
         if value == "inertia" and self.installed_apps_depth:
-            new = "django_inertia"
+            new = "dj_inertiajs"
         if new is None:
             return updated_node
         quote = original_node.quote
@@ -756,8 +756,8 @@ def python_files(paths: Sequence[Path]) -> Iterator[Path]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m django_inertia.upgrade",
-        description="Rewrite a project from inertia-django to django_inertia.",
+        prog="python -m dj_inertiajs.upgrade",
+        description="Rewrite a project from inertia-django to dj_inertiajs.",
     )
     parser.add_argument("paths", nargs="+", type=Path)
     parser.add_argument(

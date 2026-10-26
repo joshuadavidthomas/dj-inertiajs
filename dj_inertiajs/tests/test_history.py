@@ -1,6 +1,6 @@
 from django.test import override_settings
 
-from django_inertia.tests.utils import ProtocolTestCase
+from dj_inertiajs.tests.utils import ProtocolTestCase
 
 
 class HistoryTestCase(ProtocolTestCase):

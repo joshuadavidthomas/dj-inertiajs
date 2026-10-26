@@ -3,7 +3,7 @@ requires = ["uv_build>=0.12.5,<0.13"]
 build-backend = "uv_build"
 
 [project]
-name = "inertia-django"
+name = "dj-inertiajs"
 version = "2.0.0"
 description = "Django adapter for the InertiaJS framework"
 authors = [{name = "Brandon Shar"}]
@@ -24,8 +24,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/inertiajs/inertia-django"
-Repository = "https://github.com/inertiajs/inertia-django"
+Homepage = "https://github.com/joshuadavidthomas/inertia-django"
+Repository = "https://github.com/joshuadavidthomas/inertia-django"
 
 [project.optional-dependencies]
 # Requests is requires for server-side rendering.
@@ -47,7 +47,7 @@ dev = [
 ]
 
 [tool.uv.build-backend]
-module-name = "django_inertia"
+module-name = "dj_inertiajs"
 module-root = ""
 
 [tool.ruff.lint]
@@ -63,15 +63,15 @@ ignore = ["E501"] # line too long, formatter will handle this
 unfixable = ["B", "SIM"]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "django_inertia.tests.settings"
+DJANGO_SETTINGS_MODULE = "dj_inertiajs.tests.settings"
 django_find_project = false
 
 [tool.mypy]
 plugins = ["mypy_django_plugin.main"]
 strict = true
 exclude = [
-    "django_inertia/tests/"
+    "dj_inertiajs/tests/"
 ]
 
 [tool.django-stubs]
-django_settings_module = "django_inertia.tests.settings"
+django_settings_module = "dj_inertiajs.tests.settings"

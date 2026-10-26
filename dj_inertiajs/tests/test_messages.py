@@ -1,4 +1,4 @@
-from django_inertia.tests.utils import ProtocolTestCase
+from dj_inertiajs.tests.utils import ProtocolTestCase
 
 
 class FlashMessagesTestCase(ProtocolTestCase):

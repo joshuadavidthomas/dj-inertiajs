@@ -23,7 +23,7 @@ class ChecksTestCase(SimpleTestCase):
 
     @override_settings(INERTIA={"LAYOUT": "layout.html", "SSR": {"ENABLED": True}})
     def test_ssr_without_requests(self):
-        with patch("django_inertia.checks.find_spec", return_value=None):
+        with patch("dj_inertiajs.checks.find_spec", return_value=None):
             self.assertEqual(inertia_check_ids(), ["inertia.E003"])
 
     @override_settings(
@@ -44,8 +44,8 @@ class ChecksTestCase(SimpleTestCase):
     def test_middleware_subclasses_count(self):
         middleware = [
             m.replace(
-                "django_inertia.middleware.InertiaMiddleware",
-                "django_inertia.tests.testapp.middleware.CustomInertiaMiddleware",
+                "dj_inertiajs.middleware.InertiaMiddleware",
+                "dj_inertiajs.tests.testapp.middleware.CustomInertiaMiddleware",
             )
             for m in settings.MIDDLEWARE
         ]
@@ -74,7 +74,7 @@ class UpgradeChecksTestCase(SimpleTestCase):
 
     def test_old_app(self):
         with patch(
-            "django_inertia.checks.apps.is_installed",
+            "dj_inertiajs.checks.apps.is_installed",
             side_effect=lambda n: n == "inertia",
         ):
             self.assertEqual(inertia_check_ids(), ["inertia.E009"])

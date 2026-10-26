@@ -1,19 +1,19 @@
 ![image](https://user-images.githubusercontent.com/6599653/114456558-032e2200-9bab-11eb-88bc-a19897f417ba.png)
 
-# Inertia.js Django Adapter
+# dj-inertiajs
 
 A Django-native server-side adapter for [Inertia.js](https://inertiajs.com/), forked from [inertia-django](https://github.com/inertiajs/inertia-django) 2.0.0. It speaks the same Inertia v3 protocol, so the client side is unchanged, but its API follows Django's conventions: one settings dict, system checks, class-based views, lazy responses like `TemplateResponse`, template tags, and test assertions that take the response.
 
 Coming from inertia-django? See [Upgrading from inertia-django](docs/guide/upgrading-from-inertia-django.md). A codemod and system checks do most of the work.
 
-The import package is `django_inertia`. The distribution name is not final yet, so install it from Git for now.
+The import package is `dj_inertiajs`. The distribution name is not final yet, so install it from Git for now.
 
 ## Installation
 
 ### Backend
 
 ```bash
-pip install "git+https://github.com/joshuadavidthomas/inertia-django"
+pip install "dj-inertiajs @ git+https://github.com/joshuadavidthomas/inertia-django"
 ```
 
 Add the app and the middleware. Inertia stores some state in the session, so `SessionMiddleware` is required too:
@@ -21,14 +21,14 @@ Add the app and the middleware. Inertia stores some state in the session, so `Se
 ```python
 INSTALLED_APPS = [
     # ...
-    "django_inertia",
+    "dj_inertiajs",
 ]
 
 MIDDLEWARE = [
     # ...
     "django.contrib.sessions.middleware.SessionMiddleware",
     # ...
-    "django_inertia.middleware.InertiaMiddleware",
+    "dj_inertiajs.middleware.InertiaMiddleware",
 ]
 
 INERTIA = {
@@ -76,7 +76,7 @@ createInertiaApp({
 `render()` works like `django.shortcuts.render`, with a component instead of a template:
 
 ```python
-from django_inertia import render
+from dj_inertiajs import render
 
 from .models import Event
 
@@ -90,7 +90,7 @@ It also takes `template_data` (extra context for the layout), and the keyword-on
 For views that only return props, use the decorator. It works on sync and `async` views, and passes any `HttpResponse` the view returns, such as a redirect, through unchanged:
 
 ```python
-from django_inertia import inertia
+from dj_inertiajs import inertia
 
 
 @inertia("Event/Index")
@@ -107,7 +107,7 @@ Responses render lazily, like `TemplateResponse`. Until Django's handler renders
 ```python
 from django.views.generic import ListView
 
-from django_inertia.views import InertiaResponseMixin
+from dj_inertiajs.views import InertiaResponseMixin
 
 
 class EventList(InertiaResponseMixin, ListView):
@@ -123,8 +123,8 @@ Only what `get_props()` returns is sent, so context such as `view` or `paginator
 `InertiaView` renders `component` on GET, like `TemplateView`. Props can be declared on the class with `Prop`. A `Prop` whose value is a string names a method on the view, which runs only when the prop is sent:
 
 ```python
-from django_inertia import Prop
-from django_inertia.views import InertiaView
+from dj_inertiajs import Prop
+from dj_inertiajs.views import InertiaView
 
 
 class Dashboard(InertiaView):
@@ -146,7 +146,7 @@ A prop is any JSON-serializable value. A callable is called at render time, and 
 ```python
 from datetime import timedelta
 
-from django_inertia import Prop
+from dj_inertiajs import Prop
 
 props = {
     "name": "Brandon",
@@ -195,7 +195,7 @@ Props that every page needs, such as the signed-in user, come from functions lis
 
 ```python
 # myapp/inertia.py
-from django_inertia import Prop
+from dj_inertiajs import Prop
 
 
 def shared(request):
@@ -259,7 +259,7 @@ Its methods change the page this request renders, or with a redirect, the next o
 For type checkers, annotate views with `InertiaHttpRequest`:
 
 ```python
-from django_inertia.http import InertiaHttpRequest
+from dj_inertiajs.http import InertiaHttpRequest
 
 
 def show(request: InertiaHttpRequest, pk: int):
@@ -286,7 +286,7 @@ Return Django's redirects as usual. The middleware turns redirects after `PUT`, 
 To leave the Inertia app, for an external site or a non-Inertia page, return `location()`. It makes the client do a full `window.location` visit:
 
 ```python
-from django_inertia import location
+from dj_inertiajs import location
 
 
 def billing_portal(request):
@@ -311,7 +311,7 @@ Inertia can [encrypt the history state](https://inertiajs.com/history-encryption
 Turn it on for every page with `INERTIA["ENCRYPT_HISTORY"] = True`, or per view:
 
 ```python
-from django_inertia import inertia
+from dj_inertiajs import inertia
 
 
 @inertia("Account/Show")
@@ -335,7 +335,7 @@ class LogoutView(auth_views.LogoutView):
 
 ## Serialization
 
-Props are encoded with `INERTIA["JSON_ENCODER"]`, by default `django_inertia.utils.InertiaJsonEncoder`. It extends `DjangoJSONEncoder`, which handles dates, times, decimals and UUIDs, and adds two things:
+Props are encoded with `INERTIA["JSON_ENCODER"]`, by default `dj_inertiajs.utils.InertiaJsonEncoder`. It extends `DjangoJSONEncoder`, which handles dates, times, decimals and UUIDs, and adds two things:
 
 - Any class with an `InertiaMeta` inner class is encoded as the attributes listed in `InertiaMeta.fields`.
 - A `QuerySet` is encoded as a list of its items, so `Event.objects.values("id", "title")` sends dicts.
@@ -378,7 +378,7 @@ All settings live in one `INERTIA` dict:
 |---|---|---|
 | `LAYOUT` | none, required | The layout template for full page loads. Views can choose another with `template_name`. |
 | `VERSION` | `"1.0"` | The asset version. When the client's version differs, it reloads the page. |
-| `JSON_ENCODER` | `"django_inertia.utils.InertiaJsonEncoder"` | Dotted path to the JSON encoder for props. |
+| `JSON_ENCODER` | `"dj_inertiajs.utils.InertiaJsonEncoder"` | Dotted path to the JSON encoder for props. |
 | `ENCRYPT_HISTORY` | `False` | Encrypt the browser history state on every page. |
 | `SHARED_PROPS` | `[]` | Dotted paths to functions whose props are added to every page. |
 | `SSR` | `{"ENABLED": False, "URL": "http://localhost:13714"}` | Server-side rendering. Keys you leave out keep their defaults. |
@@ -414,7 +414,7 @@ def test_events(client):
 With Django's test cases, `InertiaTestCase` adds assertions that take the response first, like `assertTemplateUsed`. `self.inertia` is a client whose requests are Inertia visits:
 
 ```python
-from django_inertia.test import InertiaTestCase
+from dj_inertiajs.test import InertiaTestCase
 
 
 class EventTests(InertiaTestCase):
@@ -435,9 +435,9 @@ class EventTests(InertiaTestCase):
 Run the codemod, then the system checks, then follow the [upgrade guide](docs/guide/upgrading-from-inertia-django.md) for the rest:
 
 ```bash
-pip install "inertia-django[upgrade] @ git+https://github.com/joshuadavidthomas/inertia-django"
-python -m django_inertia.upgrade --diff path/to/project   # review
-python -m django_inertia.upgrade path/to/project          # write
+pip install "dj-inertiajs[upgrade] @ git+https://github.com/joshuadavidthomas/inertia-django"
+python -m dj_inertiajs.upgrade --diff path/to/project   # review
+python -m dj_inertiajs.upgrade path/to/project          # write
 python manage.py check
 ```
 

@@ -3,7 +3,7 @@ from django.core import checks
 
 
 class InertiaConfig(AppConfig):
-    name = "django_inertia"
+    name = "dj_inertiajs"
     verbose_name = "Inertia"
 
     def ready(self) -> None:

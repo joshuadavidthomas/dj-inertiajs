@@ -1,4 +1,4 @@
-from django_inertia.middleware import InertiaMiddleware
+from dj_inertiajs.middleware import InertiaMiddleware
 
 
 class CustomInertiaMiddleware(InertiaMiddleware):
