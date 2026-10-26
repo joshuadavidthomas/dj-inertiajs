@@ -78,6 +78,37 @@ class PropHelperTestCase(SimpleTestCase):
         self.assertEqual(len(manual), 1)
         self.assertIn("line 3: `merge(..., **options)`", manual[0])
 
+    def test_calls_it_cannot_map_are_left_and_reported(self):
+        code, manual = upgrade(
+            """\
+            from inertia import defer
+            x = defer(group="g")
+            y = defer(f, *a)
+            z = defer(f, "g", True, 1)
+            """
+        )
+
+        self.assertEqual(
+            code,
+            dedent(
+                """\
+                from dj_inertiajs import Prop
+                x = defer(group="g")
+                y = defer(f, *a)
+                z = defer(f, "g", True, 1)
+                """
+            ),
+        )
+        self.assertEqual(
+            manual,
+            [
+                "line 2: `defer(...)` has no plain first argument; "
+                "rewrite it as Prop(...) by hand.",
+                "line 3: `defer(*...)` is not rewritten.",
+                "line 4: `defer(...)` has too many arguments.",
+            ],
+        )
+
 
 class ImportTestCase(SimpleTestCase):
     def test_imports_move_to_their_new_modules(self):
@@ -109,6 +140,32 @@ class ImportTestCase(SimpleTestCase):
             "`deep_transform_callables` from `inertia.helpers` is not public API",
             manual[1],
         )
+
+    def test_one_import_split_across_new_modules(self):
+        code, manual = upgrade(
+            """\
+            from inertia.utils import defer, InertiaJsonEncoder
+            x = defer(f)
+            """
+        )
+
+        self.assertEqual(
+            code,
+            dedent(
+                """\
+                from dj_inertiajs import Prop
+                from dj_inertiajs.encoders import InertiaJsonEncoder
+                x = Prop(f, defer=True)
+                """
+            ),
+        )
+        self.assertEqual(manual, [])
+
+    def test_star_import_is_reported(self):
+        code, manual = upgrade("from inertia import *\n")
+
+        self.assertEqual(code, "from inertia import *\n")
+        self.assertIn("`from inertia import *` is not rewritten", manual[0])
 
     def test_module_import_is_reported(self):
         code, manual = upgrade("import inertia\n")
@@ -286,6 +343,22 @@ class SettingsTestCase(SimpleTestCase):
         )
         self.assertEqual(manual, [])
 
+    def test_installed_apps_extended_in_place(self):
+        code, _ = upgrade('INSTALLED_APPS += ["inertia"]\nOTHER = ["inertia"]\n')
+
+        self.assertEqual(
+            code, 'INSTALLED_APPS += ["dj_inertiajs"]\nOTHER = ["inertia"]\n'
+        )
+
+    def test_encoder_that_is_not_a_name_is_reported(self):
+        code, manual = upgrade("INERTIA_JSON_ENCODER = make_encoder()\n")
+
+        self.assertIn('"JSON_ENCODER": make_encoder(),', code)
+        self.assertIn(
+            'INERTIA["JSON_ENCODER"] must be a dotted path, not make_encoder()',
+            manual[0],
+        )
+
     def test_existing_inertia_dict_is_not_merged(self):
         source = 'INERTIA = {}\nINERTIA_LAYOUT = "base.html"\n'
         code, manual = upgrade(source)
@@ -328,6 +401,26 @@ class CommandTestCase(SimpleTestCase):
                 main([root])
             self.assertEqual(path.read_text(), written)
             self.assertIn("0 file(s) changed", err.getvalue())
+
+    def test_a_file_path_and_an_unparsable_file(self):
+        from contextlib import redirect_stderr
+        from io import StringIO
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as root:
+            views = Path(root, "views.py")
+            views.write_text("from inertia import defer\nx = defer(load)\n")
+            broken = Path(root, "broken.py")
+            broken.write_text("def f(:\n")
+
+            err = StringIO()
+            with redirect_stderr(err):
+                main([str(views), str(broken)])
+
+            self.assertIn("Prop(load, defer=True)", views.read_text())
+            self.assertEqual(broken.read_text(), "def f(:\n")
+            self.assertIn("not parsed", err.getvalue())
 
 
 class TestAssertionTestCase(SimpleTestCase):

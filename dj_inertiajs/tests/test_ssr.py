@@ -90,3 +90,12 @@ class SSRTestCase(ProtocolTestCase):
         self.client.get("/props/", inertia=False)
 
         mock_logger.exception.assert_called_once_with("SSR render request failed")
+
+    @override_settings(INERTIA={"LAYOUT": "layout.html", "SSR": {"ENABLED": True}})
+    @patch("dj_inertiajs.response.requests")
+    def test_the_default_url_is_the_ssr_servers_default_port(self, mock_requests):
+        self.client.get("/props/", inertia=False)
+
+        self.assertEqual(
+            mock_requests.post.call_args.args, ("http://localhost:13714/render",)
+        )

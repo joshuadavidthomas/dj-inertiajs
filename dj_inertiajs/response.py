@@ -235,6 +235,7 @@ class InertiaResponse(SimpleTemplateResponse):
     json_encoder: type[JSONEncoder] | None = None
     rendering_attrs = [
         *SimpleTemplateResponse.rendering_attrs,
+        "_request",
         "_inertia",
         "component",
         "props",

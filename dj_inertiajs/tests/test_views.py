@@ -66,3 +66,15 @@ class GenericViewTestCase(InertiaTestCase):
 
         response = self.client.post("/sports/create/", {"name": "Hockey"})
         self.assertRedirects(response, "/empty/", fetch_redirect_response=False)
+
+    def test_form_errors_survive_a_partial_submit(self):
+        response = self.client.post(
+            "/sports/create/",
+            {},
+            headers={
+                "X-Inertia-Partial-Component": "Sports/Create",
+                "X-Inertia-Partial-Data": "other",
+            },
+        )
+
+        self.assertPropsEqual(response, {"errors": {"name": "This field is required."}})

@@ -1,5 +1,8 @@
+import pytest
+from django.template.response import ContentNotRenderedError
 from django.test import SimpleTestCase
 
+from dj_inertiajs import InertiaResponse
 from dj_inertiajs.test import InertiaTestCase, InertiaTestMixin
 
 
@@ -21,6 +24,8 @@ class AssertionsTestCase(InertiaTestCase):
         self.assertTemplateDataEqual(response, {"name": "Brian", "sport": "Basketball"})
         with self.assertRaises(AssertionError):
             self.assertTemplateDataEqual(response, {"name": "Brian"})
+        with self.assertRaises(AssertionError):
+            self.assertTemplateDataContain(response, {"name": "Brandon"})
 
     def test_component(self):
         response = self.client.get("/props/")
@@ -82,3 +87,10 @@ def test_first_load_exposes_the_page_too(client):
     response = client.get("/props/")
 
     assert response.inertia.props == {"name": "Brandon", "sport": "Hockey"}
+
+
+def test_page_is_unavailable_before_rendering(rf):
+    response = InertiaResponse(rf.get("/"), "Dashboard")
+
+    with pytest.raises(ContentNotRenderedError):
+        _ = response.inertia

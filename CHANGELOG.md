@@ -36,7 +36,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Send `X-Inertia-Version` with the `409` for an asset version mismatch, as the protocol requires. The v3 client uses it to tell a version change from a location visit, and not to reload for background requests.
 * Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
 * Support `async def` views under `@inertia`, and `async def` prop callables, which are awaited in sync and async views alike.
-* Let `process_template_response` middleware and view decorators change `component`, `props` and `template_data` before the page is rendered.
+* Let `process_template_response` middleware and view decorators change `component`, `props` and `template_data` before the page is rendered. Like `TemplateResponse`, a rendered response drops the request when pickled, so `cache_page` can store it.
 * Add `status` and `headers` arguments to `render()`. `@inertia` takes the same options as `render()`: `template_name`, `status`, `headers` and `encrypt_history`.
 * Add a per-view layout: `render(..., template_name=...)`, `InertiaResponse(..., template_name=...)` and a `template_name` attribute on class-based views. `INERTIA["LAYOUT"]` is the default.
 * Add `INERTIA["SHARED_PROPS"]`: dotted paths to `(request) -> dict` functions whose props are added to every page, like template context processors. View props override them.
