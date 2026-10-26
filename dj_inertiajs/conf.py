@@ -36,7 +36,9 @@ class InertiaSettings:
 
     @property
     def VERSION(self) -> str:
-        return self._get("VERSION")  # type: ignore[no-any-return]
+        """The asset version: the setting's string, or what its callable returns."""
+        version = self._get("VERSION")
+        return version() if callable(version) else version  # type: ignore[no-any-return]
 
     @property
     def JSON_ENCODER(self) -> type[json.JSONEncoder]:

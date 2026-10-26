@@ -58,6 +58,14 @@ def check_settings(**kwargs: Any) -> list[CheckMessage]:
                     id="inertia.E006",
                 )
             )
+    version = settings._get("VERSION")
+    if not (isinstance(version, str) or callable(version)):
+        errors.append(
+            Error(
+                'INERTIA["VERSION"] must be a string or a callable that returns one.',
+                id="inertia.E012",
+            )
+        )
     for key in ("JSON_ENCODER", "FORM_ERRORS"):
         try:
             import_string(settings._get(key))

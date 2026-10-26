@@ -38,6 +38,10 @@ class ChecksTestCase(SimpleTestCase):
     def test_unimportable_dotted_path(self):
         self.assertEqual(inertia_check_ids(), ["inertia.E011"])
 
+    @override_settings(INERTIA={"LAYOUT": "layout.html", "VERSION": 2})
+    def test_version_of_the_wrong_type(self):
+        self.assertEqual(inertia_check_ids(), ["inertia.E012"])
+
     def test_missing_middleware(self):
         middleware = [
             m

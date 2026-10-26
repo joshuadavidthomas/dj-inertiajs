@@ -15,6 +15,14 @@ class SettingsTestCase(ProtocolTestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    @override_settings(INERTIA={"LAYOUT": "layout.html", "VERSION": lambda: "abc123"})
+    def test_version_can_be_a_callable(self):
+        response = self.inertia.get("/empty/", HTTP_X_INERTIA_VERSION="abc123")
+        self.assertEqual(response.inertia.version, "abc123")
+
+        response = self.inertia.get("/empty/", HTTP_X_INERTIA_VERSION="1.0")
+        self.assertEqual(response.status_code, 409)
+
     def test_layout(self):
         response = self.client.get("/empty/")
         self.assertTemplateUsed(response, "layout.html")

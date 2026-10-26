@@ -390,12 +390,27 @@ All settings live in one `INERTIA` dict:
 | Key | Default | Purpose |
 |---|---|---|
 | `LAYOUT` | none, required | The layout template for full page loads. Views can choose another with `template_name`. |
-| `VERSION` | `"1.0"` | The asset version. When the client's version differs, it reloads the page. |
+| `VERSION` | `"1.0"` | The asset version, or a callable that returns it. When the client's version differs, it reloads the page. |
 | `JSON_ENCODER` | `"dj_inertiajs.encoders.InertiaJsonEncoder"` | Dotted path to the JSON encoder for props. |
 | `ENCRYPT_HISTORY` | `False` | Encrypt the browser history state on every page. |
 | `SHARED_PROPS` | `[]` | Dotted paths to functions whose props are added to every page. |
 | `FORM_ERRORS` | `"dj_inertiajs.request.error_messages"` | Dotted path to a function that turns a form, formset or dict of errors into the `errors` prop. |
 | `SSR` | `{"ENABLED": False, "URL": "http://localhost:13714"}` | Server-side rendering. Keys you leave out keep their defaults. |
+
+To change the version whenever your assets change, set `VERSION` to a callable, for example one that hashes your build manifest:
+
+```python
+import hashlib
+from functools import cache
+
+
+@cache
+def asset_version():
+    return hashlib.md5((BASE_DIR / "static/dist/manifest.json").read_bytes()).hexdigest()
+
+
+INERTIA = {"LAYOUT": "base.html", "VERSION": asset_version}
+```
 
 ## System checks
 
@@ -409,6 +424,7 @@ All settings live in one `INERTIA` dict:
 | `inertia.E004` | `InertiaMiddleware` is not in `MIDDLEWARE`. |
 | `inertia.E005` | `SessionMiddleware` is not in `MIDDLEWARE`. |
 | `inertia.E006` | An entry in `INERTIA["SHARED_PROPS"]` cannot be imported. |
+| `inertia.E012` | `INERTIA["VERSION"]` is neither a string nor a callable. |
 | `inertia.E011` | `INERTIA["JSON_ENCODER"]` or `INERTIA["FORM_ERRORS"]` cannot be imported. |
 | `inertia.E007`–`E010` | Configuration left over from inertia-django. See [Upgrading from inertia-django](docs/guide/upgrading-from-inertia-django.md). |
 
