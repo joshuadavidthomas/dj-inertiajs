@@ -1,0 +1,12 @@
+/* A small link under a sidebar group heading, such as "Client side". */
+.VPSidebarItem .sidebar-subtitle {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 20px;
+    color: var(--vp-c-text-2);
+}
+
+.VPSidebarItem .sidebar-subtitle:hover {
+    color: var(--vp-c-brand-1);
+}

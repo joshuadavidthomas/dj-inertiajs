@@ -1,6 +1,6 @@
 # Partial reloads
 
-A partial reload asks the server for only some of a page's props, on a visit to the same page component. The client side is described in the Inertia docs on [partial reloads](https://inertiajs.com/partial-reloads):
+A partial reload asks the server for only some of a page's props, on a visit to the same page component. The client side is described in the Inertia docs on [partial reloads](https://inertiajs.com/docs/v3/data-props/partial-reloads):
 
 ```js
 router.reload({ only: ["users"] })

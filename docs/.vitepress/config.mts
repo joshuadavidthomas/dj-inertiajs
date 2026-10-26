@@ -102,20 +102,21 @@ export default defineConfig({
                 {
                     text: "The basics",
                     items: [
-                        { text: "Links", link: "/guide/links" },
                         { text: "Partial reloads", link: "/guide/partial-reloads" },
                     ],
                 },
                 {
-                    text: "Advanced",
+                    text:
+                        'Client side<a class="sidebar-subtitle vp-external-link-icon" href="https://inertiajs.com/docs/v3/getting-started" target="_blank" rel="noreferrer">inertiajs.com</a>',
                     items: [
+                        { text: "Links", link: "https://inertiajs.com/docs/v3/the-basics/links" },
                         {
                             text: "Scroll management",
-                            link: "/guide/scroll-management",
+                            link: "https://inertiajs.com/docs/v3/advanced/scroll-management",
                         },
                         {
                             text: "Code splitting",
-                            link: "/guide/code-splitting",
+                            link: "https://inertiajs.com/docs/v3/advanced/code-splitting",
                         },
                     ],
                 },

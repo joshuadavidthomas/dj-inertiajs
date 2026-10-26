@@ -277,7 +277,7 @@ createInertiaApp({
 
 :::
 
-By default we recommend eager loading your components, which will result in a single JavaScript bundle. However, if you'd like to lazy-load your components, see our [code splitting](/guide/code-splitting.md) documentation.
+By default we recommend eager loading your components, which will result in a single JavaScript bundle. To lazy-load them instead, see the Inertia docs on [code splitting](https://inertiajs.com/docs/v3/advanced/code-splitting).
 
 ## Defining a root element
 
