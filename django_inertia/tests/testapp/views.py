@@ -343,3 +343,27 @@ def messages_test(request):
 @inertia("TestComponent")
 def no_messages_test(request):
     return {}
+
+
+class AddPropMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def process_template_response(self, request, response):
+        response.props["added"] = "by middleware"
+        return response
+
+
+@decorator_from_middleware(AddPropMiddleware)
+@inertia("TestComponent")
+def template_response_middleware_test(request):
+    return {"name": "Brandon"}
+
+
+@inertia("TestComponent")
+async def async_test(request):
+    return {"name": "Brandon"}
+
+
+def status_test(request):
+    return render(request, "TestComponent", {"name": "Brandon"}, status=201)

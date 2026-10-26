@@ -5,6 +5,9 @@ from . import views
 urlpatterns = [
     path("test/", views.test),
     path("empty/", views.empty_test),
+    path("template-response-middleware/", views.template_response_middleware_test),
+    path("async/", views.async_test),
+    path("status/", views.status_test),
     path("messages/", views.messages_test),
     path("no-messages/", views.no_messages_test),
     path("redirect/", views.redirect_test),

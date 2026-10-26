@@ -1,5 +1,5 @@
 from django.core.exceptions import ImproperlyConfigured
-from django.test import override_settings
+from django.test import AsyncClient, TestCase, override_settings
 from pytest import warns
 
 from django_inertia.test import InertiaTestCase, inertia_div, inertia_page
@@ -261,3 +261,32 @@ class MisconfiguredLayoutTestCase(InertiaTestCase):
             ),
         ):
             self.client.get("/props/")
+
+
+class LazyResponseTestCase(InertiaTestCase):
+    def test_template_response_middleware_can_add_props(self):
+        response = self.inertia.get("/template-response-middleware/")
+
+        self.assertJSONResponse(
+            response,
+            inertia_page(
+                "template-response-middleware",
+                props={"name": "Brandon", "added": "by middleware"},
+            ),
+        )
+
+    def test_render_passes_status(self):
+        response = self.inertia.get("/status/")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["props"], {"name": "Brandon"})
+
+
+class AsyncViewTestCase(TestCase):
+    async def test_decorated_async_view_renders(self):
+        response = await AsyncClient().get("/async/", headers={"X-Inertia": "true"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(), inertia_page("async", props={"name": "Brandon"})
+        )

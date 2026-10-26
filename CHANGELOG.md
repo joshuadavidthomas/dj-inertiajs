@@ -12,11 +12,15 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 
 * Rename the import package from `inertia` to `django_inertia` (placeholder until the final name is chosen).
 * Replace the `INERTIA_*` settings with one `INERTIA` dict: `LAYOUT`, `VERSION`, `JSON_ENCODER`, `ENCRYPT_HISTORY`, and `SSR` with `ENABLED` and `URL`. `JSON_ENCODER` is now a dotted import path.
+* `InertiaResponse` now subclasses `SimpleTemplateResponse` and renders lazily, when Django's handler calls `render()`. Reading `response.content` before that raises `ContentNotRenderedError`. Its extra arguments are now keyword-only `status` and `headers`.
 
 ### Added
 
 * Add system checks for unknown `INERTIA` keys, a missing layout, SSR without `requests`, and missing Inertia or session middleware.
 * Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
+* Support `async def` views under `@inertia`.
+* Let `process_template_response` middleware and view decorators change `component`, `props` and `template_data` before the page is rendered.
+* Add `status` and `headers` arguments to `render()`.
 
 ## [2.0.0] - 2026-08-16
 

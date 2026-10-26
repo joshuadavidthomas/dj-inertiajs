@@ -1,13 +1,16 @@
 import logging
 from functools import wraps
 from http import HTTPStatus
+from json import JSONEncoder
 from json import dumps as json_encode
 from typing import Any, Callable
 
+from asgiref.sync import iscoroutinefunction
 from django.contrib.messages import get_messages
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest, HttpResponse
 from django.template.loader import render_to_string
+from django.template.response import SimpleTemplateResponse
 from django.utils.cache import patch_vary_headers
 
 from .prop_classes import (
@@ -291,108 +294,22 @@ class PropsResolver:
         )
 
 
-class BaseInertiaResponseMixin:
-    request: InertiaRequest
-    component: str
-    props: dict[str, Any]
-    template_data: dict[str, Any]
+class InertiaResponse(SimpleTemplateResponse):
+    """An Inertia page that is resolved and encoded when ``render()`` is called.
 
-    def page_data(self) -> dict[str, Any]:
-        clear_history = self.request.session.pop(INERTIA_SESSION_CLEAR_HISTORY, False)
-        if not isinstance(clear_history, bool):
-            raise TypeError(
-                f"Expected bool for clear_history, got {type(clear_history).__name__}"
-            )
+    Like ``TemplateResponse``, the component, props and template data stay
+    editable until Django's handler renders the response, so decorators and
+    ``process_template_response`` middleware can change them.
+    """
 
-        should_preserve_fragment = self.request.session.pop(
-            INERTIA_SESSION_PRESERVE_FRAGMENT, False
-        )
-        if not isinstance(should_preserve_fragment, bool):
-            raise TypeError(
-                f"Expected bool for preserve_fragment, got {type(should_preserve_fragment).__name__}"
-            )
-
-        resolved_props, metadata = self.resolve_props()
-        _page: dict[str, Any] = {
-            "component": self.component,
-            "props": resolved_props,
-            "url": self.request.get_full_path(),
-            "version": settings.VERSION,
-            "encryptHistory": self.request.should_encrypt_history(),
-            "clearHistory": clear_history,
-        }
-
-        if should_preserve_fragment:
-            _page["preserveFragment"] = True
-
-        if self.request.shared_keys:
-            _page["sharedProps"] = self.request.shared_keys
-        flash = self.build_flash()
-        if flash:
-            _page["flash"] = flash
-        _page.update(metadata)
-
-        return _page
-
-    def resolve_props(self) -> tuple[dict[str, Any], dict[str, Any]]:
-        return PropsResolver(
-            self.request,
-            self.component,
-            {**self.request.inertia, **self.props},
-        ).resolve()
-
-    def build_flash(self) -> dict[str, Any]:
-        messages = [
-            {"level": message.level_tag, "message": str(message)}
-            for message in get_messages(self.request)
-        ]
-        return {"messages": messages} if messages else {}
-
-    def build_first_load(self, data: Any) -> str:
-        context, template = self.build_first_load_context_and_template(data)
-
-        layout = settings.LAYOUT
-        if not layout:
-            raise ImproperlyConfigured(
-                'INERTIA["LAYOUT"] must be set in your Django settings'
-            )
-
-        return render_to_string(
-            template,
-            {
-                "inertia_layout": layout,
-                **context,
-            },
-            self.request,
-            using=None,
-        )
-
-    def build_first_load_context_and_template(
-        self, data: Any
-    ) -> tuple[dict[str, Any], str]:
-        if settings.SSR_ENABLED:
-            try:
-                response = requests.post(
-                    f"{settings.SSR_URL}/render",
-                    data=data,
-                    headers={"Content-Type": "application/json"},
-                )
-                response.raise_for_status()
-                return {
-                    **response.json(),
-                    **self.template_data,
-                }, INERTIA_SSR_TEMPLATE
-            except Exception:
-                logger.exception("SSR render request failed")
-
-        return {
-            "page": data,
-            **(self.template_data),
-        }, INERTIA_TEMPLATE
-
-
-class InertiaResponse(BaseInertiaResponseMixin, HttpResponse):
-    json_encoder = None
+    json_encoder: type[JSONEncoder] | None = None
+    rendering_attrs = [
+        *SimpleTemplateResponse.rendering_attrs,
+        "_inertia_request",
+        "component",
+        "props",
+        "template_data",
+    ]
 
     def __init__(
         self,
@@ -400,16 +317,26 @@ class InertiaResponse(BaseInertiaResponseMixin, HttpResponse):
         component: str,
         props: dict[str, Any] | None = None,
         template_data: dict[str, Any] | None = None,
+        *,
+        status: int | None = None,
         headers: dict[str, Any] | None = None,
-        *args: Any,
-        **kwargs: Any,
     ) -> None:
-        self.request = InertiaRequest(request)
+        inertia_request = InertiaRequest(request)
+        content_type = None
+        if inertia_request.is_inertia():
+            headers = {**(headers or {}), "X-Inertia": "true"}
+            content_type = "application/json"
+        super().__init__(
+            INERTIA_TEMPLATE, content_type=content_type, status=status, headers=headers
+        )
+        self._inertia_request = inertia_request
         self.component = component
         self.props = props or {}
         self.template_data = template_data or {}
-        _headers = headers or {}
+        patch_vary_headers(self, ("X-Inertia",))
 
+    @property
+    def rendered_content(self) -> str:
         data = json_encode(
             self.page_data(),
             cls=self.json_encoder or settings.JSON_ENCODER,
@@ -419,30 +346,79 @@ class InertiaResponse(BaseInertiaResponseMixin, HttpResponse):
         data = (
             data.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
         )
+        if self._inertia_request.is_inertia():
+            return data
+        return self.build_first_load(data)
 
-        if self.request.is_inertia():
-            _headers = {
-                **_headers,
-                "X-Inertia": "true",
-                "Content-Type": "application/json",
-            }
-            content = data
-        else:
-            content = self.build_first_load(data)
+    def page_data(self) -> dict[str, Any]:
+        request = self._inertia_request
+        clear_history = request.session.pop(INERTIA_SESSION_CLEAR_HISTORY, False)
+        if not isinstance(clear_history, bool):
+            raise TypeError(
+                f"Expected bool for clear_history, got {type(clear_history).__name__}"
+            )
 
-        if args:
-            super().__init__(
-                *args,
-                headers=_headers,
-                **kwargs,
+        should_preserve_fragment = request.session.pop(
+            INERTIA_SESSION_PRESERVE_FRAGMENT, False
+        )
+        if not isinstance(should_preserve_fragment, bool):
+            raise TypeError(
+                f"Expected bool for preserve_fragment, got {type(should_preserve_fragment).__name__}"
             )
-        else:
-            super().__init__(
-                content=content,
-                headers=_headers,
-                **kwargs,
+
+        resolved_props, metadata = PropsResolver(
+            request, self.component, {**request.inertia, **self.props}
+        ).resolve()
+        _page: dict[str, Any] = {
+            "component": self.component,
+            "props": resolved_props,
+            "url": request.get_full_path(),
+            "version": settings.VERSION,
+            "encryptHistory": request.should_encrypt_history(),
+            "clearHistory": clear_history,
+        }
+
+        if should_preserve_fragment:
+            _page["preserveFragment"] = True
+
+        if request.shared_keys:
+            _page["sharedProps"] = request.shared_keys
+        messages = [
+            {"level": message.level_tag, "message": str(message)}
+            for message in get_messages(request)
+        ]
+        if messages:
+            _page["flash"] = {"messages": messages}
+        _page.update(metadata)
+
+        return _page
+
+    def build_first_load(self, data: str) -> str:
+        layout = settings.LAYOUT
+        if not layout:
+            raise ImproperlyConfigured(
+                'INERTIA["LAYOUT"] must be set in your Django settings'
             )
-        patch_vary_headers(self, ("X-Inertia",))
+
+        context: dict[str, Any] = {"page": data}
+        template = INERTIA_TEMPLATE
+        if settings.SSR_ENABLED:
+            try:
+                ssr_response = requests.post(
+                    f"{settings.SSR_URL}/render",
+                    data=data,
+                    headers={"Content-Type": "application/json"},
+                )
+                ssr_response.raise_for_status()
+                context, template = ssr_response.json(), INERTIA_SSR_TEMPLATE
+            except Exception:
+                logger.exception("SSR render request failed")
+
+        return render_to_string(
+            template,
+            {"inertia_layout": layout, **context, **self.template_data},
+            self._inertia_request,
+        )
 
 
 def render(
@@ -450,8 +426,13 @@ def render(
     component: str,
     props: dict[str, Any] | None = None,
     template_data: dict[str, Any] | None = None,
+    *,
+    status: int | None = None,
+    headers: dict[str, Any] | None = None,
 ) -> InertiaResponse:
-    return InertiaResponse(request, component, props or {}, template_data or {})
+    return InertiaResponse(
+        request, component, props, template_data, status=status, headers=headers
+    )
 
 
 def location(location: str) -> HttpResponse:
@@ -486,25 +467,33 @@ def preserve_fragment(request: HttpRequest) -> None:
 
 def inertia(
     component: str,
-) -> Callable[
-    [Callable[..., HttpResponse | InertiaResponse | dict[str, Any]]],
-    Callable[..., HttpResponse],
-]:
-    def decorator(
-        func: Callable[..., HttpResponse | InertiaResponse | dict[str, Any]],
-    ) -> Callable[..., HttpResponse]:
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Render the props dict a view returns as ``component``.
+
+    Works with sync and async views. A view that returns an ``HttpResponse``,
+    such as a redirect, passes it through unchanged.
+    """
+
+    def to_response(request: HttpRequest, props: Any) -> HttpResponse:
+        if isinstance(props, HttpResponse):
+            return props
+        return InertiaResponse(request, component, props)
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        if iscoroutinefunction(func):
+
+            @wraps(func)
+            async def async_view(
+                request: HttpRequest, *args: Any, **kwargs: Any
+            ) -> HttpResponse:
+                return to_response(request, await func(request, *args, **kwargs))
+
+            return async_view
+
         @wraps(func)
-        def process_inertia_response(
-            request: HttpRequest, *args: Any, **kwargs: Any
-        ) -> HttpResponse:
-            props = func(request, *args, **kwargs)
+        def view(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+            return to_response(request, func(request, *args, **kwargs))
 
-            # if a response is returned, return it
-            if isinstance(props, HttpResponse):
-                return props
-
-            return InertiaResponse(request, component, props)
-
-        return process_inertia_response
+        return view
 
     return decorator
