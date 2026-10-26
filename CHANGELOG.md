@@ -94,7 +94,7 @@ Thanks to @akx, @SarthakJariwala, @mrgalopes, @kennyputman, @willianantunes,
 
 * Encode SSR page data via the included InertiaJsonEncoder. Thanks @svengt!
 * Bugfix for Inertia test helpers. Thanks @nootr!
-* Bugfix for 303 redirect HTTP verbs. Thanks @Xzya! 
+* Bugfix for 303 redirect HTTP verbs. Thanks @Xzya!
 
 ## [0.5.2] - 2022-12-22
 

@@ -29,8 +29,7 @@ class MiddlewareTestCase(ProtocolTestCase):
 
     def test_stale_versions_are_refreshed(self):
         response = self.client.get(
-            "/empty/",
-            HTTP_X_INERTIA_VERSION="some-nonsense",
+            "/empty/", headers={"x-inertia-version": "some-nonsense"}
         )
 
         self.assertEqual(response.status_code, 409)
@@ -47,11 +46,11 @@ class MiddlewareTestCase(ProtocolTestCase):
         self.assertEqual(page["X-Inertia"], "true")
         self.assertTrue(has_vary_header(page, "X-Inertia"))
 
-        stale = self.client.get("/empty/", HTTP_X_INERTIA_VERSION="stale")
+        stale = self.client.get("/empty/", headers={"x-inertia-version": "stale"})
         self.assertTrue(has_vary_header(stale, "X-Inertia"))
 
     def test_messages_survive_a_version_refresh(self):
-        response = self.client.get("/messages/", HTTP_X_INERTIA_VERSION="stale")
+        response = self.client.get("/messages/", headers={"x-inertia-version": "stale"})
         self.assertEqual(response.status_code, 409)
 
         response = self.client.get("/no-messages/")
@@ -94,7 +93,7 @@ class MiddlewareTestCase(ProtocolTestCase):
 
     def test_a_request_not_from_inertia_is_ignored(self):
         response = self.client.get(
-            "/empty/", HTTP_X_INERTIA_VERSION="some-nonsense", inertia=False
+            "/empty/", headers={"x-inertia-version": "some-nonsense"}, inertia=False
         )
 
         self.assertEqual(response.status_code, 200)
@@ -129,8 +128,10 @@ class RequestDetailsTestCase(ProtocolTestCase):
 
         response = self.client.get(
             "/request-details/",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="OtherComponent",
-            HTTP_X_INERTIA_PARTIAL_DATA="stats, plans",
+            headers={
+                "x-inertia-partial-component": "OtherComponent",
+                "x-inertia-partial-data": "stats, plans",
+            },
         )
         self.assertEqual(
             response.inertia.props,

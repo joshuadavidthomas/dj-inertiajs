@@ -30,8 +30,10 @@ class FlashMessagesTestCase(ProtocolTestCase):
     def test_messages_are_included_on_partial_requests(self):
         response = self.client.get(
             "/messages/",
-            HTTP_X_INERTIA_PARTIAL_DATA="missing",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
+            headers={
+                "x-inertia-partial-data": "missing",
+                "x-inertia-partial-component": "TestComponent",
+            },
         )
 
         self.assertEqual(

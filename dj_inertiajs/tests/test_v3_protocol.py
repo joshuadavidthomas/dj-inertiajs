@@ -87,8 +87,10 @@ class PreserveErrorsTestCase(ProtocolTestCase):
         preserveErrors option can retain its existing errors."""
         response = self.client.get(
             "/preserve-errors/",
-            HTTP_X_INERTIA_PARTIAL_DATA="name",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
+            headers={
+                "x-inertia-partial-data": "name",
+                "x-inertia-partial-component": "TestComponent",
+            },
         )
         page = response.json()
 
@@ -100,8 +102,10 @@ class PreserveErrorsTestCase(ProtocolTestCase):
         does receive the errors prop."""
         response = self.client.get(
             "/preserve-errors/",
-            HTTP_X_INERTIA_PARTIAL_DATA="errors",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
+            headers={
+                "x-inertia-partial-data": "errors",
+                "x-inertia-partial-component": "TestComponent",
+            },
         )
         page = response.json()
 
@@ -137,9 +141,11 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
         """An explicit append intent header does not produce prependProps."""
         response = self.client.get(
             "/infinite-scroll/",
-            HTTP_X_INERTIA_PARTIAL_DATA="items",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-            HTTP_X_INERTIA_INFINITE_SCROLL_MERGE_INTENT="append",
+            headers={
+                "x-inertia-partial-data": "items",
+                "x-inertia-partial-component": "TestComponent",
+                "x-inertia-infinite-scroll-merge-intent": "append",
+            },
         )
         page = response.json()
 
@@ -150,9 +156,11 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
         partial reload response with the requested merge-able prop keys."""
         response = self.client.get(
             "/infinite-scroll/",
-            HTTP_X_INERTIA_PARTIAL_DATA="items",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-            HTTP_X_INERTIA_INFINITE_SCROLL_MERGE_INTENT="prepend",
+            headers={
+                "x-inertia-partial-data": "items",
+                "x-inertia-partial-component": "TestComponent",
+                "x-inertia-infinite-scroll-merge-intent": "prepend",
+            },
         )
         page = response.json()
 
@@ -165,7 +173,7 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
         merge operation on a first load."""
         response = self.client.get(
             "/infinite-scroll/",
-            HTTP_X_INERTIA_INFINITE_SCROLL_MERGE_INTENT="prepend",
+            headers={"x-inertia-infinite-scroll-merge-intent": "prepend"},
         )
         page = response.json()
 
@@ -176,9 +184,11 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
         in prependProps; regular props are not listed there."""
         response = self.client.get(
             "/infinite-scroll/",
-            HTTP_X_INERTIA_PARTIAL_DATA="name,items",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-            HTTP_X_INERTIA_INFINITE_SCROLL_MERGE_INTENT="prepend",
+            headers={
+                "x-inertia-partial-data": "name,items",
+                "x-inertia-partial-component": "TestComponent",
+                "x-inertia-infinite-scroll-merge-intent": "prepend",
+            },
         )
         page = response.json()
 
@@ -190,10 +200,12 @@ class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
         """A key listed in X-Inertia-Reset is excluded from prependProps."""
         response = self.client.get(
             "/infinite-scroll/",
-            HTTP_X_INERTIA_PARTIAL_DATA="items",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-            HTTP_X_INERTIA_INFINITE_SCROLL_MERGE_INTENT="prepend",
-            HTTP_X_INERTIA_RESET="items",
+            headers={
+                "x-inertia-partial-data": "items",
+                "x-inertia-partial-component": "TestComponent",
+                "x-inertia-infinite-scroll-merge-intent": "prepend",
+                "x-inertia-reset": "items",
+            },
         )
         page = response.json()
 

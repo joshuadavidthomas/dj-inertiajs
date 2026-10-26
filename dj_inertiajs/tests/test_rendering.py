@@ -93,8 +93,10 @@ class OptionalPropsTestCase(ProtocolTestCase):
         self.assertJSONResponse(
             self.client.get(
                 "/optional/",
-                HTTP_X_INERTIA_PARTIAL_DATA="sport,grit",
-                HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
+                headers={
+                    "x-inertia-partial-data": "sport,grit",
+                    "x-inertia-partial-component": "TestComponent",
+                },
             ),
             inertia_page("optional", props={"sport": "Basketball", "grit": "intense"}),
         )
@@ -161,8 +163,10 @@ class DeferredPropsTestCase(ProtocolTestCase):
         self.assertJSONResponse(
             self.client.get(
                 "/defer/",
-                HTTP_X_INERTIA_PARTIAL_DATA="sport",
-                HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
+                headers={
+                    "x-inertia-partial-data": "sport",
+                    "x-inertia-partial-component": "TestComponent",
+                },
             ),
             inertia_page("defer", props={"sport": "Basketball"}),
         )
@@ -171,8 +175,10 @@ class DeferredPropsTestCase(ProtocolTestCase):
         self.assertJSONResponse(
             self.client.get(
                 "/defer-group/",
-                HTTP_X_INERTIA_PARTIAL_DATA="sport,team",
-                HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
+                headers={
+                    "x-inertia-partial-data": "sport,team",
+                    "x-inertia-partial-component": "TestComponent",
+                },
             ),
             inertia_page("defer-group", props={"sport": "Basketball", "team": "Bulls"}),
         )
@@ -180,8 +186,10 @@ class DeferredPropsTestCase(ProtocolTestCase):
         self.assertJSONResponse(
             self.client.get(
                 "/defer-group/",
-                HTTP_X_INERTIA_PARTIAL_DATA="grit",
-                HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
+                headers={
+                    "x-inertia-partial-data": "grit",
+                    "x-inertia-partial-component": "TestComponent",
+                },
             ),
             inertia_page("defer-group", props={"grit": "intense"}),
         )
@@ -206,8 +214,10 @@ class MergePropsTestCase(ProtocolTestCase):
         self.assertJSONResponse(
             self.client.get(
                 "/merge/",
-                HTTP_X_INERTIA_PARTIAL_DATA="team",
-                HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
+                headers={
+                    "x-inertia-partial-data": "team",
+                    "x-inertia-partial-component": "TestComponent",
+                },
             ),
             inertia_page(
                 "merge",
@@ -222,9 +232,11 @@ class MergePropsTestCase(ProtocolTestCase):
         self.assertJSONResponse(
             self.client.get(
                 "/merge/",
-                HTTP_X_INERTIA_PARTIAL_DATA="sport,team",
-                HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-                HTTP_X_INERTIA_RESET="sport,team",
+                headers={
+                    "x-inertia-partial-data": "sport,team",
+                    "x-inertia-partial-component": "TestComponent",
+                    "x-inertia-reset": "sport,team",
+                },
             ),
             inertia_page(
                 "merge",
@@ -284,8 +296,10 @@ class AsyncPropsTestCase(ProtocolTestCase):
 
         response = self.client.get(
             "/async-props/",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-            HTTP_X_INERTIA_PARTIAL_DATA="deferred",
+            headers={
+                "x-inertia-partial-component": "TestComponent",
+                "x-inertia-partial-data": "deferred",
+            },
         )
         self.assertEqual(response.inertia.props, {"deferred": 3})
 

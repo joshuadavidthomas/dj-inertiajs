@@ -12,8 +12,10 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
     def test_partial_except_supports_nested_paths(self):
         page = self.client.get(
             "/v3/nested/",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-            HTTP_X_INERTIA_PARTIAL_EXCEPT="user.token",
+            headers={
+                "x-inertia-partial-component": "TestComponent",
+                "x-inertia-partial-except": "user.token",
+            },
         ).json()
 
         self.assertEqual(page["props"]["user"], {"name": "Brandon"})
@@ -22,8 +24,10 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
     def test_partial_only_supports_nested_once_props(self):
         page = self.client.get(
             "/v3/nested/",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-            HTTP_X_INERTIA_PARTIAL_DATA="config.locale",
+            headers={
+                "x-inertia-partial-component": "TestComponent",
+                "x-inertia-partial-data": "config.locale",
+            },
         ).json()
 
         self.assertEqual(page["props"], {"config": {"locale": "en-US"}})
@@ -71,8 +75,10 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
 
         partial_page = self.client.get(
             "/v3/deferred-scroll/",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-            HTTP_X_INERTIA_PARTIAL_DATA="players",
+            headers={
+                "x-inertia-partial-component": "TestComponent",
+                "x-inertia-partial-data": "players",
+            },
         ).json()
 
         self.assertEqual(
@@ -93,7 +99,7 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
 
         cached_page = self.client.get(
             "/v3/deferred-once/",
-            HTTP_X_INERTIA_EXCEPT_ONCE_PROPS="cached-report",
+            headers={"x-inertia-except-once-props": "cached-report"},
         ).json()
 
         self.assertEqual(cached_page["props"], {})
@@ -106,8 +112,10 @@ class V3PropsCompatibilityTestCase(ProtocolTestCase):
     def test_always_prop_is_included_in_partial_reloads(self):
         page = self.client.get(
             "/v3/deferred-scroll/",
-            HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
-            HTTP_X_INERTIA_PARTIAL_DATA="players",
+            headers={
+                "x-inertia-partial-component": "TestComponent",
+                "x-inertia-partial-data": "players",
+            },
         ).json()
 
         self.assertEqual(page["props"]["score"], "Brandon")
