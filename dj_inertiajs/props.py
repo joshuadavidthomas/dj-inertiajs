@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
 from inspect import isawaitable
 from typing import Any
 
 from asgiref.sync import async_to_sync
 
-__all__ = ["Prop"]
+__all__ = ["Prop", "prop"]
 
 MergeTarget = bool | str | list[str]
 SCROLL_KEYS = ("pageName", "previousPage", "nextPage", "currentPage")
@@ -157,3 +157,28 @@ def resolve_value(value: Any) -> Any:
 
 async def _await(awaitable: Awaitable[Any]) -> Any:
     return await awaitable
+
+
+PROP_ATTR = "inertia_prop"
+
+
+def prop(method: Callable[..., Any] | None = None, /, **options: Any) -> Any:
+    """Declare a class-based view method as a prop, like ``@property``.
+
+    The prop is named after the method and takes ``Prop``'s options. The
+    method is called only when the prop is sent, and may be ``async def``::
+
+        class Dashboard(InertiaView):
+            component = "Dashboard"
+
+            @prop(defer=True)
+            def stats(self):
+                return Stats.objects.summary()
+    """
+
+    def decorate(method: Callable[..., Any]) -> Callable[..., Any]:
+        # Validates the options when the class is defined.
+        setattr(method, PROP_ATTR, Prop(method, **options))
+        return method
+
+    return decorate(method) if method is not None else decorate

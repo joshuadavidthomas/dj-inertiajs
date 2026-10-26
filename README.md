@@ -122,18 +122,19 @@ class EventList(InertiaResponseMixin, ListView):
 
 Only what `get_props()` returns is sent, so context such as `view` or `paginator` never reaches the page by accident.
 
-`InertiaView` renders `component` on GET, like `TemplateView`. Props can be declared on the class with `Prop`. A `Prop` whose value is a string names a method on the view, which runs only when the prop is sent:
+`InertiaView` renders `component` on GET, like `TemplateView`. Props can be declared on the class: a `Prop` attribute, or a method decorated with `@prop`, like `@property`. A decorated method is named after its prop, takes `Prop`'s options, and runs only when the prop is sent:
 
 ```python
-from dj_inertiajs import Prop
+from dj_inertiajs import Prop, prop
 from dj_inertiajs.views import InertiaView
 
 
 class Dashboard(InertiaView):
     component = "Dashboard"
-    stats = Prop("get_stats", defer=True)
+    plans = Prop(["basic", "pro"], once=True)
 
-    def get_stats(self):
+    @prop(defer=True)
+    def stats(self):
         return Stats.objects.summary()
 ```
 

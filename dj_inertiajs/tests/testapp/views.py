@@ -13,6 +13,7 @@ from dj_inertiajs import (
     Prop,
     clear_history,
     inertia,
+    prop,
     render,
     set_errors,
     share,
@@ -386,10 +387,11 @@ def status_test(request):
 
 class DashboardView(InertiaView):
     component = "Dashboard"
-    stats = Prop("get_stats", defer=True)
     plans = Prop(["basic", "pro"], once=True)
+    motto = Prop("get_stats")  # a string is just a string
 
-    def get_stats(self):
+    @prop(defer=True)
+    async def stats(self):
         return {"wins": 3}
 
     def get_props(self, **kwargs):
@@ -417,11 +419,6 @@ class SportFormView(InertiaResponseMixin, FormView):
 
 class MissingComponentView(InertiaView):
     pass
-
-
-class BadMethodNameView(InertiaView):
-    component = "Dashboard"
-    stats = Prop("get_missing")
 
 
 @inertia("TestComponent")

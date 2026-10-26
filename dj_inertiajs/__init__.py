@@ -1,5 +1,5 @@
 from .decorators import inertia
-from .props import Prop
+from .props import Prop, prop
 from .request import clear_history, set_errors, share
 from .response import InertiaLocation, InertiaResponse
 from .shortcuts import redirect, render
@@ -10,6 +10,7 @@ __all__ = [
     "Prop",
     "clear_history",
     "inertia",
+    "prop",
     "redirect",
     "render",
     "set_errors",

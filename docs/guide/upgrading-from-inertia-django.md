@@ -181,15 +181,15 @@ Class-based views are new, in `dj_inertiajs.views`:
 ```python
 from django.views.generic import ListView
 
-from dj_inertiajs import Prop
+from dj_inertiajs import prop
 from dj_inertiajs.views import InertiaResponseMixin, InertiaView
 
 
 class Dashboard(InertiaView):
     component = "Dashboard"
-    stats = Prop("get_stats", defer=True)   # a string names a method on the view
 
-    def get_stats(self):
+    @prop(defer=True)   # sent as "stats", computed only when sent
+    def stats(self):
         return Stats.objects.summary()
 
 

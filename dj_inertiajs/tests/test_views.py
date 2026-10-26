@@ -1,7 +1,9 @@
 from django.core.exceptions import ImproperlyConfigured
 
+from dj_inertiajs import prop
 from dj_inertiajs.test import InertiaTestCase
 from dj_inertiajs.tests.testapp.models import Sport
+from dj_inertiajs.views import InertiaView
 
 
 class InertiaViewTestCase(InertiaTestCase):
@@ -10,7 +12,8 @@ class InertiaViewTestCase(InertiaTestCase):
 
         self.assertComponentUsed(response, "Dashboard")
         self.assertHasExactProps(
-            response, {"plans": ["basic", "pro"], "team": "penguins"}
+            response,
+            {"plans": ["basic", "pro"], "motto": "get_stats", "team": "penguins"},
         )
         self.assertEqual(response.inertia.data["deferredProps"], {"default": ["stats"]})
         self.assertEqual(
@@ -36,12 +39,13 @@ class InertiaViewTestCase(InertiaTestCase):
         ):
             self.inertia.get("/missing-component/")
 
-    def test_declared_prop_naming_a_missing_method(self):
-        with self.assertRaisesMessage(
-            ImproperlyConfigured,
-            "BadMethodNameView.stats names 'get_missing', which is not a method",
-        ):
-            self.inertia.get("/bad-method-name/")
+    def test_prop_decorator_validates_its_options(self):
+        with self.assertRaisesMessage(ValueError, "group requires defer=True."):
+
+            class View(InertiaView):
+                @prop(group="charts")
+                def stats(self):
+                    return {}
 
 
 class GenericViewTestCase(InertiaTestCase):

@@ -17,7 +17,6 @@ urlpatterns = [
     path("sports/", views.SportListView.as_view()),
     path("sports/create/", views.SportFormView.as_view()),
     path("missing-component/", views.MissingComponentView.as_view()),
-    path("bad-method-name/", views.BadMethodNameView.as_view()),
     path("messages/", views.messages_test),
     path("no-messages/", views.no_messages_test),
     path("redirect/", views.redirect_test),

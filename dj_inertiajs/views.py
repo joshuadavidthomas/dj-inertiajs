@@ -6,7 +6,7 @@ from django.forms import BaseForm
 from django.http import HttpRequest
 from django.views.generic import View
 
-from .props import Prop
+from .props import PROP_ATTR, Prop
 from .request import error_messages
 from .response import InertiaResponse
 
@@ -23,15 +23,15 @@ class InertiaResponseMixin:
     full page loads, by default ``INERTIA["LAYOUT"]``.
 
     Props come from ``get_props()``. By default that collects the ``Prop``
-    attributes declared on the class. A declared ``Prop`` whose value is a
-    string names a method on the view, which is called only when the prop is
-    sent::
+    attributes declared on the class and the methods decorated with
+    ``@prop``, which are called only when the prop is sent::
 
         class Dashboard(InertiaView):
             component = "Dashboard"
-            stats = Prop("get_stats", defer=True)
+            plans = Prop(["basic", "pro"], once=True)
 
-            def get_stats(self):
+            @prop(defer=True)
+            def stats(self):
                 return Stats.objects.summary()
     """
 
@@ -65,7 +65,11 @@ class InertiaResponseMixin:
         for klass in reversed(type(self).__mro__):
             for name, value in vars(klass).items():
                 if isinstance(value, Prop):
-                    props[name] = self._bind(name, value)
+                    props[name] = value
+                elif isinstance(declared := getattr(value, PROP_ATTR, None), Prop):
+                    bound = copy.copy(declared)
+                    bound.value = getattr(self, name)
+                    props[name] = bound
         return props
 
     def render_to_response(
@@ -79,19 +83,6 @@ class InertiaResponseMixin:
             template_name=self.template_name,
             **response_kwargs,
         )
-
-    def _bind(self, name: str, prop: Prop) -> Prop:
-        if not isinstance(prop.value, str):
-            return prop
-        method = getattr(self, prop.value, None)
-        if not callable(method):
-            raise ImproperlyConfigured(
-                f"{type(self).__name__}.{name} names {prop.value!r}, "
-                "which is not a method on the view."
-            )
-        bound = copy.copy(prop)
-        bound.value = method
-        return bound
 
 
 class InertiaView(InertiaResponseMixin, View):
