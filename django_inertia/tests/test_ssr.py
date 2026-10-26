@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from django.test import override_settings
 
-from django_inertia.test import InertiaTestCase, inertia_div, inertia_page
+from django_inertia.tests.utils import ProtocolTestCase, inertia_div, inertia_page
 
 
 @override_settings(
@@ -13,7 +13,7 @@ from django_inertia.test import InertiaTestCase, inertia_div, inertia_page
         "SSR": {"ENABLED": True, "URL": "ssr-url"},
     },
 )
-class SSRTestCase(InertiaTestCase):
+class SSRTestCase(ProtocolTestCase):
     @patch("django_inertia.http.requests")
     def test_it_returns_ssr_calls(self, mock_request):
         mock_response = Mock()

@@ -1,13 +1,13 @@
 import json
 
-from django_inertia.test import InertiaTestCase, inertia_page
+from django_inertia.tests.utils import ProtocolTestCase, inertia_page
 
 # ---------------------------------------------------------------------------
 # preserveFragment
 # ---------------------------------------------------------------------------
 
 
-class PreserveFragmentTestCase(InertiaTestCase):
+class PreserveFragmentTestCase(ProtocolTestCase):
     """Tests for server-side preserveFragment support introduced in Inertia v3.
 
     When a view calls preserve_fragment(request) before returning, the
@@ -39,8 +39,8 @@ class PreserveFragmentTestCase(InertiaTestCase):
         """When preserve_fragment is called before a redirect the flag
         survives in the session and is included in the page response that
         follows the redirect."""
-        self.inertia.get("/preserve-fragment-redirect/", follow=True)
-        page = self.inertia.last_response.json()
+        response = self.inertia.get("/preserve-fragment-redirect/", follow=True)
+        page = response.json()
 
         self.assertTrue(page.get("preserveFragment"))
 
@@ -65,7 +65,7 @@ class PreserveFragmentTestCase(InertiaTestCase):
 # ---------------------------------------------------------------------------
 
 
-class PreserveErrorsTestCase(InertiaTestCase):
+class PreserveErrorsTestCase(ProtocolTestCase):
     """Tests that verify preserveErrors behaviour for partial reloads.
 
     The Django adapter already filters shared props through the partial reload
@@ -116,7 +116,7 @@ class PreserveErrorsTestCase(InertiaTestCase):
 # ---------------------------------------------------------------------------
 
 
-class InfiniteScrollMergeIntentTestCase(InertiaTestCase):
+class InfiniteScrollMergeIntentTestCase(ProtocolTestCase):
     """Tests for the X-Inertia-Infinite-Scroll-Merge-Intent request header.
 
     When the client sends this header with the value prepend during a partial
@@ -208,7 +208,7 @@ class InfiniteScrollMergeIntentTestCase(InertiaTestCase):
 # ---------------------------------------------------------------------------
 
 
-class UseHttpCsrfTestCase(InertiaTestCase):
+class UseHttpCsrfTestCase(ProtocolTestCase):
     """Tests that verify CSRF token availability for useHttp (non-visit XHR).
 
     useHttp requests do not carry the X-Inertia header.  The middleware must

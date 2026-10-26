@@ -1,41 +1,41 @@
-from django_inertia.test import InertiaTestCase
+from django_inertia.tests.utils import ProtocolTestCase
 
 
-class FlashMessagesTestCase(InertiaTestCase):
+class FlashMessagesTestCase(ProtocolTestCase):
     def test_messages_are_included_in_top_level_flash_data(self):
-        self.inertia.get("/messages/")
+        response = self.inertia.get("/messages/")
 
         self.assertEqual(
-            self.page()["flash"],
+            response.inertia.data["flash"],
             {
                 "messages": [
                     {"level": "success", "message": "Profile saved!"},
                 ],
             },
         )
-        self.assertNotIn("messages", self.props())
+        self.assertNotIn("messages", response.inertia.props)
 
     def test_flash_data_is_omitted_when_there_are_no_messages(self):
-        self.inertia.get("/no-messages/")
+        response = self.inertia.get("/no-messages/")
 
-        self.assertNotIn("flash", self.page())
+        self.assertNotIn("flash", response.inertia.data)
 
     def test_messages_are_consumed_after_render(self):
-        self.inertia.get("/messages/")
-        self.assertIn("flash", self.page())
+        response = self.inertia.get("/messages/")
+        self.assertIn("flash", response.inertia.data)
 
-        self.inertia.get("/no-messages/")
-        self.assertNotIn("flash", self.page())
+        response = self.inertia.get("/no-messages/")
+        self.assertNotIn("flash", response.inertia.data)
 
     def test_messages_are_included_on_partial_requests(self):
-        self.inertia.get(
+        response = self.inertia.get(
             "/messages/",
             HTTP_X_INERTIA_PARTIAL_DATA="missing",
             HTTP_X_INERTIA_PARTIAL_COMPONENT="TestComponent",
         )
 
         self.assertEqual(
-            self.page()["flash"],
+            response.inertia.data["flash"],
             {
                 "messages": [
                     {"level": "success", "message": "Profile saved!"},

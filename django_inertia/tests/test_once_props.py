@@ -1,7 +1,7 @@
-from django_inertia.test import InertiaTestCase, inertia_page
+from django_inertia.tests.utils import ProtocolTestCase, inertia_page
 
 
-class OncePropsTestCase(InertiaTestCase):
+class OncePropsTestCase(ProtocolTestCase):
     """Tests for the once prop feature introduced in Inertia v3.
 
     Once props are resolved on the initial visit and cached by the client.
@@ -120,7 +120,7 @@ class OncePropsTestCase(InertiaTestCase):
         self.assertIn("plans", page["props"])
 
 
-class SharedOncePropsTestCase(InertiaTestCase):
+class SharedOncePropsTestCase(ProtocolTestCase):
     """Tests that once props set via share() are handled correctly.
 
     Once props in shared data must appear in the onceProps metadata so the
@@ -158,7 +158,7 @@ class SharedOncePropsTestCase(InertiaTestCase):
         self.assertIn("plans", page["onceProps"])
 
 
-class CallablePropStaticValueTestCase(InertiaTestCase):
+class CallablePropStaticValueTestCase(ProtocolTestCase):
     """Tests that prop classes correctly handle plain (non-callable) values.
 
     CallableProp.__call__ has two branches: one for callables (the common case)

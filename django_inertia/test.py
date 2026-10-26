@@ -1,169 +1,94 @@
-from json import dumps, loads
-from unittest.mock import patch
+from typing import TYPE_CHECKING, Any
 
-from django.template.loader import render_to_string as base_render_to_string
+from django.http import HttpResponse
 from django.test import Client, TestCase
 
-from django_inertia.settings import settings
+from .http import InertiaPage, InertiaResponse
+
+__all__ = ["InertiaClient", "InertiaTestCase", "InertiaTestMixin"]
+
+if TYPE_CHECKING:
+    from django.test import SimpleTestCase as _TestCaseBase
+else:
+    _TestCaseBase = object
 
 
-class ClientWithLastResponse:
-    def __init__(self, client):
-        self.client = client
-        self.last_response = None
+class InertiaClient(Client):
+    """A test client whose requests are Inertia visits."""
 
-    def get(self, *args, **kwargs):
-        self.last_response = self.client.get(*args, **kwargs)
-        return self.last_response
-
-    def post(self, *args, **kwargs):
-        self.last_response = self.client.post(*args, **kwargs)
-        return self.last_response
-
-    def put(self, *args, **kwargs):
-        self.last_response = self.client.put(*args, **kwargs)
-        return self.last_response
-
-    def patch(self, *args, **kwargs):
-        self.last_response = self.client.patch(*args, **kwargs)
-        return self.last_response
-
-    def delete(self, *args, **kwargs):
-        self.last_response = self.client.delete(*args, **kwargs)
-        return self.last_response
-
-    def __getattr__(self, name):
-        return getattr(self.client, name)
+    def __init__(
+        self, *args: Any, headers: dict[str, str] | None = None, **kwargs: Any
+    ):
+        super().__init__(
+            *args, headers={"X-Inertia": "true", **(headers or {})}, **kwargs
+        )
 
 
-class BaseInertiaTestCase:
-    def setUp(self):
-        self.inertia = ClientWithLastResponse(Client(HTTP_X_INERTIA=True))
-        self.client = ClientWithLastResponse(Client())
+class InertiaTestMixin(_TestCaseBase):
+    """Inertia assertions for ``SimpleTestCase`` and its subclasses.
 
-    def last_response(self):
-        return self.inertia.last_response or self.client.last_response
+    Each assertion takes the response under test, like ``assertTemplateUsed``.
+    ``self.inertia`` is an ``InertiaClient``. Outside unittest, read
+    ``response.inertia`` directly.
+    """
 
-    def assertJSONResponse(self, response, json_obj):
-        self.assertEqual(response.headers["Content-Type"], "application/json")
-        self.assertEqual(response.json(), json_obj)
-
-
-class InertiaTestCase(BaseInertiaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
+        self.inertia = InertiaClient()
 
-        self.mock_inertia = patch(
-            "django_inertia.http.render_to_string", wraps=base_render_to_string
+    def _inertia_response(
+        self, response: HttpResponse, msg_prefix: str
+    ) -> InertiaResponse:
+        if not isinstance(response, InertiaResponse):
+            self.fail(
+                f"{msg_prefix}Expected an InertiaResponse, got {type(response).__name__}."
+            )
+        return response
+
+    def _page(self, response: HttpResponse, msg_prefix: str) -> InertiaPage:
+        return self._inertia_response(response, msg_prefix).inertia
+
+    def assertComponentUsed(
+        self, response: HttpResponse, component: str, msg_prefix: str = ""
+    ) -> None:
+        used = self._page(response, msg_prefix).component
+        self.assertEqual(
+            used,
+            component,
+            f"{msg_prefix}Component {used!r} was used, not {component!r}.",
         )
-        self.mock_render = self.mock_inertia.start()
 
-    def tearDown(self):
-        self.mock_inertia.stop()
-
-    def page(self):
-        page_data = (
-            self.mock_render.call_args[0][1]["page"]
-            if self.mock_render.call_args
-            else self.last_response().content
-        )
-
-        return loads(page_data)
-
-    def props(self):
-        return self.page()["props"]
-
-    def merge_props(self):
-        return self.page()["mergeProps"]
-
-    def deferred_props(self):
-        return self.page()["deferredProps"]
-
-    def once_props(self):
-        return self.page()["onceProps"]
-
-    def template_data(self):
-        context = self.mock_render.call_args[0][1]
-        return {
-            key: context[key]
-            for key in context
-            if key not in ["page", "inertia_layout"]
-        }
-
-    def component(self):
-        return self.page()["component"]
-
-    def assertIncludesProps(self, props):
-        self.assertDictEqual(self.props(), {**self.props(), **props})
-
-    def assertHasExactProps(self, props):
-        self.assertDictEqual(self.props(), props)
-
-    def assertIncludesTemplateData(self, template_data):
+    def assertHasExactProps(
+        self, response: HttpResponse, props: dict[str, Any], msg_prefix: str = ""
+    ) -> None:
         self.assertDictEqual(
-            self.template_data(), {**self.template_data(), **template_data}
+            self._page(response, msg_prefix).props, props, msg_prefix or None
         )
 
-    def assertHasExactTemplateData(self, template_data):
-        self.assertDictEqual(self.template_data(), template_data)
+    def assertIncludesProps(
+        self, response: HttpResponse, props: dict[str, Any], msg_prefix: str = ""
+    ) -> None:
+        actual = self._page(response, msg_prefix).props
+        self.assertDictEqual(actual, {**actual, **props}, msg_prefix or None)
 
-    def assertComponentUsed(self, component_name):
-        self.assertEqual(component_name, self.component())
+    def assertHasExactTemplateData(
+        self,
+        response: HttpResponse,
+        template_data: dict[str, Any],
+        msg_prefix: str = "",
+    ) -> None:
+        actual = self._inertia_response(response, msg_prefix).template_data
+        self.assertDictEqual(actual, template_data, msg_prefix or None)
 
-
-def inertia_page(
-    url,
-    component="TestComponent",
-    props=None,
-    template_data=None,
-    deferred_props=None,
-    merge_props=None,
-    once_props=None,
-    preserve_fragment=False,
-    prepend_props=None,
-    shared_props=None,
-):
-    props = props or {}
-    template_data = template_data or {}
-    _page = {
-        "component": component,
-        "props": props,
-        "url": f"/{url}/",
-        "version": settings.VERSION,
-        "encryptHistory": False,
-        "clearHistory": False,
-    }
-
-    if preserve_fragment:
-        _page["preserveFragment"] = True
-
-    if deferred_props:
-        _page["deferredProps"] = deferred_props
-
-    if merge_props:
-        _page["mergeProps"] = merge_props
-
-    if prepend_props:
-        _page["prependProps"] = prepend_props
-
-    if once_props:
-        _page["onceProps"] = once_props
-
-    if shared_props:
-        _page["sharedProps"] = shared_props
-
-    return _page
+    def assertIncludesTemplateData(
+        self,
+        response: HttpResponse,
+        template_data: dict[str, Any],
+        msg_prefix: str = "",
+    ) -> None:
+        actual = self._inertia_response(response, msg_prefix).template_data
+        self.assertDictEqual(actual, {**actual, **template_data}, msg_prefix or None)
 
 
-def inertia_div(*args, **kwargs):
-    page = inertia_page(*args, **kwargs)
-    data = (
-        dumps(page)
-        .replace("&", "\\u0026")
-        .replace("<", "\\u003c")
-        .replace(">", "\\u003e")
-    )
-    return (
-        f'<script data-page="app" type="application/json">{data}</script>'
-        '\n  <div id="app"></div>'
-    )
+class InertiaTestCase(InertiaTestMixin, TestCase):
+    pass

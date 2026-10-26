@@ -1,8 +1,10 @@
 import logging
-from functools import wraps
+from dataclasses import dataclass
+from functools import cached_property, wraps
 from http import HTTPStatus
 from json import JSONEncoder
 from json import dumps as json_encode
+from json import loads as json_decode
 from typing import Any, Callable
 
 from asgiref.sync import iscoroutinefunction
@@ -10,7 +12,7 @@ from django.contrib.messages import get_messages
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest, HttpResponse
 from django.template.loader import render_to_string
-from django.template.response import SimpleTemplateResponse
+from django.template.response import ContentNotRenderedError, SimpleTemplateResponse
 from django.utils.cache import patch_vary_headers
 
 from .prop_classes import (
@@ -294,6 +296,21 @@ class PropsResolver:
         )
 
 
+@dataclass(frozen=True)
+class InertiaPage:
+    """The page object an Inertia response sent, as the client decodes it.
+
+    ``data`` holds the whole object, including protocol metadata such as
+    ``deferredProps`` and ``flash``.
+    """
+
+    component: str
+    props: dict[str, Any]
+    url: str
+    version: str
+    data: dict[str, Any]
+
+
 class InertiaResponse(SimpleTemplateResponse):
     """An Inertia page that is resolved and encoded when ``render()`` is called.
 
@@ -346,9 +363,26 @@ class InertiaResponse(SimpleTemplateResponse):
         data = (
             data.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
         )
+        self._page_json = data
         if self._inertia_request.is_inertia():
             return data
         return self.build_first_load(data)
+
+    @cached_property
+    def inertia(self) -> InertiaPage:
+        """The page this response sent. Available once the response is rendered."""
+        if not self.is_rendered:
+            raise ContentNotRenderedError(
+                "The response must be rendered before its Inertia page is available."
+            )
+        data = json_decode(self._page_json)
+        return InertiaPage(
+            component=data["component"],
+            props=data["props"],
+            url=data["url"],
+            version=data["version"],
+            data=data,
+        )
 
     def page_data(self) -> dict[str, Any]:
         request = self._inertia_request

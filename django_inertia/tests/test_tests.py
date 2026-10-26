@@ -1,52 +1,69 @@
-from django_inertia.test import InertiaTestCase
+from django.test import SimpleTestCase
+
+from django_inertia.test import InertiaTestCase, InertiaTestMixin
 
 
-class TestTestCase(InertiaTestCase):
-    def test_include_props(self):
-        self.client.get("/props/")
+class AssertionsTestCase(InertiaTestCase):
+    def test_props(self):
+        response = self.client.get("/props/")
 
-        self.assertIncludesProps({"name": "Brandon"})
+        self.assertIncludesProps(response, {"name": "Brandon"})
+        self.assertHasExactProps(response, {"name": "Brandon", "sport": "Hockey"})
+        with self.assertRaises(AssertionError):
+            self.assertIncludesProps(response, {"name": "Brian"})
+        with self.assertRaises(AssertionError):
+            self.assertHasExactProps(response, {"name": "Brandon"})
 
-    def test_has_exact_props(self):
-        self.client.get("/props/")
+    def test_template_data(self):
+        response = self.client.get("/template_data/")
 
-        self.assertHasExactProps({"name": "Brandon", "sport": "Hockey"})
+        self.assertIncludesTemplateData(response, {"name": "Brian"})
+        self.assertHasExactTemplateData(
+            response, {"name": "Brian", "sport": "Basketball"}
+        )
+        with self.assertRaises(AssertionError):
+            self.assertHasExactTemplateData(response, {"name": "Brian"})
 
-    def test_has_template_data(self):
-        self.client.get("/template_data/")
+    def test_component(self):
+        response = self.inertia.get("/props/")
 
-        self.assertIncludesTemplateData({"name": "Brian"})
+        self.assertComponentUsed(response, "TestComponent")
+        with self.assertRaisesMessage(
+            AssertionError, "Component 'TestComponent' was used, not 'Other'."
+        ):
+            self.assertComponentUsed(response, "Other")
 
-    def test_has_exact_template_data(self):
-        self.client.get("/template_data/")
+    def test_assertions_reject_non_inertia_responses(self):
+        response = self.client.get("/test/")
 
-        self.assertHasExactTemplateData({"name": "Brian", "sport": "Basketball"})
+        with self.assertRaisesMessage(
+            AssertionError, "Expected an InertiaResponse, got HttpResponse."
+        ):
+            self.assertComponentUsed(response, "TestComponent")
 
-    def test_component_name(self):
-        self.client.get("/props/")
-
-        self.assertComponentUsed("TestComponent")
-
-
-class ClientWithLastResponseTrackingTestCase(InertiaTestCase):
-    """Tests that ClientWithLastResponse tracks last_response for all HTTP methods."""
-
-    def test_get_updates_last_response(self):
+    def test_each_assertion_reads_its_own_response(self):
+        first = self.inertia.get("/props/")
         self.inertia.get("/empty/")
-        self.assertIsNotNone(self.inertia.last_response)
 
-    def test_post_updates_last_response(self):
-        self.inertia.post("/redirect/")
-        self.assertIsNotNone(self.inertia.last_response)
+        self.assertHasExactProps(first, {"name": "Brandon", "sport": "Hockey"})
 
-    def test_put_updates_last_response(self):
-        self.inertia.put("/redirect/")
-        self.assertIsNotNone(self.inertia.last_response)
 
-    def test_patch_updates_last_response(self):
-        self.inertia.patch("/redirect/")
-        self.assertIsNotNone(self.inertia.last_response)
+class MixinOnSimpleTestCase(InertiaTestMixin, SimpleTestCase):
+    def test_works_without_a_database(self):
+        response = self.inertia.get("/props/")
 
-    def test_delete_updates_last_response(self):
-        self.inertia.delete("/redirect/")
-        self.assertIsNotNone(self.inertia.last_response)
+        self.assertComponentUsed(response, "TestComponent")
+
+
+def test_pytest_reads_response_inertia(client):
+    response = client.get("/props/", headers={"X-Inertia": "true"})
+
+    assert response.inertia.component == "TestComponent"
+    assert response.inertia.props == {"name": "Brandon", "sport": "Hockey"}
+    assert response.inertia.url == "/props/"
+
+
+def test_first_load_exposes_the_page_too(client):
+    response = client.get("/props/")
+
+    assert response.inertia.props == {"name": "Brandon", "sport": "Hockey"}

@@ -1,9 +1,9 @@
 from django.test import override_settings
 
-from django_inertia.test import InertiaTestCase
+from django_inertia.tests.utils import ProtocolTestCase
 
 
-class SettingsTestCase(InertiaTestCase):
+class SettingsTestCase(ProtocolTestCase):
     @override_settings(INERTIA={"LAYOUT": "layout.html", "VERSION": "2.0"})
     def test_version_works(self):
         response = self.inertia.get("/empty/", HTTP_X_INERTIA_VERSION="2.0")

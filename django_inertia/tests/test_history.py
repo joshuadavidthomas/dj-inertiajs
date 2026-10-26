@@ -1,37 +1,37 @@
 from django.test import override_settings
 
-from django_inertia.test import InertiaTestCase
+from django_inertia.tests.utils import ProtocolTestCase
 
 
-class HistoryTestCase(InertiaTestCase):
+class HistoryTestCase(ProtocolTestCase):
     def test_encrypt_history_setting(self):
-        self.client.get("/empty/")
-        assert self.page()["encryptHistory"] is False
+        response = self.client.get("/empty/")
+        assert response.inertia.data["encryptHistory"] is False
 
         with override_settings(
             INERTIA={"LAYOUT": "layout.html", "ENCRYPT_HISTORY": True}
         ):
-            self.client.get("/empty/")
-            assert self.page()["encryptHistory"] is True
+            response = self.client.get("/empty/")
+            assert response.inertia.data["encryptHistory"] is True
 
     def test_encrypt_history(self):
-        self.client.get("/encrypt-history/")
-        assert self.page()["encryptHistory"] is True
+        response = self.client.get("/encrypt-history/")
+        assert response.inertia.data["encryptHistory"] is True
 
         with override_settings(
             INERTIA={"LAYOUT": "layout.html", "ENCRYPT_HISTORY": True}
         ):
-            self.client.get("/no-encrypt-history/")
-            assert self.page()["encryptHistory"] is False
+            response = self.client.get("/no-encrypt-history/")
+            assert response.inertia.data["encryptHistory"] is False
 
     def test_clear_history(self):
-        self.client.get("/clear-history/")
-        assert self.page()["clearHistory"] is True
+        response = self.client.get("/clear-history/")
+        assert response.inertia.data["clearHistory"] is True
 
     def test_clear_history_redirect(self):
         response = self.client.get("/clear-history-redirect/", follow=True)
         self.assertRedirects(response, "/empty/")
-        assert self.page()["clearHistory"] is True
+        assert response.inertia.data["clearHistory"] is True
 
     def test_raises_type_error(self):
         with self.assertRaisesMessage(

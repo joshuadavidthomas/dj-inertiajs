@@ -2,10 +2,10 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import AsyncClient, TestCase, override_settings
 from pytest import warns
 
-from django_inertia.test import InertiaTestCase, inertia_div, inertia_page
+from django_inertia.tests.utils import ProtocolTestCase, inertia_div, inertia_page
 
 
-class FirstLoadTestCase(InertiaTestCase):
+class FirstLoadTestCase(ProtocolTestCase):
     def test_with_props(self):
         self.assertContains(
             self.client.get("/props/"),
@@ -44,7 +44,7 @@ class FirstLoadTestCase(InertiaTestCase):
         self.assertTemplateUsed(self.client.get("/empty/"), "inertia.html")
 
 
-class SubsequentLoadTestCase(InertiaTestCase):
+class SubsequentLoadTestCase(ProtocolTestCase):
     def test_with_props(self):
         self.assertJSONResponse(
             self.inertia.get("/props/"),
@@ -79,7 +79,7 @@ class SubsequentLoadTestCase(InertiaTestCase):
         self.assertEqual(self.inertia.get("/inertia-redirect/").status_code, 302)
 
 
-class LazyPropsTestCase(InertiaTestCase):
+class LazyPropsTestCase(ProtocolTestCase):
     def test_lazy_props_are_not_included(self):
         with warns(DeprecationWarning):
             self.assertJSONResponse(
@@ -99,7 +99,7 @@ class LazyPropsTestCase(InertiaTestCase):
             )
 
 
-class OptionalPropsTestCase(InertiaTestCase):
+class OptionalPropsTestCase(ProtocolTestCase):
     def test_optional_props_are_not_included(self):
         self.assertJSONResponse(
             self.inertia.get("/optional/"),
@@ -117,7 +117,7 @@ class OptionalPropsTestCase(InertiaTestCase):
         )
 
 
-class ComplexPropsTestCase(InertiaTestCase):
+class ComplexPropsTestCase(ProtocolTestCase):
     def test_nested_callable_props_work(self):
         self.assertJSONResponse(
             self.inertia.get("/complex-props/"),
@@ -125,7 +125,7 @@ class ComplexPropsTestCase(InertiaTestCase):
         )
 
 
-class ShareTestCase(InertiaTestCase):
+class ShareTestCase(ProtocolTestCase):
     def test_that_shared_props_are_merged(self):
         self.assertJSONResponse(
             self.inertia.get("/share/"),
@@ -136,12 +136,8 @@ class ShareTestCase(InertiaTestCase):
             ),
         )
 
-        self.assertHasExactProps(
-            {"name": "Brandon", "position": "goalie", "number": 29}
-        )
 
-
-class CSRFTestCase(InertiaTestCase):
+class CSRFTestCase(ProtocolTestCase):
     def test_that_csrf_inclusion_is_automatic(self):
         response = self.inertia.get("/props/")
 
@@ -153,7 +149,7 @@ class CSRFTestCase(InertiaTestCase):
         self.assertIsNotNone(response.cookies.get("csrftoken"))
 
 
-class DeferredPropsTestCase(InertiaTestCase):
+class DeferredPropsTestCase(ProtocolTestCase):
     def test_deferred_props_are_set(self):
         self.assertJSONResponse(
             self.inertia.get("/defer/"),
@@ -202,7 +198,7 @@ class DeferredPropsTestCase(InertiaTestCase):
         )
 
 
-class MergePropsTestCase(InertiaTestCase):
+class MergePropsTestCase(ProtocolTestCase):
     def test_merge_props_are_included_on_initial_load(self):
         self.assertJSONResponse(
             self.inertia.get("/merge/"),
@@ -251,7 +247,7 @@ class MergePropsTestCase(InertiaTestCase):
         )
 
 
-class MisconfiguredLayoutTestCase(InertiaTestCase):
+class MisconfiguredLayoutTestCase(ProtocolTestCase):
     def test_with_props(self):
         with (
             override_settings(INERTIA={}),
@@ -263,7 +259,7 @@ class MisconfiguredLayoutTestCase(InertiaTestCase):
             self.client.get("/props/")
 
 
-class LazyResponseTestCase(InertiaTestCase):
+class LazyResponseTestCase(ProtocolTestCase):
     def test_template_response_middleware_can_add_props(self):
         response = self.inertia.get("/template-response-middleware/")
 

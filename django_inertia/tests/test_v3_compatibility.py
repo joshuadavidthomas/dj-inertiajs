@@ -5,10 +5,10 @@ from django.test import RequestFactory
 
 from django_inertia import merge, once
 from django_inertia.middleware import InertiaMiddleware
-from django_inertia.test import InertiaTestCase
+from django_inertia.tests.utils import ProtocolTestCase
 
 
-class V3PropsCompatibilityTestCase(InertiaTestCase):
+class V3PropsCompatibilityTestCase(ProtocolTestCase):
     def test_partial_except_supports_nested_paths(self):
         page = self.inertia.get(
             "/v3/nested/",
@@ -129,7 +129,7 @@ class V3PropsCompatibilityTestCase(InertiaTestCase):
         self.assertEqual(prop.once_expires_at(), 1893456000000)
 
 
-class V3MiddlewareCompatibilityTestCase(InertiaTestCase):
+class V3MiddlewareCompatibilityTestCase(ProtocolTestCase):
     def test_inertia_fragment_redirect_uses_protocol_response(self):
         middleware = InertiaMiddleware(
             lambda request: HttpResponseRedirect("/players#goalies")

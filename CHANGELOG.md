@@ -13,6 +13,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Rename the import package from `inertia` to `django_inertia` (placeholder until the final name is chosen).
 * Replace the `INERTIA_*` settings with one `INERTIA` dict: `LAYOUT`, `VERSION`, `JSON_ENCODER`, `ENCRYPT_HISTORY`, and `SSR` with `ENABLED` and `URL`. `JSON_ENCODER` is now a dotted import path.
 * `InertiaResponse` now subclasses `SimpleTemplateResponse` and renders lazily, when Django's handler calls `render()`. Reading `response.content` before that raises `ContentNotRenderedError`. Its extra arguments are now keyword-only `status` and `headers`.
+* Rewrite the test helpers. Assertions take the response first, for example `assertComponentUsed(response, "Event/Index")`, and live in `InertiaTestMixin` so they work with `SimpleTestCase`. `self.inertia` is an `InertiaClient`. Removed: the stateful accessors (`page()`, `props()`, `component()`, `template_data()`, `merge_props()`, `deferred_props()`, `once_props()`), `last_response`, `ClientWithLastResponse`, `BaseInertiaTestCase`, `assertJSONResponse`, `inertia_page()` and `inertia_div()`.
 
 ### Added
 
@@ -21,6 +22,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Support `async def` views under `@inertia`.
 * Let `process_template_response` middleware and view decorators change `component`, `props` and `template_data` before the page is rendered.
 * Add `status` and `headers` arguments to `render()`.
+* Expose the page a rendered response sent as `response.inertia` (`component`, `props`, `url`, `version`, and the whole page object as `data`), so pytest tests can read it without helpers.
 
 ## [2.0.0] - 2026-08-16
 

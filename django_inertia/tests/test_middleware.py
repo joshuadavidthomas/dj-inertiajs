@@ -1,6 +1,6 @@
 from django.test import AsyncClient, TestCase
 
-from django_inertia.test import InertiaTestCase
+from django_inertia.tests.utils import ProtocolTestCase
 
 
 class AsyncMiddlewareTestCase(TestCase):
@@ -16,7 +16,7 @@ class AsyncMiddlewareTestCase(TestCase):
         self.assertEqual(response.status_code, 409)
 
 
-class MiddlewareTestCase(InertiaTestCase):
+class MiddlewareTestCase(ProtocolTestCase):
     def test_anything(self):
         response = self.client.get("/test/")
 
