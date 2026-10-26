@@ -6,7 +6,7 @@ build-backend = "uv_build"
 name = "dj-inertiajs"
 version = "2.0.0"
 description = "Django adapter for the InertiaJS framework"
-authors = [{name = "Brandon Shar"}]
+authors = [{name = "Josh Thomas", email = "josh@joshthomas.dev"}]
 license = "MIT"
 requires-python = ">=3.10"
 readme = "README.md"
