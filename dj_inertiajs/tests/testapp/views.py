@@ -19,10 +19,6 @@ from dj_inertiajs import (
     set_errors,
 )
 from dj_inertiajs import redirect as inertia_redirect
-from dj_inertiajs.request import (
-    INERTIA_SESSION_CLEAR_HISTORY,
-    INERTIA_SESSION_PRESERVE_FRAGMENT,
-)
 from dj_inertiajs.views import InertiaResponseMixin, InertiaView
 
 from .models import Sport
@@ -165,11 +161,6 @@ def clear_history_redirect_test(request):
 
 
 @inertia("TestComponent")
-def clear_history_type_error_test(request):
-    request.session[INERTIA_SESSION_CLEAR_HISTORY] = "foo"
-    return {}
-
-
 # ---------------------------------------------------------------------------
 # Once props (Inertia v3)
 # ---------------------------------------------------------------------------
@@ -210,11 +201,6 @@ def preserve_fragment_redirect_test(request):
 
 
 @inertia("TestComponent")
-def preserve_fragment_type_error_test(request):
-    request.session[INERTIA_SESSION_PRESERVE_FRAGMENT] = "not-a-bool"
-    return {}
-
-
 # ---------------------------------------------------------------------------
 # preserveErrors / shared errors partial-reload filtering (Inertia v3)
 # ---------------------------------------------------------------------------

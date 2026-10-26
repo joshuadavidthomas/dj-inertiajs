@@ -322,18 +322,9 @@ class InertiaResponse(SimpleTemplateResponse):
         # request, but an Inertia page never renders {% csrf_token %}.
         get_token(request)
         clear_history = request.session.pop(INERTIA_SESSION_CLEAR_HISTORY, False)
-        if not isinstance(clear_history, bool):
-            raise TypeError(
-                f"Expected bool for clear_history, got {type(clear_history).__name__}"
-            )
-
         should_preserve_fragment = request.session.pop(
             INERTIA_SESSION_PRESERVE_FRAGMENT, False
         )
-        if not isinstance(should_preserve_fragment, bool):
-            raise TypeError(
-                f"Expected bool for preserve_fragment, got {type(should_preserve_fragment).__name__}"
-            )
 
         shared: dict[str, Any] = {}
         for provider in settings.SHARED_PROPS:

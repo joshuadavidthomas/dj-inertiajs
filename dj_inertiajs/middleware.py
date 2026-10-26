@@ -29,9 +29,9 @@ class InertiaMiddleware:
     It also attaches ``request.inertia``, an ``InertiaDetails``, before the
     view runs.
 
-    Non-Inertia requests (e.g. those made via the useHttp hook in Inertia v3)
-    pass through this middleware without modification.  It is the responsibility of the individual view to return an
-    appropriate response (e.g. 422 JSON) for useHttp validation errors.
+    Requests that are not Inertia visits, such as those from ``useHttp``,
+    only get the CSRF handling and ``Vary: X-Inertia``. Their views return
+    their own responses, such as 422 JSON for validation errors.
     """
 
     sync_capable = True

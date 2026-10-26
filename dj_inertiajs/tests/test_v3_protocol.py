@@ -50,12 +50,6 @@ class PreserveFragmentTestCase(ProtocolTestCase):
 
         self.assertNotIn("preserveFragment", page)
 
-    def test_preserve_fragment_type_error_raises(self):
-        """A non-bool session value raises TypeError, matching the contract of
-        the other session-based flags."""
-        with self.assertRaises(TypeError):
-            self.client.get("/preserve-fragment-type-error/")
-
 
 # ---------------------------------------------------------------------------
 # preserveErrors via partial reload filtering

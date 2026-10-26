@@ -55,8 +55,6 @@ HELPERS = {
 }
 # Positional parameters after the prop value, by helper.
 POSITIONAL = {"defer": ["group", "merge"], "once": ["fresh"], "scroll": ["scroll"]}
-# Functions that took the request first and are now request.inertia methods.
-
 PUBLIC = {"InertiaResponse", "clear_history", "inertia", "render"}
 MOVED = {
     "InertiaJsonEncoder": "dj_inertiajs.encoders",

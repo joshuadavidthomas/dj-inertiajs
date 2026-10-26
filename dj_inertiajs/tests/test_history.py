@@ -44,8 +44,3 @@ class HistoryTestCase(ProtocolTestCase):
             TypeError, "Expected bool for encrypt_history, got str"
         ):
             self.client.get("/encrypt-history-type-error/", inertia=False)
-
-        with self.assertRaisesMessage(
-            TypeError, "Expected bool for clear_history, got str"
-        ):
-            self.client.get("/clear-history-type-error/", inertia=False)
