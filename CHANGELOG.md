@@ -18,12 +18,14 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 
 ### Added
 
-* Add system checks for unknown `INERTIA` keys, a missing layout, SSR without `requests`, and missing Inertia or session middleware.
+* Add system checks for unknown `INERTIA` keys, unimportable `SHARED_PROPS` entries, a missing layout, SSR without `requests`, and missing Inertia or session middleware.
 * Make `InertiaMiddleware` async-capable, so it no longer runs in a thread under ASGI.
 * Support `async def` views under `@inertia`.
 * Let `process_template_response` middleware and view decorators change `component`, `props` and `template_data` before the page is rendered.
 * Add `status` and `headers` arguments to `render()`.
-* Add class-based views in `django_inertia.views`: `InertiaResponseMixin`, which works with Django's generic views such as `ListView` and `FormView`, and `InertiaView`. Props come from `get_props()`. `Prop` attributes declared on the class are collected automatically, and a declared `Prop` whose value is a string names a view method.
+* Add `INERTIA["SHARED_PROPS"]`: dotted paths to `(request) -> dict` functions whose props are added to every page, like template context processors. View props override them, and `share()` still adds per-request values.
+* Add `set_errors(request, form_or_dict)`, which sends validation errors as the `errors` prop on the next page, once, the way `contrib.messages` works. Each field keeps its first message, and the prop is included in partial reloads.
+* Add class-based views in `django_inertia.views`: `InertiaResponseMixin`, which works with Django's generic views such as `ListView` and `FormView`, and `InertiaView`. Props come from `get_props()`. `Prop` attributes declared on the class are collected automatically, and a declared `Prop` whose value is a string names a view method. A bound, invalid `form` in the context is sent as the `errors` prop, so `FormView` needs no extra code.
 * Expose the page a rendered response sent as `response.inertia` (`component`, `props`, `url`, `version`, and the whole page object as `data`), so pytest tests can read it without helpers.
 
 ## [2.0.0] - 2026-08-16

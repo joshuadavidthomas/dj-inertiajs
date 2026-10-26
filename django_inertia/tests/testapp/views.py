@@ -11,6 +11,7 @@ from django_inertia import (
     location,
     preserve_fragment,
     render,
+    set_errors,
     share,
 )
 from django_inertia.http import (
@@ -356,6 +357,22 @@ async def async_test(request):
     return {"name": "Brandon"}
 
 
+def shared_props(request):
+    return {"app_name": "Scoreboard", "user": Prop(lambda: "Brandon", always=True)}
+
+
+def set_errors_test(request):
+    form = SportForm(request.POST)
+    if not form.is_valid():
+        set_errors(request, form)
+    return redirect(empty_test)
+
+
+@inertia("TestComponent")
+def overrides_shared_test(request):
+    return {"app_name": "From the view"}
+
+
 def status_test(request):
     return render(request, "TestComponent", {"name": "Brandon"}, status=201)
 
@@ -389,9 +406,6 @@ class SportFormView(InertiaResponseMixin, FormView):
     component = "Sports/Create"
     form_class = SportForm
     success_url = "/empty/"
-
-    def get_props(self, **kwargs):
-        return {**super().get_props(**kwargs), "errors": kwargs["form"].errors}
 
 
 class MissingComponentView(InertiaView):

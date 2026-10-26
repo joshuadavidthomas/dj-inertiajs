@@ -1,7 +1,8 @@
 import json
-from typing import Any
+from typing import Any, Callable
 
 from django.conf import settings as django_settings
+from django.http import HttpRequest
 from django.utils.module_loading import import_string
 
 __all__ = ["DEFAULTS", "settings"]
@@ -11,6 +12,7 @@ DEFAULTS: dict[str, Any] = {
     "VERSION": "1.0",
     "JSON_ENCODER": "django_inertia.utils.InertiaJsonEncoder",
     "ENCRYPT_HISTORY": False,
+    "SHARED_PROPS": [],
     "SSR": {
         "ENABLED": False,
         "URL": "http://localhost:13714",
@@ -42,6 +44,10 @@ class InertiaSettings:
     @property
     def ENCRYPT_HISTORY(self) -> bool:
         return self._get("ENCRYPT_HISTORY")  # type: ignore[no-any-return]
+
+    @property
+    def SHARED_PROPS(self) -> list[Callable[[HttpRequest], dict[str, Any]]]:
+        return [import_string(path) for path in self._get("SHARED_PROPS")]
 
     @property
     def SSR_ENABLED(self) -> bool:

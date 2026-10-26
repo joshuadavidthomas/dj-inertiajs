@@ -8,6 +8,8 @@ urlpatterns = [
     path("template-response-middleware/", views.template_response_middleware_test),
     path("async/", views.async_test),
     path("status/", views.status_test),
+    path("set-errors/", views.set_errors_test),
+    path("overrides-shared/", views.overrides_shared_test),
     path("dashboard/<str:team>/", views.DashboardView.as_view()),
     path("sports/", views.SportListView.as_view()),
     path("sports/create/", views.SportFormView.as_view()),

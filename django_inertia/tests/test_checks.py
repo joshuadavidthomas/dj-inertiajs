@@ -26,6 +26,12 @@ class ChecksTestCase(SimpleTestCase):
         with patch("django_inertia.checks.find_spec", return_value=None):
             self.assertEqual(inertia_check_ids(), ["inertia.E003"])
 
+    @override_settings(
+        INERTIA={"LAYOUT": "layout.html", "SHARED_PROPS": ["nowhere.shared"]}
+    )
+    def test_unimportable_shared_props(self):
+        self.assertEqual(inertia_check_ids(), ["inertia.E006"])
+
     def test_missing_middleware(self):
         middleware = [
             m

@@ -10,6 +10,7 @@ from typing import Any, Callable
 from asgiref.sync import iscoroutinefunction
 from django.contrib.messages import get_messages
 from django.core.exceptions import ImproperlyConfigured
+from django.forms import BaseForm
 from django.http import HttpRequest, HttpResponse
 from django.template.loader import render_to_string
 from django.template.response import ContentNotRenderedError, SimpleTemplateResponse
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 INERTIA_REQUEST_ENCRYPT_HISTORY = "_inertia_encrypt_history"
 INERTIA_SESSION_CLEAR_HISTORY = "_inertia_clear_history"
 INERTIA_SESSION_PRESERVE_FRAGMENT = "_inertia_preserve_fragment"
+INERTIA_SESSION_ERRORS = "_inertia_errors"
 
 INERTIA_TEMPLATE = "inertia.html"
 INERTIA_SSR_TEMPLATE = "inertia_ssr.html"
@@ -46,15 +48,6 @@ class InertiaRequest(HttpRequest):
         inertia_attr = self.__dict__.get("inertia")
         return (
             inertia_attr.all() if inertia_attr and hasattr(inertia_attr, "all") else {}
-        )
-
-    @property
-    def shared_keys(self) -> list[str]:
-        inertia_attr = self.__dict__.get("inertia")
-        return (
-            inertia_attr.keys()
-            if inertia_attr and hasattr(inertia_attr, "keys")
-            else []
         )
 
     def is_a_partial_render(self, component: str) -> bool:
@@ -389,8 +382,16 @@ class InertiaResponse(SimpleTemplateResponse):
                 f"Expected bool for preserve_fragment, got {type(should_preserve_fragment).__name__}"
             )
 
+        shared: dict[str, Any] = {}
+        for provider in settings.SHARED_PROPS:
+            shared.update(provider(request))
+        shared.update(request.inertia)
+        errors = request.session.pop(INERTIA_SESSION_ERRORS, None)
+        if errors:
+            shared["errors"] = Prop(errors, always=True)
+
         resolved_props, metadata = PropsResolver(
-            request, self.component, {**request.inertia, **self.props}
+            request, self.component, {**shared, **self.props}
         ).resolve()
         _page: dict[str, Any] = {
             "component": self.component,
@@ -404,8 +405,8 @@ class InertiaResponse(SimpleTemplateResponse):
         if should_preserve_fragment:
             _page["preserveFragment"] = True
 
-        if request.shared_keys:
-            _page["sharedProps"] = request.shared_keys
+        if shared:
+            _page["sharedProps"] = list(shared)
         messages = [
             {"level": message.level_tag, "message": str(message)}
             for message in get_messages(request)
@@ -486,6 +487,27 @@ def preserve_fragment(request: HttpRequest) -> None:
     request's URL fragment to the redirected destination.
     """
     request.session[INERTIA_SESSION_PRESERVE_FRAGMENT] = True
+
+
+def set_errors(request: HttpRequest, errors: BaseForm | dict[str, Any]) -> None:
+    """Send validation errors as the ``errors`` prop on the next Inertia page.
+
+    Call this before redirecting back to the form, the way
+    ``messages.error()`` is used. ``errors`` is a form or a mapping of field
+    names to messages; each field keeps its first message. Errors are stored
+    in the session, sent once, and included in partial reloads too.
+    """
+    request.session[INERTIA_SESSION_ERRORS] = error_messages(errors)
+
+
+def error_messages(errors: BaseForm | dict[str, Any]) -> dict[str, str]:
+    """Map each field to its first error message, the shape Inertia forms expect."""
+    if isinstance(errors, BaseForm):
+        errors = errors.errors
+    return {
+        field: str(messages[0]) if isinstance(messages, list) else str(messages)
+        for field, messages in errors.items()
+    }
 
 
 def inertia(

@@ -30,6 +30,16 @@ def check_settings(**kwargs: Any) -> list[CheckMessage]:
                 id="inertia.E002",
             )
         )
+    for path in settings._get("SHARED_PROPS"):
+        try:
+            import_string(path)
+        except ImportError as e:
+            errors.append(
+                Error(
+                    f'INERTIA["SHARED_PROPS"] entry {path!r} cannot be imported: {e}',
+                    id="inertia.E006",
+                )
+            )
     if settings.SSR_ENABLED and find_spec("requests") is None:
         errors.append(
             Error(

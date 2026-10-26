@@ -59,7 +59,7 @@ class GenericViewTestCase(InertiaTestCase):
 
         self.assertComponentUsed(response, "Sports/Create")
         self.assertHasExactProps(
-            response, {"errors": {"name": ["This field is required."]}}
+            response, {"errors": {"name": "This field is required."}}
         )
 
         response = self.inertia.post("/sports/create/", {"name": "Hockey"})

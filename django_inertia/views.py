@@ -2,10 +2,11 @@ import copy
 from typing import Any
 
 from django.core.exceptions import ImproperlyConfigured
+from django.forms import BaseForm
 from django.http import HttpRequest
 from django.views.generic import View
 
-from .http import InertiaResponse
+from .http import InertiaResponse, error_messages
 from .props import Prop
 
 __all__ = ["InertiaResponseMixin", "InertiaView"]
@@ -49,9 +50,14 @@ class InertiaResponseMixin:
 
         ``kwargs`` is the context a generic view built, such as
         ``object_list`` or ``form``. It is not sent; override this method,
-        call ``super()``, and add the values the page needs.
+        call ``super()``, and add the values the page needs. The one
+        exception is a bound, invalid ``form``: its errors are sent as the
+        ``errors`` prop, so ``FormView.form_invalid`` works unchanged.
         """
         props: dict[str, Any] = {}
+        form = kwargs.get("form")
+        if isinstance(form, BaseForm) and form.is_bound and form.errors:
+            props["errors"] = Prop(error_messages(form), always=True)
         for klass in reversed(type(self).__mro__):
             for name, value in vars(klass).items():
                 if isinstance(value, Prop):
