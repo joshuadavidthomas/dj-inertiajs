@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 from django.http import HttpResponseRedirect
 from django.test import RequestFactory
 
-from inertia import merge, once
-from inertia.middleware import InertiaMiddleware
-from inertia.test import InertiaTestCase
+from django_inertia import merge, once
+from django_inertia.middleware import InertiaMiddleware
+from django_inertia.test import InertiaTestCase
 
 
 class V3PropsCompatibilityTestCase(InertiaTestCase):

@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.template.loader import render_to_string as base_render_to_string
 from django.test import Client, TestCase
 
-from inertia.settings import settings
+from django_inertia.settings import settings
 
 
 class ClientWithLastResponse:
@@ -54,7 +54,7 @@ class InertiaTestCase(BaseInertiaTestCase, TestCase):
         super().setUp()
 
         self.mock_inertia = patch(
-            "inertia.http.render_to_string", wraps=base_render_to_string
+            "django_inertia.http.render_to_string", wraps=base_render_to_string
         )
         self.mock_render = self.mock_inertia.start()
 

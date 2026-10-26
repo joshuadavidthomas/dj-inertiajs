@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from django.test import override_settings
 
-from inertia.test import InertiaTestCase, inertia_div, inertia_page
+from django_inertia.test import InertiaTestCase, inertia_div, inertia_page
 
 
 @override_settings(
@@ -12,7 +12,7 @@ from inertia.test import InertiaTestCase, inertia_div, inertia_page
     INERTIA_VERSION="1.0",
 )
 class SSRTestCase(InertiaTestCase):
-    @patch("inertia.http.requests")
+    @patch("django_inertia.http.requests")
     def test_it_returns_ssr_calls(self, mock_request):
         mock_response = Mock()
         mock_response.json.return_value = {
@@ -35,7 +35,7 @@ class SSRTestCase(InertiaTestCase):
         self.assertContains(response, "<div>Body Works</div>")
         self.assertContains(response, "head--<title>Head works</title>--head")
 
-    @patch("inertia.http.requests")
+    @patch("django_inertia.http.requests")
     def test_it_returns_ssr_calls_with_template_data(self, mock_request):
         mock_response = Mock()
         mock_response.json.return_value = {
@@ -52,7 +52,7 @@ class SSRTestCase(InertiaTestCase):
         self.assertContains(response, "head--<title>Head works</title>--head")
         self.assertContains(response, "Brian, Basketball")
 
-    @patch("inertia.http.requests")
+    @patch("django_inertia.http.requests")
     def test_it_uses_inertia_if_inertia_requests_are_made(self, mock_requests):
         response = self.inertia.get("/props/")
 
@@ -62,7 +62,7 @@ class SSRTestCase(InertiaTestCase):
             inertia_page("props", props={"name": "Brandon", "sport": "Hockey"}),
         )
 
-    @patch("inertia.http.requests")
+    @patch("django_inertia.http.requests")
     def test_it_fallsback_on_failure(self, mock_requests):
         def uh_oh(*args, **kwargs):
             raise ValueError()  # SSR errors are logged and fall back to client-side rendering
@@ -76,8 +76,8 @@ class SSRTestCase(InertiaTestCase):
             response, inertia_div("props", props={"name": "Brandon", "sport": "Hockey"})
         )
 
-    @patch("inertia.http.logger")
-    @patch("inertia.http.requests")
+    @patch("django_inertia.http.logger")
+    @patch("django_inertia.http.requests")
     def test_it_logs_exception_on_ssr_failure(self, mock_requests, mock_logger):
         error = ValueError("SSR rendering failed")
 

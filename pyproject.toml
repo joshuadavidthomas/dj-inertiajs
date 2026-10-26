@@ -43,7 +43,7 @@ dev = [
 ]
 
 [tool.uv.build-backend]
-module-name = "inertia"
+module-name = "django_inertia"
 module-root = ""
 
 [tool.ruff.lint]
@@ -59,15 +59,15 @@ ignore = ["E501"] # line too long, formatter will handle this
 unfixable = ["B", "SIM"]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "inertia.tests.settings"
+DJANGO_SETTINGS_MODULE = "django_inertia.tests.settings"
 django_find_project = false
 
 [tool.mypy]
 plugins = ["mypy_django_plugin.main"]
 strict = true
 exclude = [
-    "inertia/test.*"
+    "django_inertia/test.*"
 ]
 
 [tool.django-stubs]
-django_settings_module = "inertia.tests.settings"
+django_settings_module = "django_inertia.tests.settings"

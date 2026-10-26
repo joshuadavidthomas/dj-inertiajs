@@ -3,7 +3,7 @@ from django.http.response import HttpResponse
 from django.shortcuts import redirect
 from django.utils.decorators import decorator_from_middleware
 
-from inertia import (
+from django_inertia import (
     always,
     deep_merge,
     defer,
@@ -18,7 +18,7 @@ from inertia import (
     scroll,
     share,
 )
-from inertia.http import (
+from django_inertia.http import (
     INERTIA_SESSION_CLEAR_HISTORY,
     INERTIA_SESSION_PRESERVE_FRAGMENT,
     clear_history,

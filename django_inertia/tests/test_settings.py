@@ -1,6 +1,6 @@
 from django.test import override_settings
 
-from inertia.test import InertiaTestCase
+from django_inertia.test import InertiaTestCase
 
 
 class SettingsTestCase(InertiaTestCase):

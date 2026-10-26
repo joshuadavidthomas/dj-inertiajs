@@ -1,6 +1,6 @@
 import json
 
-from inertia.test import InertiaTestCase, inertia_page
+from django_inertia.test import InertiaTestCase, inertia_page
 
 # ---------------------------------------------------------------------------
 # preserveFragment
@@ -239,7 +239,7 @@ class UseHttpCsrfTestCase(InertiaTestCase):
         error is forwarded to the client without modification."""
         from django.http import JsonResponse
 
-        from inertia.middleware import InertiaMiddleware
+        from django_inertia.middleware import InertiaMiddleware
 
         class FakeGet:
             def __call__(self, request):
@@ -267,7 +267,7 @@ class UseHttpCsrfTestCase(InertiaTestCase):
         forwarded as-is; the middleware does not change its status code."""
         from django.http import HttpResponseRedirect
 
-        from inertia.middleware import InertiaMiddleware
+        from django_inertia.middleware import InertiaMiddleware
 
         class FakeGet:
             def __call__(self, request):

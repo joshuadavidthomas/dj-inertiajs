@@ -1,4 +1,4 @@
-from inertia.test import InertiaTestCase
+from django_inertia.test import InertiaTestCase
 
 
 class TestTestCase(InertiaTestCase):

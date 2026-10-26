@@ -1,4 +1,4 @@
-from inertia.test import InertiaTestCase, inertia_page
+from django_inertia.test import InertiaTestCase, inertia_page
 
 
 class OncePropsTestCase(InertiaTestCase):
@@ -169,14 +169,14 @@ class CallablePropStaticValueTestCase(InertiaTestCase):
     def test_once_prop_with_static_value_is_resolved(self):
         """A once prop wrapping a plain value (not a callable) is resolved
         correctly on first load."""
-        from inertia.prop_classes import OnceProp
+        from django_inertia.prop_classes import OnceProp
 
         prop = OnceProp(["basic", "pro"])
         self.assertEqual(prop(), ["basic", "pro"])
 
     def test_callable_prop_with_callable_is_resolved(self):
         """Sanity check: a callable is still invoked by __call__."""
-        from inertia.prop_classes import OnceProp
+        from django_inertia.prop_classes import OnceProp
 
         prop = OnceProp(lambda: ["basic", "pro"])
         self.assertEqual(prop(), ["basic", "pro"])
