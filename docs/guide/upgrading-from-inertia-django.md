@@ -2,7 +2,7 @@
 
 This package is a separate, Django-native adapter forked from inertia-django 2.0.0. Its API differs on purpose: settings live in one dict, props are declared with a `Prop` class, layouts use template tags, and the test helpers take the response. Nothing from the old API is kept for compatibility, so an upgraded project uses only the new API.
 
-The protocol the client sees is unchanged. You do not need to change your frontend.
+The protocol the client sees is the same as inertia-django 2.0's, which targets Inertia v3. Coming from 2.0, you do not need to change your frontend. Coming from 1.x, which targets Inertia v2, also follow [From inertia-django 1.x](#from-inertia-django-1-x).
 
 ## How to upgrade
 
@@ -21,6 +21,50 @@ Work through three steps. Each one shortens the list for the next.
 2. **Run the system checks.** `python manage.py check` reports each old pattern that is still in use, with a link to the section below that explains the fix. The codemod is optional; without it, the checks still list everything.
 
 3. **Fix the rest by hand** using the sections below, then uninstall `inertia-django`.
+
+## From inertia-django 1.x
+
+inertia-django 1.x targets the Inertia v2 client. This package needs the v3 client, so a project on 1.x also upgrades its frontend. The server-side changes below cover everything else.
+
+1. **Install the v3 client adapter** for your framework:
+
+   ::: code-group
+
+   ```shell [Vue]
+   npm install @inertiajs/vue3@^3
+   ```
+
+   ```shell [React]
+   npm install @inertiajs/react@^3
+   ```
+
+   ```shell [Svelte]
+   npm install @inertiajs/svelte@^3
+   ```
+
+   :::
+
+2. **Configure Django's CSRF names.** The v3 HTTP client defaults to Laravel's `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header:
+
+   ```js
+   createInertiaApp({
+     // resolve and setup...
+     http: {
+       xsrfCookieName: "csrftoken",
+       xsrfHeaderName: "X-CSRFToken",
+     },
+   })
+   ```
+
+   If you set `CSRF_COOKIE_NAME` or `CSRF_HEADER_NAME`, use those names instead.
+
+3. **Use Django messages for one-time notices.** Messages from `django.contrib.messages` are sent as the page's top-level `flash.messages`. Replace props you used for notices with `messages.success()` and the like.
+
+4. **Review caching and partial reloads.**
+   - Every Inertia response varies on `X-Inertia`. Make sure your reverse proxy or CDN honors the `Vary` header.
+   - Partial reloads accept nested paths, such as `only: ["account.plans"]`, and `except`. Metadata such as `mergeProps` and `onceProps` only lists props included in that response.
+
+Then check that a full page visit mounts the v3 client, a form submission sends the CSRF header, and flash messages appear once after a redirect.
 
 ## Install and app name
 
