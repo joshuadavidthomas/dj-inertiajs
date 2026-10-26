@@ -4,9 +4,9 @@
 
 A Django-native server-side adapter for [Inertia.js](https://inertiajs.com/), forked from [inertia-django](https://github.com/inertiajs/inertia-django) 2.0.0. It speaks the same Inertia v3 protocol, so the client side is unchanged, but its API follows Django's conventions: one settings dict, system checks, class-based views, lazy responses like `TemplateResponse`, template tags, and test assertions that take the response.
 
-Coming from inertia-django? See [Upgrading from inertia-django](docs/guide/upgrading-from-inertia-django.md). A codemod and system checks do most of the work.
+Coming from inertia-django? [Upgrading from inertia-django](#upgrading-from-inertia-django) lists what changed, and a codemod and system checks do most of the upgrade.
 
-The import package is `dj_inertiajs`. The distribution name is not final yet, so install it from Git for now.
+The distribution is `dj-inertiajs` and the import package `dj_inertiajs`. It is not on PyPI yet, so install it from Git for now.
 
 ## Installation
 
@@ -469,6 +469,35 @@ class EventTests(InertiaTestCase):
 `InertiaTestCase` is `InertiaTestMixin` plus `django.test.TestCase`. Combine the mixin with `SimpleTestCase` or another test case when you need to.
 
 ## Upgrading from inertia-django
+
+This package breaks inertia-django's API on purpose, so that it follows Django's conventions instead of the Laravel adapter's. Nothing old is kept for compatibility. Each row links to the section of the [upgrade guide](docs/guide/upgrading-from-inertia-django.md) that explains the change.
+
+### What stays the same
+
+- The Inertia v3 protocol and page object. The client side does not change.
+- `render(request, component, props)` and the `@inertia("Component")` decorator.
+- `clear_history(request)`, flash messages from `django.contrib.messages`, and `InertiaMeta`.
+
+### What changed
+
+| Area | inertia-django | dj-inertiajs |
+|---|---|---|
+| [Settings](docs/guide/upgrading-from-inertia-django.md#settings) | Flat `INERTIA_*` settings; the encoder is a class | One `INERTIA` dict; the encoder is a dotted path; `VERSION` may be a callable |
+| [Layout](docs/guide/upgrading-from-inertia-django.md#layout-templates) | One global layout that defines `{% block inertia %}` | Any template, using `{% inertia_head %}` and `{% inertia_body %}`, chosen per view with `template_name` |
+| [Props](docs/guide/upgrading-from-inertia-django.md#props) | `defer()`, `merge()`, `optional()` and five more helpers | One `Prop` class with keyword options |
+| [Views](docs/guide/upgrading-from-inertia-django.md#views) | Function views only; `@inertia` takes only a component; no async | Class-based views with `@prop` methods; `@inertia` and `render()` take `template_name`, `status`, `headers` and `encrypt_history`; `async def` views and props work |
+| [Responses](docs/guide/upgrading-from-inertia-django.md#responses-render-lazily) | Rendered in the constructor | Rendered lazily, like `TemplateResponse`, so middleware and decorators can change `response.props` |
+| [Shared data](docs/guide/upgrading-from-inertia-django.md#shared-data) | `share(request, ...)` from a custom middleware | Functions listed in `INERTIA["SHARED_PROPS"]`, like context processors |
+| [Validation errors](docs/guide/upgrading-from-inertia-django.md#validation-errors) | Not handled | `set_errors(request, form)`, and invalid forms in class-based views; formsets supported |
+| [Redirects](docs/guide/upgrading-from-inertia-django.md#redirects) | `preserve_fragment(request)`; `location(url)` | `redirect(..., preserve_fragment=True)`; `InertiaLocation(url)` |
+| [The request](docs/guide/upgrading-from-inertia-django.md#the-request) | `request.inertia` holds shared props | `request.inertia` describes the request, like django-htmx's `request.htmx` |
+| [History encryption](docs/guide/upgrading-from-inertia-django.md#history-encryption) | `encrypt_history(request)` inside the view | `encrypt_history=True` on the decorator, `render()` or the class-based view |
+| [Serialization](docs/guide/upgrading-from-inertia-django.md#serialization) | Models encoded with every field except `password` | Models need `InertiaMeta` or explicit fields, like `JsonResponse` |
+| [Tests](docs/guide/upgrading-from-inertia-django.md#tests) | Stateful assertions read the last response; `self.inertia` client | Assertions take the response; `self.client` makes Inertia visits; `response.inertia` in pytest |
+| CSRF | Cookie set on every response | Cookie set only on Inertia responses |
+| Configuration errors | Found at request time | Reported by `manage.py check` |
+
+### How to upgrade
 
 Run the codemod, then the system checks, then follow the [upgrade guide](docs/guide/upgrading-from-inertia-django.md) for the rest:
 

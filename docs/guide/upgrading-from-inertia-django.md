@@ -247,9 +247,7 @@ Inertia forms read an `errors` prop. inertia-django left it to you to share one.
 
 Each field keeps its first message, the shape Inertia's `useForm` expects. If you shared `form.errors` yourself, you sent lists of messages; delete that code.
 
-## Request helpers
-
-`clear_history()` is unchanged; only its import moves, which the codemod does. Like `messages.error(request, ...)`, it takes the request first. `share()` was removed; see [Shared data](#shared-data).
+## Redirects
 
 `preserve_fragment(request)` is gone. Keeping the fragment is a property of the redirect, so it is now an option of it:
 
@@ -269,9 +267,11 @@ return redirect("articles:show", slug=article.slug, preserve_fragment=True)
 
 `dj_inertiajs.redirect` is `django.shortcuts.redirect` with Inertia's options. The codemod reports each `preserve_fragment` call.
 
-`request.inertia` changed meaning. In inertia-django it held the shared props; code that read it, such as `request.inertia.all()`, must change. It now describes the request, like django-htmx's `request.htmx`: it is truthy for Inertia visits, and has `version`, `partial_component`, `partial_data`, `partial_except` and `is_partial()`.
-
 `location(url)` is now a response class, `InertiaLocation(url)`, like `HttpResponseRedirect`. The codemod rewrites the calls.
+
+## The request
+
+`request.inertia` changed meaning. In inertia-django it held the shared props; code that read it, such as `request.inertia.all()`, must change. It now describes the request, like django-htmx's `request.htmx`: it is truthy for Inertia visits, and has `version`, `partial_component`, `partial_data`, `partial_except` and `is_partial()`. `share()` was removed; see [Shared data](#shared-data).
 
 ## History encryption
 
@@ -293,6 +293,8 @@ def account(request):
 `render(request, "Account/Show", props, encrypt_history=True)` and `encrypt_history = True` on a class-based view do the same. `False` opts a page out of `INERTIA["ENCRYPT_HISTORY"]`. To decide at runtime, pass a variable to `render()`, or set `response.encrypt_history` before the response renders.
 
 The codemod moves `encrypt_history(request)` and `encrypt_history(request, value)` from the body of an `@inertia` view to its decorator, and reports every other call.
+
+`clear_history(request)` is unchanged; only its import moves, which the codemod does. Like `messages.error(request, ...)`, it takes the request first, because it applies to the next page.
 
 ## Serialization
 
