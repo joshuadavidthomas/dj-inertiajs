@@ -591,12 +591,15 @@ class Upgrade(cst.CSTTransformer):
                 arg.keyword is not None
                 and arg.keyword.value in OLD_SETTINGS
                 and isinstance(func, (cst.Name, cst.Attribute))
-                and _last_name(func) == "override_settings"
+                and (
+                    _last_name(func) == "override_settings"
+                    or (_is_self_call(func) and _last_name(func) == "settings")
+                )
             ):
                 self.report(
                     original_node,
-                    f"override_settings({arg.keyword.value}=...) uses an old "
-                    f"setting; {guide('Settings')}.",
+                    f"{cst.Module([]).code_for_node(func)}({arg.keyword.value}=...) "
+                    f"uses an old setting; {guide('Settings')}.",
                 )
         return updated_node
 
@@ -678,6 +681,14 @@ class Upgrade(cst.CSTTransformer):
         # call written one argument per line stays that way.
         if isinstance(value.comma, cst.Comma):
             flag_comma: cst.Comma | cst.MaybeSentinel = value.comma
+            if not rest:
+                # The value's trailing comma holds the whitespace before the
+                # closing parenthesis; the flag takes it, and the value's
+                # comma indents the flag like the value.
+                indent = updated.whitespace_before_args
+                if not isinstance(indent, cst.ParenthesizedWhitespace):
+                    indent = cst.SimpleWhitespace(" ")
+                value = value.with_changes(comma=cst.Comma(whitespace_after=indent))
         else:
             value = value.with_changes(
                 comma=cst.Comma(whitespace_after=cst.SimpleWhitespace(" "))

@@ -59,10 +59,11 @@ It reports these with file and line, and leaves them for you:
 |---|---|
 | Calls to `share()` | [Shared data](#shared-data) |
 | Calls to `preserve_fragment()` | [Redirects](#redirects) |
-| `encrypt_history()` calls outside an `@inertia` view | [History encryption](#history-encryption) |
+| Prop helper calls it cannot map, such as `defer(f, *args)` | [Props](#props) |
+| `encrypt_history()` calls outside an `@inertia` view, or with a value other than `True` or `False` | [History encryption](#history-encryption) |
 | `import inertia`, `from inertia import *`, and names that were removed or were never public | [Imports](#imports) |
-| Reads of `settings.INERTIA_*` | [Settings](#settings) |
-| Assertions with no request before them in the same test method | [Tests](#tests) |
+| Reads of `settings.INERTIA_*`, old settings in `override_settings()` and `self.settings()`, and an `INERTIA_JSON_ENCODER` that is not a class or a dotted path | [Settings](#settings) |
+| Assertions with no request before them in the same test method, and `assertJSONResponse` | [Tests](#tests) |
 
 It does not find these. The system checks find the first; the CSRF option keeps working; the others show up when the page renders or the tests run:
 
