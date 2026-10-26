@@ -453,6 +453,13 @@ class Upgrade(cst.CSTTransformer):
             and all(a.keyword is None and not a.star for a in call.args)
         ):
             return
+        # Only a literal value can move: a variable computed in the view does
+        # not exist where the decorator is evaluated.
+        if len(call.args) == 2 and not (
+            isinstance(call.args[1].value, cst.Name)
+            and call.args[1].value.value in ("True", "False")
+        ):
+            return
         self.encrypt_values[-1] = (
             call.args[1].value if len(call.args) == 2 else cst.Name("True")
         )
@@ -536,12 +543,17 @@ class Upgrade(cst.CSTTransformer):
                 if response is None:
                     return updated_node
                 return cst.parse_expression(ACCESSORS[name].format(response))
-            if name == "assertJSONResponse":
-                self.report(
-                    original_node,
-                    "`assertJSONResponse` was removed; compare `response.json()` "
-                    f"instead; {guide('Tests')}.",
-                )
+        if (
+            self.test_methods
+            and self.test_methods[-1]
+            and _is_self_call(func)
+            and func.attr.value == "assertJSONResponse"  # type: ignore[attr-defined]
+        ):
+            self.report(
+                original_node,
+                "`assertJSONResponse` was removed; compare `response.json()` "
+                f"instead; {guide('Tests')}.",
+            )
         if (
             isinstance(func, cst.Name)
             and func.value in self.encrypt_names

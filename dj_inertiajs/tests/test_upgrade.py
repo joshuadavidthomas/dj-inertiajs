@@ -203,6 +203,12 @@ class EncryptHistoryTestCase(SimpleTestCase):
                 encrypt_history(request, False)
                 return {}
 
+            @page("Admin")
+            def admin(request):
+                staff = request.user.is_staff
+                encrypt_history(request, staff)
+                return {}
+
             def plain(request):
                 encrypt_history(request)
             """
@@ -222,13 +228,20 @@ class EncryptHistoryTestCase(SimpleTestCase):
                 def billing(request):
                     return {}
 
+                @page("Admin")
+                def admin(request):
+                    staff = request.user.is_staff
+                    encrypt_history(request, staff)
+                    return {}
+
                 def plain(request):
                     encrypt_history(request)
                 """
             ),
         )
-        self.assertEqual(len(manual), 1)
-        self.assertIn("line 15: `encrypt_history(...)` is now an option", manual[0])
+        self.assertEqual(len(manual), 2)
+        self.assertIn("line 17: `encrypt_history(...)` is now an option", manual[0])
+        self.assertIn("line 21: `encrypt_history(...)` is now an option", manual[1])
 
 
 class SettingsTestCase(SimpleTestCase):
@@ -354,6 +367,22 @@ class TestAssertionTestCase(SimpleTestCase):
             ),
         )
         self.assertEqual(manual, [])
+
+    def test_removed_assert_json_response_is_reported(self):
+        _, manual = upgrade(
+            """\
+            from inertia.test import InertiaTestCase
+
+
+            class EventTests(InertiaTestCase):
+                def test_index(self):
+                    response = self.client.get("/events/")
+                    self.assertJSONResponse(response, {})
+            """
+        )
+
+        self.assertEqual(len(manual), 1)
+        self.assertIn("line 7: `assertJSONResponse` was removed", manual[0])
 
     def test_only_inertia_test_cases_and_their_subclasses_are_rewritten(self):
         code, _ = upgrade(

@@ -60,6 +60,13 @@ def external_redirect_test(request):
     return InertiaLocation("http://foobar.com/")
 
 
+def app_location_test(request):
+    response = InertiaLocation("myapp://open")
+    response["X-Custom"] = "kept"
+    response.set_cookie("viewcookie", "1")
+    return response
+
+
 @inertia("TestComponent")
 def props_test(request):
     return {

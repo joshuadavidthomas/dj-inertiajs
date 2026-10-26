@@ -34,6 +34,7 @@ class MiddlewareTestCase(ProtocolTestCase):
         self.assertEqual(
             response.headers["X-Inertia-Location"], "http://testserver/empty/"
         )
+        self.assertEqual(response.headers["X-Inertia-Version"], "1.0")
 
     def test_redirect_status(self):
         response = self.client.post("/redirect/")
@@ -56,6 +57,19 @@ class MiddlewareTestCase(ProtocolTestCase):
         self.assertEqual(response.status_code, 409)
         self.assertIn("X-Inertia-Location", response.headers)
         self.assertEqual("http://foobar.com/", response.headers["X-Inertia-Location"])
+
+    def test_external_redirect_is_a_plain_redirect_on_a_full_page_load(self):
+        response = self.client.post("/external-redirect/", inertia=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://foobar.com/")
+
+    def test_full_page_redirect_keeps_the_views_cookies_headers_and_scheme(self):
+        response = self.client.get("/app-location/", inertia=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "myapp://open")
+        self.assertEqual(response.headers["X-Custom"], "kept")
+        self.assertEqual(response.cookies["viewcookie"].value, "1")
+        self.assertNotIn("X-Inertia-Location", response.headers)
 
 
 class RequestDetailsTestCase(ProtocolTestCase):

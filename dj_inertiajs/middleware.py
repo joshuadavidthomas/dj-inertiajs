@@ -3,7 +3,7 @@ from typing import Any, Callable
 from asgiref.sync import iscoroutinefunction, markcoroutinefunction
 from django.conf import settings as django_settings
 from django.contrib import messages
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.utils.cache import patch_vary_headers
 
 from .conf import settings
@@ -60,13 +60,26 @@ class InertiaMiddleware:
     def process_response(
         self, request: HttpRequest, response: HttpResponse
     ) -> HttpResponse:
+        details: InertiaDetails = request.inertia  # type: ignore[attr-defined]
+        if isinstance(response, InertiaLocation) and not details:
+            # Only the Inertia client understands the 409; a browser loading
+            # the URL directly gets an ordinary redirect, which keeps the
+            # view's cookies and headers. Setting Location after construction
+            # allows any scheme, as the 409 does, such as mailto: or an app's.
+            redirect = HttpResponseRedirect("/")
+            for header, value in response.items():
+                if header != "X-Inertia-Location":
+                    redirect[header] = value
+            redirect["Location"] = response.url
+            redirect.cookies = response.cookies
+            response = redirect
+
         patch_vary_headers(response, ("X-Inertia",))
         self.set_xsrf_cookie(request, response)
 
         if getattr(response, "preserve_fragment", False):
             request.session[INERTIA_SESSION_PRESERVE_FRAGMENT] = True
 
-        details: InertiaDetails = request.inertia  # type: ignore[attr-defined]
         if not details:
             return response
 
@@ -132,5 +145,8 @@ class InertiaMiddleware:
         if not isinstance(storage, list):
             storage.used = False
         response = InertiaLocation(request.build_absolute_uri())
+        # The client compares it with its own to tell a version change from
+        # an ordinary location visit, and skips reloading background requests.
+        response["X-Inertia-Version"] = settings.VERSION
         patch_vary_headers(response, ("X-Inertia",))
         return response
