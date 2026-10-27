@@ -88,7 +88,7 @@ async def index(request):
     return {"events": [event async for event in Event.objects.values("id", "title")]}
 ```
 
-The decorator takes `render()`'s keyword-only options, `template_name`, `status`, `headers` and `encrypt_history`, for example `@inertia("Event/Index", template_name="events/base.html", status=200)`.
+The decorator takes `render()`'s other options too, `template_data`, `template_name`, `status`, `headers` and `encrypt_history`, for example `@inertia("Event/Index", template_name="events/base.html", status=200)`.
 
 Responses render lazily, like `TemplateResponse`. Until Django's handler renders the response, middleware with `process_template_response` and view decorators can change `response.component`, `response.props` and `response.template_data`.
 

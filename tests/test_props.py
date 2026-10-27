@@ -180,3 +180,15 @@ class PropResolutionTestCase(SimpleTestCase):
 
         self.assertEqual(cached.content, response.content)
         self.assertEqual(cached.inertia.props, {"a": 1})
+
+    def test_each_response_gets_its_own_template_data(self):
+        request = RequestFactory().get("/")
+        request.session = SessionStore()
+        template_data = {"name": "Brian"}
+        first = InertiaResponse(request, "Dashboard", {}, template_data=template_data)
+        second = InertiaResponse(request, "Dashboard", {}, template_data=template_data)
+
+        first.template_data["name"] = "Changed"
+
+        self.assertEqual(second.template_data, {"name": "Brian"})
+        self.assertEqual(template_data, {"name": "Brian"})

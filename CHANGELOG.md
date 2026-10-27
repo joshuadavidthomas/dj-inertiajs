@@ -42,6 +42,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Add `set_errors(request, form_or_dict)`, which sends validation errors as the `errors` prop on the next page, once, the way `contrib.messages` works. Each field keeps its first message, and the prop is included in partial reloads. Formsets are supported, with `"<prefix>.<index>.<field>"` keys. `INERTIA["FORM_ERRORS"]` names the function that converts errors, and check `inertia.E011` reports it, or `JSON_ENCODER`, when it cannot be imported.
 * Add class-based views in `dj_inertiajs.views`: `InertiaResponseMixin`, which works with Django's generic views such as `ListView` and `FormView`, and `InertiaView`. Props come from `get_props()`. `Prop` attributes declared on the class are collected automatically, and so are methods decorated with `@prop(...)`, which take `Prop`'s options and run only when their prop is sent. A bound, invalid `form` in the context is sent as the `errors` prop, so `FormView` needs no extra code.
 * Expose the page a rendered response sent as `response.inertia` (`component`, `props`, `url`, `version`, and the whole page object as `data`), so pytest tests can read it without helpers.
+* Add `template_data` to `@inertia`, so a decorated view sends extra context to its layout, as `render()` does. `InertiaResponse` copies the dict it is given, so one dict can build several responses and `response.template_data` can change before render without affecting the others.
 
 ### Changed
 

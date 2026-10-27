@@ -85,6 +85,10 @@ class InertiaResponse(SimpleTemplateResponse):
         ``INERTIA["LAYOUT"]``. It renders the page with the ``inertia_head``
         and ``inertia_body`` tags from ``{% load inertia %}``.
 
+        ``template_data`` is extra context for that layout. It is copied, so
+        ``response.template_data`` can change before render without affecting
+        another response built from the same dict.
+
         ``encrypt_history`` encrypts the page in the browser's history;
         ``None`` uses ``INERTIA["ENCRYPT_HISTORY"]``.
         """
@@ -106,7 +110,7 @@ class InertiaResponse(SimpleTemplateResponse):
         self._request = request
         self.component = component
         self.props = props or {}
-        self.template_data = template_data or {}
+        self.template_data = dict(template_data or {})
         self.encrypt_history = encrypt_history
         patch_vary_headers(self, ("X-Inertia",))
 

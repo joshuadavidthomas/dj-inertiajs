@@ -12,6 +12,7 @@ __all__ = ["inertia"]
 def inertia(
     component: str,
     *,
+    template_data: dict[str, Any] | None = None,
     template_name: str | None = None,
     status: int | None = None,
     headers: dict[str, Any] | None = None,
@@ -19,10 +20,10 @@ def inertia(
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Render the props dict a view returns as ``component``.
 
-    The options are those of ``render()``: ``template_name`` is the layout,
-    by default ``INERTIA["LAYOUT"]``; ``encrypt_history=True`` encrypts the
-    page in the browser's history, and ``False`` opts out of
-    ``INERTIA["ENCRYPT_HISTORY"]``.
+    The options are those of ``render()``: ``template_data`` is extra context
+    for the layout; ``template_name`` is the layout, by default
+    ``INERTIA["LAYOUT"]``; ``encrypt_history=True`` encrypts the page in the
+    browser's history, and ``False`` opts out of ``INERTIA["ENCRYPT_HISTORY"]``.
 
     Works with sync and async views. A view that returns an ``HttpResponse``,
     such as a redirect, passes it through unchanged.
@@ -35,6 +36,7 @@ def inertia(
             request,
             component,
             props,
+            template_data,
             template_name=template_name,
             status=status,
             headers=headers,

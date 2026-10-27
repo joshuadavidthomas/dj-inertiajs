@@ -328,6 +328,9 @@ class LayoutTestCase(ProtocolTestCase):
 
         self.assertTemplateUsed(response, "other_layout.html")
         self.assertContains(response, self.root, status_code=202)
+        self.assertContains(
+            response, "template data:Brian, Basketball", status_code=202
+        )
         self.assertEqual(response["X-Team"], "Penguins")
 
     def test_class_based_view_takes_a_layout(self):

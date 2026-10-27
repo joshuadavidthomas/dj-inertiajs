@@ -425,6 +425,7 @@ def request_details_test(request):
 
 @inertia(
     "TestComponent",
+    template_data={"name": "Brian", "sport": "Basketball"},
     template_name="other_layout.html",
     status=202,
     headers={"X-Team": "Penguins"},
