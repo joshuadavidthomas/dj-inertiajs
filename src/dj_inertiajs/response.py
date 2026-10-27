@@ -234,7 +234,7 @@ class InertiaResponse(SimpleTemplateResponse):
     rendering_attrs = [
         *SimpleTemplateResponse.rendering_attrs,
         "_request",
-        "_inertia",
+        "_details",
         "component",
         "props",
         "template_data",
@@ -264,9 +264,9 @@ class InertiaResponse(SimpleTemplateResponse):
             raise TypeError(
                 f"Expected bool for encrypt_history, got {type(encrypt_history).__name__}"
             )
-        self._inertia = get_details(request)
+        self._details = get_details(request)
         content_type = None
-        if self._inertia:
+        if self._details:
             headers = {**(headers or {}), "X-Inertia": "true"}
             content_type = "application/json"
         super().__init__(
@@ -294,7 +294,7 @@ class InertiaResponse(SimpleTemplateResponse):
             data.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
         )
         self._page_json = data
-        if self._inertia:
+        if self._details:
             return data
         return self.build_first_load(data)
 
@@ -316,7 +316,7 @@ class InertiaResponse(SimpleTemplateResponse):
 
     def page_data(self) -> dict[str, Any]:
         request = self._request
-        details = self._inertia
+        details = self._details
         # The client sends this cookie's token with every visit and useHttp
         # request, but an Inertia page never renders {% csrf_token %}.
         get_token(request)
