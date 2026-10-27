@@ -9,7 +9,7 @@ from django.utils.cache import patch_vary_headers
 from .conf import settings
 from .request import InertiaDetails
 from .response import InertiaLocation, InertiaResponse
-from .session import preserve_fragment
+from .session import preserve_fragment, restore_next_page
 
 # The Inertia v3 client reads the CSRF token from this cookie and sends it in
 # an X-XSRF-TOKEN header, the names Laravel uses.
@@ -85,7 +85,7 @@ class InertiaMiddleware:
             return response
 
         if request.method == "GET" and details.version not in (None, settings.VERSION):
-            return self.force_refresh(request)
+            return self.force_refresh(request, response)
 
         if self.redirect_has_fragment(response) and not details.prefetch:
             return self.inertia_redirect(response)
@@ -140,11 +140,17 @@ class InertiaMiddleware:
             headers={"X-Inertia-Redirect": response.headers["Location"]},
         )
 
-    def force_refresh(self, request: HttpRequest) -> HttpResponse:
+    def force_refresh(
+        self, request: HttpRequest, response: HttpResponse
+    ) -> HttpResponse:
+        # The discarded page already took what it would have shown from the
+        # session; keep it for the page the client reloads.
         # If the storage middleware is not defined, get_messages returns an empty list
         storage = messages.get_messages(request)
         if not isinstance(storage, list):
             storage.used = False
+        if isinstance(response, InertiaResponse) and response.next_page:
+            restore_next_page(request, response.next_page)
         response = InertiaLocation(request.build_absolute_uri())
         # The client compares it with its own to tell a version change from
         # an ordinary location visit, and skips reloading background requests.

@@ -47,6 +47,10 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 
 * Stop shipping the test suite in the wheel. The package now lives in `src/dj_inertiajs/` and the tests in a top-level `tests/` directory, so the wheel contains only the package.
 
+### Fixed
+
+* Keep `set_errors()` errors, `clear_history()` and `preserve_fragment` for the next page when an asset version mismatch makes the client reload, as Django messages already were. The discarded page used to consume them.
+
 ## [2.0.0] - 2026-08-16
 
 ### Breaking changes

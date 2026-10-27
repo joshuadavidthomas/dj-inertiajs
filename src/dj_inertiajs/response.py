@@ -18,7 +18,7 @@ from django.utils.encoding import iri_to_uri
 from .conf import settings
 from .props import Prop, resolve_value
 from .request import InertiaDetails, get_details
-from .session import pop_next_page
+from .session import NextPage, pop_next_page
 
 try:
     # Must be early-imported so tests can patch it with
@@ -228,6 +228,9 @@ class InertiaResponse(SimpleTemplateResponse):
     """
 
     json_encoder: type[JSONEncoder] | None = None
+    # What page_data() took from the session, for the middleware to put back
+    # if it discards the rendered page.
+    next_page: NextPage | None = None
     rendering_attrs = [
         *SimpleTemplateResponse.rendering_attrs,
         "_request",
@@ -317,7 +320,7 @@ class InertiaResponse(SimpleTemplateResponse):
         # The client sends this cookie's token with every visit and useHttp
         # request, but an Inertia page never renders {% csrf_token %}.
         get_token(request)
-        next_page = pop_next_page(request)
+        next_page = self.next_page = pop_next_page(request)
 
         shared: dict[str, Any] = {}
         for provider in settings.SHARED_PROPS:

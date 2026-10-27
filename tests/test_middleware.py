@@ -59,6 +59,16 @@ class MiddlewareTestCase(ProtocolTestCase):
             {"messages": [{"level": "success", "message": "Profile saved!"}]},
         )
 
+    def test_errors_survive_a_version_refresh(self):
+        self.client.post("/set-errors/", {})
+        response = self.client.get("/empty/", headers={"x-inertia-version": "stale"})
+        self.assertEqual(response.status_code, 409)
+
+        response = self.client.get("/empty/")
+        self.assertEqual(
+            response.inertia.props["errors"], {"name": "This field is required."}
+        )
+
     def test_permanent_redirects_after_put_become_303(self):
         middleware = InertiaMiddleware(
             lambda request: HttpResponsePermanentRedirect("/players")

@@ -7,7 +7,7 @@ next ``InertiaResponse`` that renders.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from django.forms import BaseForm, BaseFormSet
@@ -58,6 +58,12 @@ def preserve_fragment(request: HttpRequest) -> None:
 def pop_next_page(request: HttpRequest) -> NextPage:
     """Remove and return the state stored for the next page."""
     return NextPage(**request.session.pop(SESSION_KEY, {}))
+
+
+def restore_next_page(request: HttpRequest, next_page: NextPage) -> None:
+    """Store ``next_page`` again, for a page that was rendered but not shown."""
+    if next_page != NextPage():
+        request.session[SESSION_KEY] = asdict(next_page)
 
 
 def _update(request: HttpRequest, **changes: Any) -> None:
