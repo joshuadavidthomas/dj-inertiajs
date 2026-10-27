@@ -141,6 +141,8 @@ Create the template `INERTIA["LAYOUT"]` names, such as `templates/base.html`, wi
 </body>
 ```
 
+On a full page load the layout also receives `page`, the page object, so it can read props while it renders: `<title>{{ page.props.event.title }}</title>`. The name is reserved, and replaces a `template_data` key with the same name.
+
 A view can render a different layout by passing `template_name` to `render()`, or by setting `template_name` on a class-based view.
 
 ### Check the setup

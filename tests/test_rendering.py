@@ -33,6 +33,11 @@ class FirstLoadTestCase(ProtocolTestCase):
 
         self.assertContains(response, "template data:Brian, Basketball")
 
+    def test_layout_can_read_the_page(self):
+        response = self.client.get("/page-layout/", inertia=False)
+
+        self.assertContains(response, "TestComponent|Brandon|/page-layout/")
+
     def test_with_no_data(self):
         self.assertContains(
             self.client.get("/empty/", inertia=False), inertia_div("empty")

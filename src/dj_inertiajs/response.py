@@ -116,8 +116,9 @@ class InertiaResponse(SimpleTemplateResponse):
 
     @property
     def rendered_content(self) -> str:
+        page = self.page_data()
         data = json_encode(
-            self.page_data(),
+            page,
             cls=self.json_encoder or settings.JSON_ENCODER,
         )
         # Page data is embedded in a JSON script tag for Inertia v3 clients.
@@ -128,7 +129,7 @@ class InertiaResponse(SimpleTemplateResponse):
         self._page_json = data
         if self._details:
             return data
-        return self.build_first_load(data)
+        return self.build_first_load(data, page)
 
     @cached_property
     def inertia(self) -> InertiaPage:
@@ -191,14 +192,15 @@ class InertiaResponse(SimpleTemplateResponse):
 
         return _page
 
-    def build_first_load(self, data: str) -> str:
+    def build_first_load(self, data: str, page: dict[str, Any]) -> str:
+        """Render the layout with ``page``, its JSON in ``data`` and the SSR tags."""
         if not self.template_name:
             raise ImproperlyConfigured(
                 'Set INERTIA["LAYOUT"] in your Django settings, '
                 "or pass template_name to the response."
             )
 
-        page = {"json": data, "head": "", "body": None}
+        shell = {"json": data, "head": "", "body": None}
         if settings.SSR_ENABLED:
             try:
                 ssr_response = requests.post(
@@ -208,13 +210,15 @@ class InertiaResponse(SimpleTemplateResponse):
                 )
                 ssr_response.raise_for_status()
                 rendered = ssr_response.json()
-                page["head"] = "".join(rendered["head"])
-                page["body"] = rendered["body"]
+                shell["head"] = "".join(rendered["head"])
+                shell["body"] = rendered["body"]
             except Exception:
                 logger.exception("SSR render request failed")
 
         template = self.resolve_template(self.template_name)
-        return template.render({**self.template_data, "_inertia": page}, self._request)
+        return template.render(
+            {**self.template_data, "page": page, "_inertia": shell}, self._request
+        )
 
 
 class InertiaLocation(HttpResponse):

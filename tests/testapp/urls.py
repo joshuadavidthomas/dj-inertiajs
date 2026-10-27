@@ -11,6 +11,7 @@ urlpatterns = [
     path("other-layout/", views.other_layout_test),
     path("other-layout-view/", views.OtherLayoutView.as_view()),
     path("plain-layout/", views.plain_layout_test),
+    path("page-layout/", views.page_layout_test),
     path("set-errors/", views.set_errors_test),
     path("overrides-shared/", views.overrides_shared_test),
     path("dashboard/<str:team>/", views.DashboardView.as_view()),

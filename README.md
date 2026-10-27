@@ -77,6 +77,8 @@ def index(request):
 
 It also takes `template_data` (extra context for the layout), and the keyword-only `template_name` (a layout other than `INERTIA["LAYOUT"]`), `status`, `headers` and `encrypt_history` (see [History encryption](#history-encryption)).
 
+On a full page load the layout also receives `page`, the page object, so it can read props while it renders: `<title>{{ page.props.event.title }}</title>`. The name is reserved, and replaces a `template_data` key with the same name.
+
 For views that only return props, use the decorator. It works on sync and `async` views, and passes any `HttpResponse` the view returns, such as a redirect, through unchanged:
 
 ```python

@@ -374,6 +374,15 @@ def plain_layout_test(request):
     return django_render(request, "layout.html", {"name": "Brian"})
 
 
+def page_layout_test(request):
+    return render(
+        request,
+        "TestComponent",
+        {"name": "Brandon"},
+        template_name="page_layout.html",
+    )
+
+
 def status_test(request):
     return render(request, "TestComponent", {"name": "Brandon"}, status=201)
 
