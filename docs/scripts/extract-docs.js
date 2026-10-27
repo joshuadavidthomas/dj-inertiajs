@@ -63,7 +63,7 @@ function extractDocs() {
   let output = ''
 
   // Add metadata
-  output += '# Inertia Django Documentation\n'
+  output += '# dj-inertiajs Documentation\n'
   output += `Extracted on: ${new Date().toISOString()}\n\n`
   output +=
     'Note: Code blocks are preserved and formatted for LLM consumption.\n\n'
