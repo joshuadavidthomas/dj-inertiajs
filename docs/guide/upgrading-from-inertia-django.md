@@ -191,7 +191,7 @@ Layouts no longer define `{% block inertia %}` and `{% block inertia_head %}` fo
 - `{% inertia_body %}` outputs the root element. Pass `id="..."` if your client uses an `id` other than `app`.
 - Outside an Inertia response both tags output nothing, so the same layout can serve ordinary Django views.
 
-A layout that read `{{ page }}` for the page JSON gets the page object there now. `{% inertia_body %}` writes the JSON, and `page` is for reading props while the layout renders, such as `<title>{{ page.props.event.title }}</title>`.
+A layout that wrote the page JSON with the `page` variable gets the page object there now. `{% inertia_body %}` writes the JSON, and `page` is for reading props while the layout renders.
 
 `INERTIA["LAYOUT"]` is now only the default. A view can choose its own layout with `render(..., template_name="...")` or a `template_name` attribute on a class-based view.
 
