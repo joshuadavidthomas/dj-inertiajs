@@ -100,6 +100,7 @@ function extractDocs() {
   output += generateAPIReference()
 
   // Write output file
+  fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true })
   fs.writeFileSync(OUTPUT_FILE, output)
   console.log(`Documentation extracted to: ${OUTPUT_FILE}`)
 }
