@@ -50,7 +50,7 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Require Python 3.10 or newer ([#74](https://github.com/inertiajs/inertia-django/pull/74), [#86](https://github.com/inertiajs/inertia-django/pull/86)).
 * Require Django 5.2 LTS or newer ([#103](https://github.com/inertiajs/inertia-django/pull/103)).
 * Move `requests` behind the optional `ssr` extra. Applications using server-side rendering must install `inertia-django[ssr]` ([#73](https://github.com/inertiajs/inertia-django/pull/73)).
-* Update the first-load page format and CSRF configuration for Inertia v3. Applications with custom templates or client setup should follow the [Inertia v3 upgrade guide](https://github.com/joshuadavidthomas/inertia-django/blob/4a9405726525e27c40f216076142277337d7221c/docs/guide/upgrading-to-v3.md) ([#100](https://github.com/inertiajs/inertia-django/pull/100), [#101](https://github.com/inertiajs/inertia-django/pull/101)).
+* Update the first-load page format and CSRF configuration for Inertia v3. Applications with custom templates or client setup should follow the [Inertia v3 upgrade guide](https://github.com/joshuadavidthomas/dj-inertiajs/blob/a543a60516f5a04fe82f58c2d3e45808bba5fba4/docs/guide/upgrading-to-v3.md) ([#100](https://github.com/inertiajs/inertia-django/pull/100), [#101](https://github.com/inertiajs/inertia-django/pull/101)).
 
 ### Added
 

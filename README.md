@@ -13,7 +13,7 @@ The distribution is `dj-inertiajs` and the import package `dj_inertiajs`. It is 
 ### Backend
 
 ```bash
-pip install "dj-inertiajs @ git+https://github.com/joshuadavidthomas/inertia-django"
+pip install "dj-inertiajs @ git+https://github.com/joshuadavidthomas/dj-inertiajs"
 ```
 
 Add the app and the middleware. Inertia stores some state in the session, so `SessionMiddleware` is required too:
@@ -364,7 +364,7 @@ To use your own encoder, set `INERTIA["JSON_ENCODER"]` to its dotted path, or se
 
 Server-side rendering runs in a separate Node server. Django posts the page to it and puts the returned HTML into the layout through `{% inertia_head %}` and `{% inertia_body %}`. If the request fails, the error is logged and the page renders client-side.
 
-1. Install the `ssr` extra, which adds `requests`: `pip install "dj-inertiajs[ssr] @ git+https://github.com/joshuadavidthomas/inertia-django"`.
+1. Install the `ssr` extra, which adds `requests`: `pip install "dj-inertiajs[ssr] @ git+https://github.com/joshuadavidthomas/dj-inertiajs"`.
 2. Turn it on:
 
    ```python

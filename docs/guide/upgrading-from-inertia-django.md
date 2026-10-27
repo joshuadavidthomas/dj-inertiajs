@@ -11,7 +11,7 @@ Each section below shows a change before and after. Make them in any order:
 1. **Install this package** next to inertia-django. Both can be installed while you migrate:
 
    ```shell
-   pip install "dj-inertiajs @ git+https://github.com/joshuadavidthomas/inertia-django"
+   pip install "dj-inertiajs @ git+https://github.com/joshuadavidthomas/dj-inertiajs"
    ```
 
 2. **Make the changes** in [What to change](#what-to-change).

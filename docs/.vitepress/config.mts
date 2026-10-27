@@ -121,7 +121,7 @@ export default defineConfig({
         socialLinks: [
             {
                 icon: "github",
-                link: "https://github.com/joshuadavidthomas/inertia-django",
+                link: "https://github.com/joshuadavidthomas/dj-inertiajs",
             },
         ],
     },

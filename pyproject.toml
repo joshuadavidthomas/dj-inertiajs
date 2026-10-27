@@ -40,8 +40,8 @@ version = "2.0.0"
 ssr = ["requests>=2"]
 
 [project.urls]
-Homepage = "https://github.com/joshuadavidthomas/inertia-django"
-Repository = "https://github.com/joshuadavidthomas/inertia-django"
+Homepage = "https://github.com/joshuadavidthomas/dj-inertiajs"
+Repository = "https://github.com/joshuadavidthomas/dj-inertiajs"
 
 [tool.coverage.report]
 exclude_lines = [

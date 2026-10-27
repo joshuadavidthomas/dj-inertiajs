@@ -13,7 +13,7 @@ dj-inertiajs is an independent project. It is not affiliated with or endorsed by
 
 ## Where things are documented
 
-- **The Django side** is documented here and in the [README](https://github.com/joshuadavidthomas/inertia-django#readme): installing the adapter, views, props, forms, settings and testing.
+- **The Django side** is documented here and in the [README](https://github.com/joshuadavidthomas/dj-inertiajs#readme): installing the adapter, views, props, forms, settings and testing.
 - **The client side**, such as page components, links, forms and layouts, is documented by Inertia itself at [inertiajs.com](https://inertiajs.com/docs/v3/getting-started). Its [who is it for](https://inertiajs.com/docs/v3/core-concepts/who-is-it-for) page explains when Inertia is a good fit.
 
 ## Next steps

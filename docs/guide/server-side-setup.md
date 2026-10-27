@@ -53,17 +53,17 @@ Install the server-side adapter and `django-vite`. The adapter is not on PyPI ye
 ::: code-group
 
 ```shell [uv]
-uv add "dj-inertiajs @ git+https://github.com/joshuadavidthomas/inertia-django" django-vite
+uv add "dj-inertiajs @ git+https://github.com/joshuadavidthomas/dj-inertiajs" django-vite
 ```
 
 ```shell [pip]
-python -m pip install "dj-inertiajs @ git+https://github.com/joshuadavidthomas/inertia-django" django-vite
+python -m pip install "dj-inertiajs @ git+https://github.com/joshuadavidthomas/dj-inertiajs" django-vite
 ```
 :::
 
 With uv, run `uv init --bare` first if your project has no `pyproject.toml`.
 
-For server-side rendering, install the `ssr` extra, which adds `requests`: `"dj-inertiajs[ssr] @ git+https://github.com/joshuadavidthomas/inertia-django"`.
+For server-side rendering, install the `ssr` extra, which adds `requests`: `"dj-inertiajs[ssr] @ git+https://github.com/joshuadavidthomas/dj-inertiajs"`.
 
 ### Update installed apps
 
@@ -119,7 +119,7 @@ INERTIA = {
 }
 ```
 
-> For the other settings, such as `VERSION`, `SHARED_PROPS` and `SSR`, see the [README](https://github.com/joshuadavidthomas/inertia-django#settings).
+> For the other settings, such as `VERSION`, `SHARED_PROPS` and `SSR`, see the [README](https://github.com/joshuadavidthomas/dj-inertiajs#settings).
 
 ### Update base template
 
