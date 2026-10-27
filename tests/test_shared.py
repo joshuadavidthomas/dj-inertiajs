@@ -1,7 +1,7 @@
 from django import forms
 from django.test import SimpleTestCase, TestCase, override_settings
 
-from dj_inertiajs.request import error_messages
+from dj_inertiajs.forms import error_messages
 from dj_inertiajs.test import InertiaClient, InertiaTestCase
 
 SHARED = {

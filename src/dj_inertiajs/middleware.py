@@ -7,8 +7,9 @@ from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.utils.cache import patch_vary_headers
 
 from .conf import settings
-from .request import INERTIA_SESSION_PRESERVE_FRAGMENT, InertiaDetails
+from .request import InertiaDetails
 from .response import InertiaLocation, InertiaResponse
+from .session import preserve_fragment
 
 # The Inertia v3 client reads the CSRF token from this cookie and sends it in
 # an X-XSRF-TOKEN header, the names Laravel uses.
@@ -78,7 +79,7 @@ class InertiaMiddleware:
         self.set_xsrf_cookie(request, response)
 
         if getattr(response, "preserve_fragment", False):
-            request.session[INERTIA_SESSION_PRESERVE_FRAGMENT] = True
+            preserve_fragment(request)
 
         if not details:
             return response

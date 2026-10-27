@@ -13,7 +13,7 @@ DEFAULTS: dict[str, Any] = {
     "JSON_ENCODER": "dj_inertiajs.encoders.InertiaJsonEncoder",
     "ENCRYPT_HISTORY": False,
     "SHARED_PROPS": [],
-    "FORM_ERRORS": "dj_inertiajs.request.error_messages",
+    "FORM_ERRORS": "dj_inertiajs.forms.error_messages",
     "SSR": {
         "ENABLED": False,
         "URL": "http://localhost:13714",

@@ -387,7 +387,7 @@ All settings live in one `INERTIA` dict:
 | `JSON_ENCODER` | `"dj_inertiajs.encoders.InertiaJsonEncoder"` | Dotted path to the JSON encoder for props. |
 | `ENCRYPT_HISTORY` | `False` | Encrypt the browser history state on every page. |
 | `SHARED_PROPS` | `[]` | Dotted paths to functions whose props are added to every page. |
-| `FORM_ERRORS` | `"dj_inertiajs.request.error_messages"` | Dotted path to a function that turns a form, formset or dict of errors into the `errors` prop. |
+| `FORM_ERRORS` | `"dj_inertiajs.forms.error_messages"` | Dotted path to a function that turns a form, formset or dict of errors into the `errors` prop. |
 | `SSR` | `{"ENABLED": False, "URL": "http://localhost:13714"}` | Server-side rendering. Keys you leave out keep their defaults. |
 
 To change the version whenever your assets change, set `VERSION` to a callable, for example one that hashes your build manifest:

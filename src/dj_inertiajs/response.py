@@ -17,13 +17,8 @@ from django.utils.encoding import iri_to_uri
 
 from .conf import settings
 from .props import Prop, resolve_value
-from .request import (
-    INERTIA_SESSION_CLEAR_HISTORY,
-    INERTIA_SESSION_ERRORS,
-    INERTIA_SESSION_PRESERVE_FRAGMENT,
-    InertiaDetails,
-    get_details,
-)
+from .request import InertiaDetails, get_details
+from .session import pop_next_page
 
 try:
     # Must be early-imported so tests can patch it with
@@ -322,17 +317,13 @@ class InertiaResponse(SimpleTemplateResponse):
         # The client sends this cookie's token with every visit and useHttp
         # request, but an Inertia page never renders {% csrf_token %}.
         get_token(request)
-        clear_history = request.session.pop(INERTIA_SESSION_CLEAR_HISTORY, False)
-        should_preserve_fragment = request.session.pop(
-            INERTIA_SESSION_PRESERVE_FRAGMENT, False
-        )
+        next_page = pop_next_page(request)
 
         shared: dict[str, Any] = {}
         for provider in settings.SHARED_PROPS:
             shared.update(provider(request))
-        errors = request.session.pop(INERTIA_SESSION_ERRORS, None)
-        if errors:
-            shared["errors"] = Prop(errors, always=True)
+        if next_page.errors:
+            shared["errors"] = Prop(next_page.errors, always=True)
 
         resolved_props, metadata = PropsResolver(
             details, self.component, {**shared, **self.props}
@@ -347,10 +338,10 @@ class InertiaResponse(SimpleTemplateResponse):
                 if self.encrypt_history is None
                 else self.encrypt_history
             ),
-            "clearHistory": clear_history,
+            "clearHistory": next_page.clear_history,
         }
 
-        if should_preserve_fragment:
+        if next_page.preserve_fragment:
             _page["preserveFragment"] = True
 
         if shared:
