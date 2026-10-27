@@ -222,7 +222,7 @@ Later functions in the list override earlier ones, and the view's own props over
 
 Inertia forms read validation errors from the `errors` prop.
 
-In a view that redirects after a POST, call `set_errors()` before redirecting. The errors are stored in the session and, like Django messages, sent once, on the next page:
+Call `set_errors()` in the view that validates the form. Like Django messages, the errors are stored in the session and sent once, with the next Inertia page that renders. In the usual redirect-after-POST view, that is the page the redirect leads to:
 
 ```python
 from django.shortcuts import redirect
@@ -238,6 +238,8 @@ def create_event(request):
     form.save()
     return redirect("events:index")
 ```
+
+A view that renders a page instead of redirecting sends the errors with that page, since it is the next one rendered. If the client reloads because the asset version changed, the errors wait for the reloaded page.
 
 A class-based view whose context holds a bound, invalid `form`, such as a `FormView` after `form_invalid()`, sends its errors automatically.
 
@@ -324,7 +326,7 @@ def account(request):
 
 `render(..., encrypt_history=True)` and an `encrypt_history = True` attribute on a class-based view do the same. To decide at runtime, set `response.encrypt_history` before the response renders.
 
-Call `clear_history(request)` to discard the encrypted history on the next page, for example on logout:
+Call `clear_history(request)` to discard the encrypted history when the next Inertia page renders, for example on logout. Like `set_errors()`, that is the page after a redirect, or the page the view renders itself:
 
 ```python
 from django.contrib.auth import views as auth_views

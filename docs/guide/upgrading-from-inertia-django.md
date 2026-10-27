@@ -312,7 +312,7 @@ Later functions in `SHARED_PROPS` override earlier ones, as later `share()` call
 
 Inertia forms read an `errors` prop. inertia-django left it to you to share one. Now:
 
-- In a redirect-after-POST view, call `set_errors(request, form)` before redirecting. The errors are sent once on the next page, like `messages.error()`.
+- Call `set_errors(request, form)` in the view that validates the form. Like `messages.error()`, the errors are sent once, with the next Inertia page that renders: the page a redirect-after-POST leads to, or the page the view renders itself.
 - A class-based view whose context holds a bound, invalid `form`, such as `FormView` after `form_invalid`, sends its errors automatically.
 
 Each field keeps its first message, the shape Inertia's `useForm` expects. If you shared `form.errors` yourself, you sent lists of messages; delete that code.
@@ -374,7 +374,7 @@ def account(request):
 
 `render(request, "Account/Show", props, encrypt_history=True)` and `encrypt_history = True` on a class-based view do the same. `False` opts a page out of `INERTIA["ENCRYPT_HISTORY"]`. To decide at runtime, pass a variable to `render()`, or set `response.encrypt_history` before the response renders.
 
-`clear_history(request)` is unchanged; only its import moves. Like `messages.error(request, ...)`, it takes the request first, because it applies to the next page.
+`clear_history(request)` is unchanged; only its import moves. Like `messages.error(request, ...)`, it takes the request first, because it applies to the next Inertia page that renders, after a redirect or in the same response.
 
 ## Serialization
 
