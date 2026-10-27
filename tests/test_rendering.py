@@ -1,7 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.test import AsyncClient, TestCase, override_settings
 
-from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_div, inertia_page
+from tests.utils import ProtocolTestCase, inertia_div, inertia_page
 
 
 class FirstLoadTestCase(ProtocolTestCase):
@@ -113,7 +113,7 @@ class ComplexPropsTestCase(ProtocolTestCase):
 @override_settings(
     INERTIA={
         "LAYOUT": "layout.html",
-        "SHARED_PROPS": ["dj_inertiajs.tests.testapp.views.player_props"],
+        "SHARED_PROPS": ["tests.testapp.views.player_props"],
     }
 )
 class ShareTestCase(ProtocolTestCase):

@@ -4,7 +4,7 @@ from django.conf import settings
 from django.test import override_settings
 
 from dj_inertiajs.test import InertiaClient
-from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_page
+from tests.utils import ProtocolTestCase, inertia_page
 
 # ---------------------------------------------------------------------------
 # preserveFragment
@@ -59,7 +59,7 @@ class PreserveFragmentTestCase(ProtocolTestCase):
 @override_settings(
     INERTIA={
         "LAYOUT": "layout.html",
-        "SHARED_PROPS": ["dj_inertiajs.tests.testapp.views.shared_errors"],
+        "SHARED_PROPS": ["tests.testapp.views.shared_errors"],
     }
 )
 class PreserveErrorsTestCase(ProtocolTestCase):

@@ -43,6 +43,10 @@ This is a separate, Django-native package forked from inertia-django 2.0.0. It b
 * Add class-based views in `dj_inertiajs.views`: `InertiaResponseMixin`, which works with Django's generic views such as `ListView` and `FormView`, and `InertiaView`. Props come from `get_props()`. `Prop` attributes declared on the class are collected automatically, and so are methods decorated with `@prop(...)`, which take `Prop`'s options and run only when their prop is sent. A bound, invalid `form` in the context is sent as the `errors` prop, so `FormView` needs no extra code.
 * Expose the page a rendered response sent as `response.inertia` (`component`, `props`, `url`, `version`, and the whole page object as `data`), so pytest tests can read it without helpers.
 
+### Changed
+
+* Stop shipping the test suite in the wheel. The package now lives in `src/dj_inertiajs/` and the tests in a top-level `tests/` directory, so the wheel contains only the package.
+
 ## [2.0.0] - 2026-08-16
 
 ### Breaking changes

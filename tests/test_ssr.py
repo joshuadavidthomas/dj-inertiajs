@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from django.test import override_settings
 
-from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_div, inertia_page
+from tests.utils import ProtocolTestCase, inertia_div, inertia_page
 
 
 @override_settings(

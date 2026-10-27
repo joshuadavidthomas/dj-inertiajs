@@ -6,6 +6,8 @@ from django.conf import settings
 from django.core.checks import run_checks
 from django.test import SimpleTestCase, override_settings
 
+from dj_inertiajs import checks
+
 
 def inertia_check_ids():
     return sorted(m.id for m in run_checks() if m.id.startswith("inertia."))
@@ -57,7 +59,7 @@ class ChecksTestCase(SimpleTestCase):
         middleware = [
             m.replace(
                 "dj_inertiajs.middleware.InertiaMiddleware",
-                "dj_inertiajs.tests.testapp.middleware.CustomInertiaMiddleware",
+                "tests.testapp.middleware.CustomInertiaMiddleware",
             )
             for m in settings.MIDDLEWARE
         ]
@@ -100,10 +102,10 @@ class UpgradeChecksTestCase(SimpleTestCase):
         self.assertEqual(inertia_check_ids(), [])
 
     def test_every_guide_section_the_hints_name_exists(self):
-        package = Path(__file__).parents[1]
-        guide = package.parent / "docs/guide/upgrading-from-inertia-django.md"
+        root = Path(__file__).parents[1]
+        guide = root / "docs/guide/upgrading-from-inertia-django.md"
         headings = set(re.findall(r"^#+ (.+)$", guide.read_text(), re.MULTILINE))
-        source = (package / "checks.py").read_text()
+        source = Path(checks.__file__).read_text()
         named = set(re.findall(r"""guide\(["']([^"']+)["']\)""", source))
 
         self.assertTrue(named)

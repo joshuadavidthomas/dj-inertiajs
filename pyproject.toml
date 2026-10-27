@@ -52,22 +52,26 @@ fail_under = 90
 
 [tool.coverage.run]
 branch = true
-omit = ["dj_inertiajs/tests/*"]
-source = ["dj_inertiajs"]
+omit = ["tests/*"]
+source = ["src/dj_inertiajs"]
 
 [tool.django-stubs]
-django_settings_module = "dj_inertiajs.tests.settings"
+django_settings_module = "tests.settings"
 
 [tool.mypy]
 exclude = [
-  "dj_inertiajs/tests/"
+  "tests/"
 ]
+mypy_path = "src/"
 plugins = ["mypy_django_plugin.main"]
 strict = true
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "dj_inertiajs.tests.settings"
+DJANGO_SETTINGS_MODULE = "tests.settings"
 django_find_project = false
+norecursedirs = ".* build dist node_modules"
+pythonpath = ["src", "."]
+testpaths = ["tests"]
 
 [tool.ruff.lint]
 ignore = ["E501"]  # line too long, formatter will handle this
@@ -83,4 +87,3 @@ unfixable = ["B", "SIM"]
 
 [tool.uv.build-backend]
 module-name = "dj_inertiajs"
-module-root = ""

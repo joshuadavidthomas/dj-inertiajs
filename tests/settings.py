@@ -27,10 +27,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.sites",
     "dj_inertiajs",
-    "dj_inertiajs.tests.testapp.apps.TestAppConfig",
+    "tests.testapp.apps.TestAppConfig",
 ]
 
-ROOT_URLCONF = "dj_inertiajs.tests.testapp.urls"
+ROOT_URLCONF = "tests.testapp.urls"
 
 TEMPLATES = [
     {

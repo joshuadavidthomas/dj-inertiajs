@@ -1,6 +1,6 @@
 from django.test import override_settings
 
-from dj_inertiajs.tests.utils import ProtocolTestCase, inertia_page
+from tests.utils import ProtocolTestCase, inertia_page
 
 
 class OncePropsTestCase(ProtocolTestCase):
@@ -125,7 +125,7 @@ class OncePropsTestCase(ProtocolTestCase):
 @override_settings(
     INERTIA={
         "LAYOUT": "layout.html",
-        "SHARED_PROPS": ["dj_inertiajs.tests.testapp.views.once_plans"],
+        "SHARED_PROPS": ["tests.testapp.views.once_plans"],
     }
 )
 class SharedOncePropsTestCase(ProtocolTestCase):

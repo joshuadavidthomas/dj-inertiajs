@@ -6,7 +6,7 @@ from dj_inertiajs.test import InertiaClient, InertiaTestCase
 
 SHARED = {
     "LAYOUT": "layout.html",
-    "SHARED_PROPS": ["dj_inertiajs.tests.testapp.views.shared_props"],
+    "SHARED_PROPS": ["tests.testapp.views.shared_props"],
 }
 
 
@@ -47,7 +47,7 @@ class SharedPropsSettingTestCase(InertiaTestCase):
             **SHARED,
             "SHARED_PROPS": [
                 *SHARED["SHARED_PROPS"],
-                "dj_inertiajs.tests.testapp.views.player_props",
+                "tests.testapp.views.player_props",
             ],
         }
     )
@@ -130,7 +130,7 @@ class FormErrorsSettingTestCase(TestCase):
     @override_settings(
         INERTIA={
             "LAYOUT": "layout.html",
-            "FORM_ERRORS": "dj_inertiajs.tests.testapp.views.all_error_messages",
+            "FORM_ERRORS": "tests.testapp.views.all_error_messages",
         }
     )
     def test_form_errors_setting_converts_errors(self):

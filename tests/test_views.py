@@ -2,8 +2,8 @@ from django.core.exceptions import ImproperlyConfigured
 
 from dj_inertiajs import prop
 from dj_inertiajs.test import InertiaTestCase
-from dj_inertiajs.tests.testapp.models import Sport
 from dj_inertiajs.views import InertiaView
+from tests.testapp.models import Sport
 
 
 class InertiaViewTestCase(InertiaTestCase):

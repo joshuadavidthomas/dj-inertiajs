@@ -5,7 +5,7 @@ from django.test import RequestFactory
 
 from dj_inertiajs import Prop
 from dj_inertiajs.middleware import InertiaMiddleware
-from dj_inertiajs.tests.utils import ProtocolTestCase
+from tests.utils import ProtocolTestCase
 
 
 class V3PropsCompatibilityTestCase(ProtocolTestCase):

@@ -5,7 +5,7 @@ from django.utils.cache import has_vary_header
 
 from dj_inertiajs import InertiaResponse, redirect
 from dj_inertiajs.middleware import InertiaMiddleware
-from dj_inertiajs.tests.utils import ProtocolTestCase
+from tests.utils import ProtocolTestCase
 
 
 class AsyncMiddlewareTestCase(TestCase):

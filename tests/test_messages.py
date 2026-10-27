@@ -1,4 +1,4 @@
-from dj_inertiajs.tests.utils import ProtocolTestCase
+from tests.utils import ProtocolTestCase
 
 
 class FlashMessagesTestCase(ProtocolTestCase):
