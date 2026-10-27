@@ -100,7 +100,9 @@ def check_middleware(**kwargs: Any) -> list[CheckMessage]:
         errors.append(
             Error(
                 f"'{SESSION_MIDDLEWARE}' must be in MIDDLEWARE.",
-                hint="Inertia stores history and fragment flags in the session.",
+                hint=(
+                    "Inertia stores errors, history and fragment flags in the session."
+                ),
                 id="inertia.E005",
             )
         )
